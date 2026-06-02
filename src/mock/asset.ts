@@ -1,0 +1,31 @@
+import { MockMethod } from 'vite-plugin-mock'
+
+export default [
+  { url: '/api/projects/:projectId/assets', method: 'get', response: () => ({ code: 200, message: 'success', data: { records: [], total: 0, current: 1, size: 20 }, timestamp: Date.now() }) },
+  { url: '/api/projects/:projectId/assets/:assetId', method: 'get', response: () => ({ code: 200, message: 'success', data: { id: 'asset-001', assetName: '角色A', assetType: 'character', category: '角色', tags: [], fileSize: 1024, fileUrl: '', thumbnailUrl: '', projectId: 'proj-001', createBy: 'user-001', createTime: '2025-01-15 10:00:00', updateTime: '2025-05-20 14:30:00', description: '', mimeType: 'image/png', version: 1, metadata: {} }, timestamp: Date.now() }) },
+  { url: '/api/projects/:projectId/assets', method: 'post', response: ({ body }: any) => ({ code: 200, message: '上传成功', data: { id: 'asset-new-' + Date.now(), assetName: body.assetName || '新资产', assetType: body.assetType || 'other', category: body.category || '', tags: body.tags || [], fileSize: 0, fileUrl: '', thumbnailUrl: '', projectId: 'proj-001', createBy: 'user-001', createTime: new Date().toISOString(), updateTime: new Date().toISOString() }, timestamp: Date.now() }) },
+  { url: '/api/projects/:projectId/assets/:assetId', method: 'put', response: ({ body }: any) => ({ code: 200, message: '更新成功', data: { ...body, updateTime: new Date().toISOString() }, timestamp: Date.now() }) },
+  { url: '/api/projects/:projectId/assets/:assetId', method: 'delete', response: () => ({ code: 200, message: '删除成功', data: null, timestamp: Date.now() }) },
+  { url: '/api/projects/:projectId/assets/batch-delete', method: 'delete', response: () => ({ code: 200, message: '批量删除成功', data: null, timestamp: Date.now() }) },
+  { url: '/api/projects/:projectId/assets/:assetId/download', method: 'get', response: () => ({ code: 200, message: 'success', data: null, timestamp: Date.now() }) },
+  { url: '/api/projects/:projectId/assets/batch-download', method: 'post', response: () => ({ code: 200, message: 'success', data: null, timestamp: Date.now() }) },
+  { url: '/api/projects/:projectId/assets/:assetId/versions', method: 'get', response: () => ({ code: 200, message: 'success', data: [], timestamp: Date.now() }) },
+  { url: '/api/projects/:projectId/assets/:assetId/rollback', method: 'post', response: () => ({ code: 200, message: '回滚成功', data: null, timestamp: Date.now() }) },
+  { url: '/api/projects/:projectId/assets/chunk-init', method: 'post', response: () => ({ code: 200, message: 'success', data: { uploadId: 'upload-' + Date.now(), chunkSize: 5242880, totalChunks: 1 }, timestamp: Date.now() }) },
+  { url: '/api/projects/:projectId/assets/chunk-upload', method: 'post', response: () => ({ code: 200, message: '分片上传成功', data: null, timestamp: Date.now() }) },
+  { url: '/api/projects/:projectId/assets/chunk-complete', method: 'post', response: () => ({ code: 200, message: '分片合并成功', data: { id: 'asset-new-' + Date.now() }, timestamp: Date.now() }) },
+  { url: '/api/projects/:projectId/assets/chunk-cancel', method: 'delete', response: () => ({ code: 200, message: '取消成功', data: null, timestamp: Date.now() }) },
+  { url: '/api/projects/:projectId/assets/batch', method: 'post', response: () => ({ code: 200, message: '批量上传成功', data: [], timestamp: Date.now() }) },
+  { url: '/api/projects/:projectId/assets/batch-tags', method: 'post', response: () => ({ code: 200, message: '标签添加成功', data: null, timestamp: Date.now() }) },
+  { url: '/api/projects/:projectId/assets/batch-tags', method: 'delete', response: () => ({ code: 200, message: '标签移除成功', data: null, timestamp: Date.now() }) },
+  { url: '/api/projects/:projectId/assets/batch-move', method: 'post', response: () => ({ code: 200, message: '分类移动成功', data: null, timestamp: Date.now() }) },
+  { url: '/api/projects/:projectId/assets/ai-generate', method: 'post', response: () => ({ code: 200, message: 'AI生成已提交', data: { id: 'asset-ai-' + Date.now() }, timestamp: Date.now() }) },
+  { url: '/api/projects/:projectId/assets/reference-images', method: 'get', response: () => ({ code: 200, message: 'success', data: [], timestamp: Date.now() }) },
+  { url: '/api/projects/:projectId/assets/reference-images', method: 'post', response: () => ({ code: 200, message: '参考图上传成功', data: { id: 'ref-' + Date.now() }, timestamp: Date.now() }) },
+  { url: '/api/projects/:projectId/assets/reference-images/:assetId', method: 'delete', response: () => ({ code: 200, message: '参考图删除成功', data: null, timestamp: Date.now() }) },
+  { url: '/api/projects/:projectId/assets/import-from-team', method: 'post', response: () => ({ code: 200, message: '导入成功', data: [], timestamp: Date.now() }) },
+  { url: '/api/teams/:teamId/assets', method: 'get', response: () => ({ code: 200, message: 'success', data: { records: [], total: 0, current: 1, size: 20 }, timestamp: Date.now() }) },
+  { url: '/api/teams/:teamId/assets', method: 'post', response: () => ({ code: 200, message: '上传成功', data: { id: 'team-asset-' + Date.now() }, timestamp: Date.now() }) },
+  { url: '/api/teams/:teamId/assets/:assetId', method: 'get', response: () => ({ code: 200, message: 'success', data: null, timestamp: Date.now() }) },
+  { url: '/api/teams/:teamId/asset-categories', method: 'get', response: () => ({ code: 200, message: 'success', data: ['角色', '场景', '道具'], timestamp: Date.now() }) }
+] as MockMethod[]

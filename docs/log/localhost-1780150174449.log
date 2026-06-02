@@ -1,0 +1,97 @@
+pinia.mjs:281 🍍 "userStore" store installed 🆕
+pinia.mjs:281 🍍 "worktabStore" store installed 🆕
+web-vitals.ts:13 [WebVitals] FCP: 3024.00ms (poor)
+web-vitals.ts:13 [WebVitals] TTFB: 1584.70ms (needs-improvement)
+bus.ts:149 [DataFlow] 统一数据流转平台已初始化 ✅
+pinia.mjs:281 🍍 "team" store installed 🆕
+pinia.mjs:281 🍍 "notification" store installed 🆕
+pinia.mjs:281 🍍 "review" store installed 🆕
+pinia.mjs:281 🍍 "project" store installed 🆕
+web-vitals.ts:13 [WebVitals] LCP: 5472.00ms (poor)
+:3006/api/auth/login:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+error.ts:160 [HTTP Error] Object
+(匿名) @ error.ts:160
+web-vitals.ts:13 [WebVitals] INP: 24.00ms (good)
+web-vitals.ts:13 [WebVitals] CLS: 0.00ms (good)
+index.ts:220  POST http://localhost:3006/api/auth/login 500 (Internal Server Error)
+dispatchXhrRequest @ xhr.js:198
+(匿名) @ xhr.js:15
+dispatchRequest @ dispatchRequest.js:51
+Promise.then
+_request @ Axios.js:163
+request @ Axios.js:40
+wrap @ bind.js:5
+_doRequest @ index.ts:220
+request @ index.ts:215
+retryRequest @ index.ts:167
+post @ index.ts:249
+(匿名) @ auth.ts:4
+(匿名) @ index.vue:166
+await in (匿名)
+callWithErrorHandling @ runtime-core.esm-bundler.js:199
+callWithAsyncErrorHandling @ runtime-core.esm-bundler.js:206
+emit @ runtime-core.esm-bundler.js:6473
+(匿名) @ runtime-core.esm-bundler.js:8188
+(匿名) @ use-button.ts:76
+callWithErrorHandling @ runtime-core.esm-bundler.js:199
+callWithAsyncErrorHandling @ runtime-core.esm-bundler.js:206
+(匿名) @ runtime-dom.esm-bundler.js:730
+error.ts:160 [HTTP Error] {code: 500, message: '服务器内部错误', data: {…}, timestamp: '2026-05-30T14:09:00.309Z', url: '/api/auth/login', …}
+(匿名) @ error.ts:160
+_doRequest @ index.ts:237
+await in _doRequest
+request @ index.ts:215
+retryRequest @ index.ts:167
+post @ index.ts:249
+(匿名) @ auth.ts:4
+(匿名) @ index.vue:166
+await in (匿名)
+callWithErrorHandling @ runtime-core.esm-bundler.js:199
+callWithAsyncErrorHandling @ runtime-core.esm-bundler.js:206
+emit @ runtime-core.esm-bundler.js:6473
+(匿名) @ runtime-core.esm-bundler.js:8188
+(匿名) @ use-button.ts:76
+callWithErrorHandling @ runtime-core.esm-bundler.js:199
+callWithAsyncErrorHandling @ runtime-core.esm-bundler.js:206
+(匿名) @ runtime-dom.esm-bundler.js:730
+index.ts:220  POST http://localhost:3006/api/auth/login 500 (Internal Server Error)
+dispatchXhrRequest @ xhr.js:198
+(匿名) @ xhr.js:15
+dispatchRequest @ dispatchRequest.js:51
+Promise.then
+_request @ Axios.js:163
+request @ Axios.js:40
+wrap @ bind.js:5
+_doRequest @ index.ts:220
+request @ index.ts:215
+retryRequest @ index.ts:167
+post @ index.ts:249
+(匿名) @ auth.ts:4
+(匿名) @ index.vue:166
+await in (匿名)
+callWithErrorHandling @ runtime-core.esm-bundler.js:199
+callWithAsyncErrorHandling @ runtime-core.esm-bundler.js:206
+emit @ runtime-core.esm-bundler.js:6473
+(匿名) @ runtime-core.esm-bundler.js:8188
+(匿名) @ use-button.ts:76
+callWithErrorHandling @ runtime-core.esm-bundler.js:199
+callWithAsyncErrorHandling @ runtime-core.esm-bundler.js:206
+(匿名) @ runtime-dom.esm-bundler.js:730
+error.ts:160 [HTTP Error] {code: 500, message: '服务器内部错误', data: {…}, timestamp: '2026-05-30T14:09:27.835Z', url: '/api/auth/login', …}
+(匿名) @ error.ts:160
+_doRequest @ index.ts:237
+await in _doRequest
+request @ index.ts:215
+retryRequest @ index.ts:167
+post @ index.ts:249
+(匿名) @ auth.ts:4
+(匿名) @ index.vue:166
+await in (匿名)
+callWithErrorHandling @ runtime-core.esm-bundler.js:199
+callWithAsyncErrorHandling @ runtime-core.esm-bundler.js:206
+emit @ runtime-core.esm-bundler.js:6473
+(匿名) @ runtime-core.esm-bundler.js:8188
+(匿名) @ use-button.ts:76
+callWithErrorHandling @ runtime-core.esm-bundler.js:199
+callWithAsyncErrorHandling @ runtime-core.esm-bundler.js:206
+(匿名) @ runtime-dom.esm-bundler.js:730
