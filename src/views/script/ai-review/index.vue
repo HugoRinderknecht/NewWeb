@@ -339,8 +339,6 @@
     globalWarning: string
   }
 
-  // AiProcessResult 已迁移至 Api.Script.AiProcessResult 类型定义
-
   interface ScriptOption {
     id: string
     title: string

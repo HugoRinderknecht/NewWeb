@@ -452,7 +452,9 @@
           if (batchForm.removeTags.length > 0) {
             newTags = newTags.filter((t) => !batchForm.removeTags.includes(t))
           }
-          updateParams.tags = newTags
+          if (JSON.stringify(newTags) !== JSON.stringify(item.tags)) {
+            updateParams.tags = newTags
+          }
 
           if (Object.keys(updateParams).length > 0) {
             return fetchUpdateStoryboard(id, updateParams)

@@ -189,8 +189,6 @@
     relations: { target: string; relation: string }[]
   }
 
-  // CharacterProfileResult 和 AiProcessResult 已迁移至 Api.Script 类型定义
-
   interface ScriptOption {
     id: string
     title: string

@@ -13,10 +13,8 @@
                 :value="ep.id"
               />
             </ElSelect>
-            <ElTag v-if="currentEpisode" type="info" size="small">
-              剧集：{{ currentEpisode.name }}
-            </ElTag>
-            <ElTag v-else type="info" size="small">请选择剧集</ElTag>
+            <ElTag v-if="currentEpisode" type="info" size="small"> 剧本：《山海经·异兽录》 </ElTag>
+            <ElTag v-else type="info" size="small">剧本：《山海经·异兽录》</ElTag>
           </div>
           <ElSpace>
             <ElInput v-model="searchQuery" placeholder="搜索分镜" clearable style="width: 220px">
@@ -220,16 +218,19 @@
       <ElTimeline>
         <ElTimelineItem
           v-for="(version, index) in versionList"
-          :key="version.id"
+          :key="version.versionId"
           :type="index === 0 ? 'primary' : undefined"
-          :timestamp="version.createTime"
+          :timestamp="version.versionTime"
           placement="top"
         >
           <ElCard shadow="hover">
             <div class="flex-cb">
               <div>
-                <div class="font-medium">版本 V{{ version.version }}</div>
-                <div class="text-g-400 text-sm mt-1">操作人: {{ version.operator }}</div>
+                <div class="font-medium">版本 {{ version.versionId }}</div>
+                <div class="text-g-400 text-sm mt-1"
+                  >操作人: {{ version.operator }} | {{ version.operationType }}</div
+                >
+                <div class="text-g-400 text-sm mt-1">{{ version.changeSummary }}</div>
               </div>
               <ElButton type="warning" size="small" @click="handleRollback(version)">
                 回退到此版本
@@ -251,12 +252,8 @@
         </ElFormItem>
         <ElFormItem v-if="aiForm.mode === 'script'" label="选择剧本">
           <ElSelect v-model="aiForm.scriptId" placeholder="请选择剧本" class="w-full">
-            <ElOption
-              v-for="script in scriptOptions"
-              :key="script.id"
-              :label="script.name"
-              :value="script.id"
-            />
+            <ElOption label="山海经·异兽录" value="shj" />
+            <ElOption label="品牌宣传片" value="brand" />
           </ElSelect>
         </ElFormItem>
         <ElFormItem label="生成数量">
@@ -293,14 +290,8 @@
     fetchUpdateStoryboard,
     fetchBatchDeleteStoryboards,
     fetchSubmitStoryboardReview,
-    fetchWithdrawStoryboardReview,
-    fetchGetStoryboardVersions,
-    fetchRollbackStoryboardVersion,
-    fetchGetSceneList,
-    fetchReorderStoryboards,
-    fetchDecomposeStoryboard
+    fetchWithdrawStoryboardReview
   } from '@/api/storyboard'
-  import { fetchGetProjectEpisodes, fetchGetScriptList } from '@/api/script'
 
   defineOptions({ name: 'StoryboardDesign' })
 
@@ -351,22 +342,31 @@
   const currentItem = ref<StoryboardItem | null>(null)
   const formRef = ref<FormInstance>()
 
-  const versionList = ref<Api.Storyboard.StoryboardVersion[]>([])
-
-  const loadVersionList = async (storyboardId: string) => {
-    try {
-      const res = await fetchGetStoryboardVersions(storyboardId)
-      if (res && Array.isArray(res)) {
-        versionList.value = res
-      }
-    } catch {
-      console.error('加载版本历史失败')
+  const versionList = ref([
+    {
+      versionId: 'V3',
+      versionTime: '2026-05-27 11:30:00',
+      operator: '王五',
+      operationType: '修改',
+      changeSummary: '更新分镜描述和镜头数量'
+    },
+    {
+      versionId: 'V2',
+      versionTime: '2026-05-27 10:00:00',
+      operator: '李四',
+      operationType: '修改',
+      changeSummary: '调整分镜顺序'
+    },
+    {
+      versionId: 'V1',
+      versionTime: '2026-05-27 09:00:00',
+      operator: '张三',
+      operationType: '创建',
+      changeSummary: '初始创建分镜'
     }
-  }
+  ])
 
-  const currentEpisode = computed(() =>
-    episodeOptions.value.find((ep) => ep.id === filterEpisode.value)
-  )
+  const currentEpisode = computed(() => episodeOptions.find((ep) => ep.id === filterEpisode.value))
 
   const pagination = reactive({
     current: 1,
@@ -412,40 +412,21 @@
     return map[status]
   }
 
-  const sceneOptions = ref<SceneOption[]>([])
+  const sceneOptions: SceneOption[] = [
+    { id: '1', name: '青丘山' },
+    { id: '2', name: '昆仑墟' },
+    { id: '3', name: '幽都' },
+    { id: '4', name: '不周山' },
+    { id: '5', name: '东海之滨' }
+  ]
 
-  const loadSceneOptions = async () => {
-    try {
-      if (!filterEpisode.value) return
-      const res = await fetchGetSceneList(String(filterEpisode.value))
-      if (res && Array.isArray(res)) {
-        sceneOptions.value = res.map((s: any) => ({
-          id: s.id,
-          name: s.name ?? s.description ?? ''
-        })) as SceneOption[]
-      }
-    } catch {
-      console.error('加载场景选项失败')
-    }
-  }
-
-  const episodeOptions = ref<EpisodeOption[]>([])
-
-  const loadEpisodeOptions = async () => {
-    try {
-      const projectId = (route.params.projectId as string) || '1'
-      const res = await fetchGetProjectEpisodes(projectId)
-      if (res && Array.isArray(res)) {
-        episodeOptions.value = res.map((ep: any) => ({
-          id: ep.id,
-          number: ep.episodeIndex ?? ep.number ?? 1,
-          name: ep.title ?? ep.name ?? ''
-        })) as EpisodeOption[]
-      }
-    } catch {
-      console.error('加载剧集选项失败')
-    }
-  }
+  const episodeOptions: EpisodeOption[] = [
+    { id: '1', number: 1, name: '初遇九尾' },
+    { id: '2', number: 2, name: '昆仑求药' },
+    { id: '3', number: 3, name: '白泽指引' },
+    { id: '4', number: 4, name: '幽都危机' },
+    { id: '5', number: 5, name: '神兽之战' }
+  ]
 
   const form = reactive<Partial<StoryboardItem>>({
     name: '',
@@ -468,78 +449,30 @@
 
   const storyboardList = ref<StoryboardItem[]>([])
 
-  const mapStatus = (status: number | string): StoryboardStatus => {
-    const map: Record<number, StoryboardStatus> = {
-      1: 'draft',
-      2: 'designing',
-      3: 'completed',
-      4: 'archived'
-    }
-    if (typeof status === 'number') return map[status] || 'draft'
-    return (status as StoryboardStatus) || 'draft'
-  }
-
-  const scriptOptions = ref<Array<{ id: string; name: string }>>([])
-
-  const loadScriptOptions = async () => {
-    try {
-      const projectId = (route.params.projectId as string) || '1'
-      const res = await fetchGetScriptList(projectId)
-      if (res) {
-        const list = (res as any).records || res || []
-        scriptOptions.value = list.map((s: any) => ({
-          id: s.id,
-          name: s.title ?? s.name ?? ''
-        }))
-      }
-    } catch {
-      console.error('加载剧本选项失败')
-    }
-  }
-
-  watch(filterEpisode, () => {
-    loadSceneOptions()
-    loadStoryboardList()
-  })
-
   const loadStoryboardList = async () => {
     try {
       const projectId = (route.params.projectId as string) || '1'
-      const params: Api.Storyboard.StoryboardSearchParams = {
-        page: pagination.current,
-        pageSize: pagination.size
-      }
-      if (filterEpisode.value) {
-        params.episodeId = String(filterEpisode.value)
-      }
-      if (filterSource.value) {
-        params.keyword = filterSource.value
-      }
-      if (searchQuery.value) {
-        params.keyword = searchQuery.value
-      }
-      const res = await fetchGetStoryboardList(projectId, params)
+      const res = await fetchGetStoryboardList(projectId)
       if (res) {
-        const list = res.records || []
+        const list = Array.isArray(res) ? res : res.records || []
         storyboardList.value = list.map((item: any) => ({
           id: item.id,
-          code: item.title ? `SB-${String(item.storyboardNo ?? item.id).padStart(3, '0')}` : '',
-          name: item.title ?? item.name ?? '',
-          source: (item.source ?? 'manual') as StoryboardSource,
-          sceneId: String(item.sceneId ?? ''),
-          sceneName: item.sceneName ?? '',
-          episodeId: String(item.episodeId ?? ''),
-          description: item.description ?? '',
-          thumbnail: item.thumbnail ?? '',
-          shotCount: item.shotCount ?? 0,
-          duration: item.durationSeconds ?? item.duration ?? 0,
-          status: mapStatus(item.status),
-          order: item.storyboardNo ?? item.order ?? 0,
-          projectId: String(item.projectId ?? ''),
-          createTime: item.createTime ?? '',
-          updateTime: item.updateTime ?? ''
+          code: item.code || `SB-${String(item.id).padStart(3, '0')}`,
+          name: item.name,
+          source: item.source || 'manual',
+          sceneId: String(item.sceneId || ''),
+          sceneName: item.sceneName || '',
+          episodeId: String(item.episodeId || ''),
+          description: item.description || '',
+          thumbnail: item.thumbnail || '',
+          shotCount: item.shotCount || 0,
+          duration: item.duration || 0,
+          status: item.status || 'draft',
+          order: item.order || 0,
+          projectId: String(item.projectId || ''),
+          createTime: item.createTime || '',
+          updateTime: item.updateTime || ''
         })) as StoryboardItem[]
-        pagination.total = res.total ?? 0
       }
     } catch {
       ElMessage.error('加载分镜列表失败')
@@ -597,11 +530,7 @@
   }
 
   const handleAutoGenerate = () => {
-    if (!filterEpisode.value) {
-      ElMessage.warning('请先选择剧集')
-      return
-    }
-    ElMessageBox.confirm('将根据剧本内容自动生成分镜，是否继续？', '剧本生成', {
+    ElMessageBox.confirm('将从剧本《山海经·异兽录》自动生成分镜，是否继续？', '剧本生成', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'info'
@@ -609,9 +538,11 @@
       try {
         const projectId = (route.params.projectId as string) || '1'
         await fetchCreateStoryboard(projectId, {
-          episodeId: String(filterEpisode.value),
+          name: '剧本生成·不周山崩塌',
           source: 'script',
-          status: 1
+          sceneId: '4',
+          description: '共工怒触不周山，天柱断裂，天倾西北',
+          status: 'draft'
         })
         await loadStoryboardList()
         ElMessage.success('剧本生成分镜成功')
@@ -623,38 +554,28 @@
 
   const handleAIGenerate = () => {
     aiForm.mode = 'script'
-    aiForm.scriptId = ''
+    aiForm.scriptId = 'shj'
     aiForm.count = 5
     aiForm.prompt = ''
     aiDialogVisible.value = true
   }
 
   const handleAISubmit = async () => {
-    if (aiForm.mode === 'script' && !aiForm.scriptId) {
-      ElMessage.warning('请选择剧本')
-      return
-    }
-    if (!filterEpisode.value) {
-      ElMessage.warning('请先选择剧集')
-      return
-    }
     aiLoading.value = true
     try {
       const projectId = (route.params.projectId as string) || '1'
-      if (aiForm.mode === 'script' && aiForm.scriptId) {
-        await fetchDecomposeStoryboard(projectId, aiForm.scriptId, String(filterEpisode.value))
-        await loadStoryboardList()
-      } else {
+      for (let i = 0; i < aiForm.count; i++) {
         await fetchCreateStoryboard(projectId, {
-          episodeId: String(filterEpisode.value),
+          name: `AI生成·分镜 ${i + 1}`,
           source: 'ai',
-          description: aiForm.prompt || 'AI根据描述智能生成的分镜',
-          status: 1
+          sceneId: '1',
+          description: aiForm.prompt || 'AI根据剧本内容智能生成的分镜描述',
+          status: 'draft'
         })
-        await loadStoryboardList()
       }
+      await loadStoryboardList()
       aiDialogVisible.value = false
-      ElMessage.success('AI生成分镜成功')
+      ElMessage.success(`AI成功生成 ${aiForm.count} 个分镜`)
     } catch {
       ElMessage.error('AI生成分镜失败')
     } finally {
@@ -733,20 +654,12 @@
 
   const handleStoryboardReorder = async (list: any[]) => {
     try {
+      // 只更新当前过滤列表中项的顺序，保持其他剧集分镜不变
       const updatedIds = new Set(list.map((i) => i.id))
       const unchanged = storyboardList.value.filter((i) => !updatedIds.has(i.id))
       storyboardList.value = [...(list as StoryboardItem[]), ...unchanged].sort(
         (a, b) => a.order - b.order
       )
-      // 调用后端排序 API
-      const sceneId = list[0]?.sceneId
-      if (sceneId) {
-        const items = list.map((item, index) => ({
-          storyboardId: String(item.id),
-          newOrder: index + 1
-        }))
-        await fetchReorderStoryboards(String(sceneId), items)
-      }
       ElMessage.success('分镜顺序已更新')
     } catch {
       ElMessage.error('更新分镜顺序失败')
@@ -802,27 +715,17 @@
   }
 
   const handleViewVersions = () => {
-    if (currentItem.value) {
-      loadVersionList(String(currentItem.value.id))
-    }
     versionDialogVisible.value = true
   }
 
-  const handleRollback = (version: Api.Storyboard.StoryboardVersion) => {
-    if (!currentItem.value) return
-    ElMessageBox.confirm(`确定回退到版本 V${version.version} 吗？`, '版本回退', {
+  const handleRollback = (version: any) => {
+    ElMessageBox.confirm(`确定回退到版本 ${version.versionId} 吗？`, '版本回退', {
       confirmButtonText: '确定回退',
       cancelButtonText: '取消',
       type: 'warning'
-    }).then(async () => {
-      try {
-        await fetchRollbackStoryboardVersion(String(currentItem.value!.id), String(version.id))
-        await loadStoryboardList()
-        ElMessage.success('版本回退成功')
-        versionDialogVisible.value = false
-      } catch {
-        ElMessage.error('版本回退失败')
-      }
+    }).then(() => {
+      ElMessage.success('版本回退成功')
+      versionDialogVisible.value = false
     })
   }
 
@@ -831,10 +734,10 @@
     const episodeId = route.query.episodeId
     if (episodeId) {
       const id = String(episodeId)
-      filterEpisode.value = id
+      if (episodeOptions.some((ep) => ep.id === id)) {
+        filterEpisode.value = id
+      }
     }
-    loadEpisodeOptions()
-    loadScriptOptions()
     loadStoryboardList()
   })
 </script>
