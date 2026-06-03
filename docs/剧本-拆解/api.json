@@ -1,0 +1,757 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "OpenAPI definition - 剧本-拆解",
+    "version": "v0",
+    "description": "模块: 剧本-拆解"
+  },
+  "servers": [
+    {
+      "url": "http://server.bsuniversal.cn:10006",
+      "description": "Generated server url"
+    }
+  ],
+  "tags": [
+    {
+      "name": "剧本-拆解",
+      "description": "AI剧本拆解：调用Dify工作流将剧本拆解为多分集，按顺序存储"
+    }
+  ],
+  "paths": {
+    "/api/scripts/{scriptId}/episodes/{episodeId}": {
+      "get": {
+        "tags": ["剧本-拆解"],
+        "summary": "查询分集详情",
+        "description": "查询单个分集的完整内容。",
+        "operationId": "getEpisode",
+        "parameters": [
+          {
+            "name": "scriptId",
+            "in": "path",
+            "description": "剧本ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "episodeId",
+            "in": "path",
+            "description": "分集ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultScriptEpisodeVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["剧本-拆解"],
+        "summary": "修改分集",
+        "description": "更新分集的内容、名称或排序索引。",
+        "operationId": "updateEpisode",
+        "parameters": [
+          {
+            "name": "scriptId",
+            "in": "path",
+            "description": "剧本ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "episodeId",
+            "in": "path",
+            "description": "分集ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScriptEpisodeUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultScriptEpisodeVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["剧本-拆解"],
+        "summary": "删除分集",
+        "description": "逻辑删除指定分集。",
+        "operationId": "deleteEpisode",
+        "parameters": [
+          {
+            "name": "scriptId",
+            "in": "path",
+            "description": "剧本ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "episodeId",
+            "in": "path",
+            "description": "分集ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/scripts/{scriptId}/decompose": {
+      "post": {
+        "tags": ["剧本-拆解"],
+        "summary": "拆解剧本为分集",
+        "description": "调用 Dify script_decompose 工作流，将剧本原文拆解为多分集 JSON，按序存储到 script_episode 表。支持幂等性：相同内容已处理过则返回缓存结果。force=true 可强制重处理。",
+        "operationId": "decompose",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "项目ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "scriptId",
+            "in": "path",
+            "description": "剧本ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScriptDecomposeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultAiProcessResultVOScriptDecomposeResultVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/episodes": {
+      "get": {
+        "tags": ["剧本-拆解"],
+        "summary": "查询项目所有分集",
+        "description": "查询指定项目下所有剧本的所有分集，按 script_id + episode_index 排序。",
+        "operationId": "listProjectEpisodes",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "项目ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultListScriptEpisodeVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["剧本-拆解"],
+        "summary": "手动创建分集",
+        "description": "直接在项目中创建新的分集，绑定到指定剧本。不经过 Dify 拆解。",
+        "operationId": "createEpisode",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "项目ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScriptEpisodeUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultScriptEpisodeVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/scripts/{scriptId}/episodes": {
+      "get": {
+        "tags": ["剧本-拆解"],
+        "summary": "查询剧本分集列表",
+        "description": "查询指定剧本的所有分集，按 episode_index 排序（序章→第一集→...→尾声→番外）。",
+        "operationId": "listEpisodes",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "项目ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "scriptId",
+            "in": "path",
+            "description": "剧本ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultListScriptEpisodeVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ResultScriptEpisodeVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ScriptEpisodeVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "ResultObject": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "type": "object"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "ScriptEpisodeUpdateRequest": {
+        "type": "object",
+        "properties": {
+          "scriptId": {
+            "type": "string",
+            "description": "分集所属的剧本唯一标识符",
+            "example": "script-abc123"
+          },
+          "episodeName": {
+            "type": "string",
+            "description": "分集名称(用于排序和展示,如第一集、序章、番外等)",
+            "example": "第三集"
+          },
+          "episodeIndex": {
+            "type": "integer",
+            "description": "分集在剧本中的排序位置(从0开始递增,数字越小越靠前)",
+            "format": "int32",
+            "example": 2
+          },
+          "content": {
+            "type": "string",
+            "description": "分集的剧本正文内容(纯文本)",
+            "example": "第三集：陆寻来到大排档，环顾四周寻找方锐的身影..."
+          }
+        },
+        "description": "分集更新/创建请求"
+      },
+      "ResultVoid": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "type": "object"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "ScriptDecomposeRequest": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string",
+            "description": "剧本原文内容（已弃用，服务端从数据库加载）",
+            "example": "第一集：陆寻走进大排档..."
+          },
+          "force": {
+            "type": "boolean",
+            "description": "是否强制重处理，默认 false。true 时忽略缓存重新调用 Dify"
+          }
+        },
+        "description": "剧本拆解请求"
+      },
+      "ResultAiProcessResultVOScriptDecomposeResultVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AiProcessResultVOScriptDecomposeResultVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "ResultListScriptEpisodeVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScriptEpisodeVO"
+            }
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      }
+    }
+  }
+}

@@ -5,7 +5,7 @@
         <div class="flex-cb">
           <div class="flex items-center gap-4">
             <span class="text-lg font-medium">AI视频生成</span>
-            <ElTag type="info" size="small">剧本：《山海经·异兽录》</ElTag>
+            <ElTag v-if="projectId" type="info" size="small">项目ID：{{ projectId }}</ElTag>
           </div>
           <ElButton type="primary" @click="handleOpenGenerate">
             <ArtSvgIcon icon="ri:sparkling-line" class="mr-1" />
@@ -56,17 +56,16 @@
             >
               <div class="shot-card-header flex-cb">
                 <ElCheckbox :label="shot.id" @click.stop>
-                  <span class="font-medium">{{ shot.name }}</span>
+                  <span class="font-medium">{{ shot.title || shot.name }}</span>
                 </ElCheckbox>
-                <ElTag :type="shotTypeTagMap[shot.type]" size="small">
-                  {{ shotTypeLabelMap[shot.type] }}
+                <ElTag v-if="shot.shotType" :type="shotTypeTagMap[shot.shotType]" size="small">
+                  {{ shotTypeLabelMap[shot.shotType] || shot.shotType }}
                 </ElTag>
               </div>
               <div class="shot-card-body">
-                <p class="shot-desc">{{ shot.description }}</p>
+                <p class="shot-desc">{{ shot.description || shot.prompt }}</p>
                 <div class="shot-meta flex-cb mt-2">
-                  <span class="text-xs text-g-400">时长 {{ shot.duration }}s</span>
-                  <span class="text-xs text-g-400">焦距 {{ shot.focalLength }}mm</span>
+                  <span class="text-xs text-g-400">时长 {{ shot.durationSeconds || 0 }}s</span>
                 </div>
               </div>
             </div>
@@ -89,56 +88,68 @@
         <ElRow :gutter="24">
           <ElCol :span="8">
             <ElForm :model="paramForm" label-position="top">
-              <ElFormItem label="视频风格">
-                <ElSelect v-model="paramForm.style" placeholder="请选择风格" class="w-full">
-                  <ElOption label="写实风格" value="realistic" />
-                  <ElOption label="卡通风格" value="cartoon" />
-                  <ElOption label="3D动画" value="3d" />
-                  <ElOption label="水墨风格" value="ink" />
-                  <ElOption label="像素风格" value="pixel" />
+              <ElFormItem label="模型">
+                <ElSelect v-model="paramForm.model" placeholder="请选择模型" class="w-full">
+                  <ElOption label="Seedance 2.0 (标准)" value="doubao-seedance-2-0-260128" />
+                  <ElOption
+                    label="Seedance 2.0 Fast (快速)"
+                    value="doubao-seedance-2-0-fast-260128"
+                  />
                 </ElSelect>
               </ElFormItem>
               <ElFormItem label="分辨率">
                 <ElSelect v-model="paramForm.resolution" placeholder="请选择分辨率" class="w-full">
-                  <ElOption label="1920x1080 (1080p)" value="1080p" />
-                  <ElOption label="2560x1440 (2K)" value="2k" />
-                  <ElOption label="3840x2160 (4K)" value="4k" />
+                  <ElOption label="480p" value="480p" />
+                  <ElOption label="720p" value="720p" />
+                  <ElOption
+                    label="1080p"
+                    value="1080p"
+                    :disabled="paramForm.model === 'doubao-seedance-2-0-fast-260128'"
+                  />
                 </ElSelect>
               </ElFormItem>
             </ElForm>
           </ElCol>
           <ElCol :span="8">
             <ElForm :model="paramForm" label-position="top">
-              <ElFormItem label="帧率">
-                <ElSelect v-model="paramForm.fps" placeholder="请选择帧率" class="w-full">
-                  <ElOption label="24fps (电影)" value="24" />
-                  <ElOption label="30fps (标准)" value="30" />
-                  <ElOption label="60fps (流畅)" value="60" />
+              <ElFormItem label="宽高比">
+                <ElSelect v-model="paramForm.ratio" placeholder="请选择宽高比" class="w-full">
+                  <ElOption label="自适应" value="adaptive" />
+                  <ElOption label="16:9" value="16:9" />
+                  <ElOption label="4:3" value="4:3" />
+                  <ElOption label="1:1" value="1:1" />
+                  <ElOption label="3:4" value="3:4" />
+                  <ElOption label="9:16" value="9:16" />
+                  <ElOption label="21:9" value="21:9" />
                 </ElSelect>
               </ElFormItem>
-              <ElFormItem label="视频格式">
-                <ElSelect v-model="paramForm.format" placeholder="请选择格式" class="w-full">
-                  <ElOption label="MP4" value="mp4" />
-                  <ElOption label="MOV" value="mov" />
-                  <ElOption label="AVI" value="avi" />
-                </ElSelect>
+              <ElFormItem label="视频时长(秒)">
+                <ElInputNumber
+                  v-model="paramForm.duration"
+                  :min="4"
+                  :max="15"
+                  :step="1"
+                  class="w-full"
+                />
+                <div class="text-xs text-g-400 mt-1">4-15秒，或设为-1由模型自动选择</div>
               </ElFormItem>
             </ElForm>
           </ElCol>
           <ElCol :span="8">
             <ElForm :model="paramForm" label-position="top">
-              <ElFormItem label="画质等级">
-                <ElSlider v-model="paramForm.quality" :min="1" :max="5" :step="1" show-stops />
-                <div class="text-xs text-g-400 text-right">{{
-                  qualityLabelMap[paramForm.quality]
-                }}</div>
+              <ElFormItem label="队列优先级">
+                <ElSlider v-model="paramForm.priority" :min="0" :max="9" :step="1" show-stops />
+                <div class="text-xs text-g-400 text-right"
+                  >{{ paramForm.priority }} (越大越优先)</div
+                >
               </ElFormItem>
-              <ElFormItem label="生成模式">
-                <ElRadioGroup v-model="paramForm.mode" class="w-full">
-                  <ElRadio value="fast">快速生成</ElRadio>
-                  <ElRadio value="standard">标准生成</ElRadio>
-                  <ElRadio value="quality">高质量生成</ElRadio>
-                </ElRadioGroup>
+              <ElFormItem label="附加选项">
+                <ElSpace direction="vertical" alignment="start">
+                  <ElCheckbox v-model="paramForm.generateAudio">生成同步音频</ElCheckbox>
+                  <ElCheckbox v-model="paramForm.watermark">添加水印</ElCheckbox>
+                  <ElCheckbox v-model="paramForm.cameraFixed">固定摄像头</ElCheckbox>
+                  <ElCheckbox v-model="paramForm.returnLastFrame">返回尾帧图像</ElCheckbox>
+                </ElSpace>
               </ElFormItem>
             </ElForm>
           </ElCol>
@@ -160,40 +171,22 @@
         :rules="generateRules"
         ref="generateFormRef"
       >
-        <ElFormItem label="任务名称" prop="name" required>
-          <ElInput v-model="generateForm.name" placeholder="请输入任务名称" />
-        </ElFormItem>
         <ElFormItem label="生成内容">
-          <ElInput
-            v-model="generateForm.content"
-            type="textarea"
-            :rows="3"
-            readonly
-            :value="`已选择 ${selectedShotIds.length} 个镜头，预计时长 ${totalSelectedDuration}s`"
-          />
+          <ElInput v-model="generateForm.content" type="textarea" :rows="3" readonly />
         </ElFormItem>
         <ElFormItem label="参数摘要">
           <ElDescriptions :column="2" border size="small">
-            <ElDescriptionsItem label="风格">{{
-              styleLabelMap[paramForm.style]
+            <ElDescriptionsItem label="模型">{{
+              modelLabelMap[paramForm.model] || paramForm.model
             }}</ElDescriptionsItem>
             <ElDescriptionsItem label="分辨率">{{ paramForm.resolution }}</ElDescriptionsItem>
-            <ElDescriptionsItem label="帧率">{{ paramForm.fps }}fps</ElDescriptionsItem>
-            <ElDescriptionsItem label="格式">{{
-              paramForm.format.toUpperCase()
+            <ElDescriptionsItem label="宽高比">{{ paramForm.ratio }}</ElDescriptionsItem>
+            <ElDescriptionsItem label="时长">{{ paramForm.duration }}s</ElDescriptionsItem>
+            <ElDescriptionsItem label="优先级">{{ paramForm.priority }}</ElDescriptionsItem>
+            <ElDescriptionsItem label="音频">{{
+              paramForm.generateAudio ? '是' : '否'
             }}</ElDescriptionsItem>
-            <ElDescriptionsItem label="画质">{{
-              qualityLabelMap[paramForm.quality]
-            }}</ElDescriptionsItem>
-            <ElDescriptionsItem label="模式">{{ modeLabelMap[paramForm.mode] }}</ElDescriptionsItem>
           </ElDescriptions>
-        </ElFormItem>
-        <ElFormItem label="优先级">
-          <ElRadioGroup v-model="generateForm.priority">
-            <ElRadio value="high">高</ElRadio>
-            <ElRadio value="normal">普通</ElRadio>
-            <ElRadio value="low">低</ElRadio>
-          </ElRadioGroup>
         </ElFormItem>
         <ElFormItem label="备注">
           <ElInput
@@ -227,53 +220,49 @@
   const projectId = computed(
     () => (route.params.projectId as string) || (route.query.projectId as string) || ''
   )
-
-  type ShotType = 'closeup' | 'medium' | 'long' | 'full' | 'extreme_closeup' | 'over_shoulder'
+  const scriptId = computed(
+    () => (route.params.scriptId as string) || (route.query.scriptId as string) || ''
+  )
+  const episodeId = computed(
+    () => (route.params.episodeId as string) || (route.query.episodeId as string) || ''
+  )
 
   interface ShotItem {
     id: string
     name: string
-    type: ShotType
+    title: string
+    shotType: string
     description: string
-    duration: number
-    focalLength: number
-  }
-
-  interface ParamForm {
-    style: string
-    resolution: string
-    fps: string
-    format: string
-    quality: number
-    mode: string
+    prompt: string
+    durationSeconds: number
   }
 
   const shotSearchQuery = ref('')
-  const shotFilterType = ref<ShotType | ''>('')
+  const shotFilterType = ref<string>('')
   const selectedShotIds = ref<string[]>([])
   const generateVisible = ref(false)
   const submitting = ref(false)
   const generateFormRef = ref<FormInstance>()
 
-  const paramForm = reactive<ParamForm>({
-    style: 'realistic',
-    resolution: '1080p',
-    fps: '24',
-    format: 'mp4',
-    quality: 3,
-    mode: 'standard'
+  const paramForm = reactive({
+    model: 'doubao-seedance-2-0-260128',
+    resolution: '720p',
+    ratio: 'adaptive',
+    duration: 5,
+    priority: 0,
+    generateAudio: true,
+    watermark: false,
+    cameraFixed: false,
+    returnLastFrame: false,
+    seed: -1
   })
 
   const generateForm = reactive({
-    name: '',
     content: '',
-    priority: 'normal' as 'high' | 'normal' | 'low',
     remark: ''
   })
 
-  const generateRules: FormRules = {
-    name: [{ required: true, message: '请输入任务名称', trigger: 'blur' }]
-  }
+  const generateRules: FormRules = {}
 
   const shotTypeOptions = [
     { label: '特写', value: 'closeup' },
@@ -284,7 +273,7 @@
     { label: '过肩', value: 'over_shoulder' }
   ]
 
-  const shotTypeTagMap: Record<ShotType, 'primary' | 'success' | 'warning' | 'info' | 'danger'> = {
+  const shotTypeTagMap: Record<string, 'primary' | 'success' | 'warning' | 'info' | 'danger'> = {
     closeup: 'primary',
     medium: 'success',
     long: 'warning',
@@ -293,7 +282,7 @@
     over_shoulder: 'primary'
   }
 
-  const shotTypeLabelMap: Record<ShotType, string> = {
+  const shotTypeLabelMap: Record<string, string> = {
     closeup: '特写',
     medium: '近景',
     long: '远景',
@@ -302,26 +291,9 @@
     over_shoulder: '过肩'
   }
 
-  const qualityLabelMap: Record<number, string> = {
-    1: '低画质',
-    2: '较低画质',
-    3: '标准画质',
-    4: '高画质',
-    5: '超高画质'
-  }
-
-  const styleLabelMap: Record<string, string> = {
-    realistic: '写实风格',
-    cartoon: '卡通风格',
-    '3d': '3D动画',
-    ink: '水墨风格',
-    pixel: '像素风格'
-  }
-
-  const modeLabelMap: Record<string, string> = {
-    fast: '快速生成',
-    standard: '标准生成',
-    quality: '高质量生成'
+  const modelLabelMap: Record<string, string> = {
+    'doubao-seedance-2-0-260128': 'Seedance 2.0 (标准)',
+    'doubao-seedance-2-0-fast-260128': 'Seedance 2.0 Fast (快速)'
   }
 
   const shotList = ref<ShotItem[]>([])
@@ -331,11 +303,13 @@
     if (shotSearchQuery.value) {
       const q = shotSearchQuery.value.toLowerCase()
       result = result.filter(
-        (item) => item.name.toLowerCase().includes(q) || item.description.toLowerCase().includes(q)
+        (item) =>
+          (item.title || item.name).toLowerCase().includes(q) ||
+          (item.description || item.prompt || '').toLowerCase().includes(q)
       )
     }
     if (shotFilterType.value) {
-      result = result.filter((item) => item.type === shotFilterType.value)
+      result = result.filter((item) => item.shotType === shotFilterType.value)
     }
     return result
   })
@@ -343,7 +317,7 @@
   const totalSelectedDuration = computed(() => {
     return shotList.value
       .filter((shot) => selectedShotIds.value.includes(shot.id))
-      .reduce((sum, shot) => sum + shot.duration, 0)
+      .reduce((sum, shot) => sum + (shot.durationSeconds || 0), 0)
   })
 
   const handleToggleShot = (id: string) => {
@@ -360,9 +334,8 @@
       ElMessage.warning('请至少选择一个镜头')
       return
     }
-    generateForm.name = ''
+    generateForm.content = `已选择 ${selectedShotIds.value.length} 个镜头，预计时长 ${totalSelectedDuration.value}s`
     generateForm.remark = ''
-    generateForm.priority = 'normal'
     generateVisible.value = true
   }
 
@@ -370,13 +343,14 @@
     if (!projectId.value) return
     try {
       const res = await fetchGetStoryboardList(projectId.value)
-      shotList.value = (res.records || []).map((item) => ({
+      shotList.value = (res.records || []).map((item: any) => ({
         id: item.id,
-        name: item.name || '',
-        type: item.type as ShotType,
-        description: item.description,
-        duration: item.duration || 0,
-        focalLength: Number(item.focalLength) || 0
+        name: item.title || item.name || '',
+        title: item.title || item.name || '',
+        shotType: item.shotType || item.type || '',
+        description: item.description || '',
+        prompt: item.prompt || '',
+        durationSeconds: item.durationSeconds || item.duration || 0
       }))
     } catch {
       shotList.value = []
@@ -384,37 +358,53 @@
   }
 
   const handleSubmitGenerate = async () => {
-    if (!generateFormRef.value) return
-    await generateFormRef.value.validate(async (valid) => {
-      if (valid) {
-        submitting.value = true
-        try {
-          await fetchPreviewVideoGeneration({
-            style: paramForm.style,
-            resolution: paramForm.resolution,
-            fps: paramForm.fps,
-            format: paramForm.format
-          })
-          await fetchSubmitVideoGeneration({
-            name: generateForm.name,
-            shots: selectedShotIds.value.map(Number),
-            style: paramForm.style,
-            resolution: paramForm.resolution,
-            fps: paramForm.fps,
-            format: paramForm.format,
-            priority: generateForm.priority,
-            remark: generateForm.remark
-          })
-          ElMessage.success('生成任务已提交，请前往任务列表查看进度')
-          generateVisible.value = false
-          selectedShotIds.value = []
-        } catch {
-          ElMessage.error('提交生成任务失败，请稍后重试')
-        } finally {
-          submitting.value = false
-        }
+    if (selectedShotIds.value.length === 0) {
+      ElMessage.warning('请至少选择一个镜头')
+      return
+    }
+    submitting.value = true
+    try {
+      // 1. 先调用预览接口获取 previewToken
+      const previewParams: Api.Video.VideoPreviewParams = {
+        model: paramForm.model,
+        resolution: paramForm.resolution,
+        ratio: paramForm.ratio,
+        duration: paramForm.duration,
+        seed: paramForm.seed,
+        cameraFixed: paramForm.cameraFixed,
+        watermark: paramForm.watermark,
+        generateAudio: paramForm.generateAudio,
+        priority: paramForm.priority,
+        returnLastFrame: paramForm.returnLastFrame,
+        projectId: projectId.value,
+        scriptId: scriptId.value || undefined,
+        episodeId: episodeId.value || undefined
       }
-    })
+      const previewResult = await fetchPreviewVideoGeneration(previewParams)
+      const previewToken = previewResult?.previewToken
+      if (!previewToken) {
+        ElMessage.error('预览确认失败，未获取到 previewToken')
+        return
+      }
+
+      // 2. 对每个选中的分镜提交生成任务
+      for (const storyboardId of selectedShotIds.value) {
+        const generateParams: Api.Video.VideoGenerateParams = {
+          ...previewParams,
+          storyboardId,
+          previewToken
+        }
+        await fetchSubmitVideoGeneration(generateParams)
+      }
+
+      ElMessage.success('生成任务已提交，请前往任务列表查看进度')
+      generateVisible.value = false
+      selectedShotIds.value = []
+    } catch {
+      ElMessage.error('提交生成任务失败，请稍后重试')
+    } finally {
+      submitting.value = false
+    }
   }
 
   onMounted(() => {
@@ -440,19 +430,19 @@
 
   .shot-card {
     padding: 12px;
+    cursor: pointer;
+    background: var(--el-fill-color-lighter);
     border: 2px solid var(--el-border-color-lighter);
     border-radius: var(--custom-radius);
-    cursor: pointer;
     transition: all 0.2s;
-    background: var(--el-fill-color-lighter);
 
     &:hover {
       border-color: var(--el-color-primary-light-7);
     }
 
     &.selected {
-      border-color: var(--el-color-primary);
       background: var(--el-color-primary-light-9);
+      border-color: var(--el-color-primary);
     }
 
     .shot-card-header {
@@ -460,13 +450,13 @@
     }
 
     .shot-desc {
-      font-size: 12px;
-      color: var(--el-text-color-secondary);
-      line-height: 1.5;
       display: -webkit-box;
+      overflow: hidden;
+      font-size: 12px;
+      line-height: 1.5;
+      color: var(--el-text-color-secondary);
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
-      overflow: hidden;
     }
   }
 

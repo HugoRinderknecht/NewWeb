@@ -1,0 +1,376 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "OpenAPI definition - 数据-历史",
+    "version": "v0",
+    "description": "模块: 数据-历史"
+  },
+  "servers": [
+    {
+      "url": "http://server.bsuniversal.cn:10006",
+      "description": "Generated server url"
+    }
+  ],
+  "tags": [
+    {
+      "name": "数据-历史",
+      "description": "通用数据修改历史记录查询与版本回退"
+    }
+  ],
+  "paths": {
+    "/api/data-history/rollback": {
+      "post": {
+        "tags": ["数据-历史"],
+        "summary": "回退数据到历史版本",
+        "description": "将指定记录回退到目标历史版本。回退前会自动创建当前状态的快照备份，然后恢复目标版本的数据。",
+        "operationId": "rollback",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DataHistoryRollbackDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultDataHistoryVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/data-history": {
+      "get": {
+        "tags": ["数据-历史"],
+        "summary": "查询历史版本列表",
+        "description": "根据实体类型和记录ID查询该记录的所有历史版本，按版本号降序排列。不包含完整快照JSON，需要详情请使用 GET /{historyId}。",
+        "operationId": "listHistory",
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/DataHistoryQueryDTO"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultListDataHistoryVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/data-history/{historyId}": {
+      "get": {
+        "tags": ["数据-历史"],
+        "summary": "查询历史版本详情",
+        "description": "获取单个历史版本的完整信息，包含完整的快照数据（snapshotData 字段）。",
+        "operationId": "getDetail_2",
+        "parameters": [
+          {
+            "name": "historyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultDataHistoryDetailVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "DataHistoryRollbackDTO": {
+        "required": ["entityId", "entityType", "targetVersion"],
+        "type": "object",
+        "properties": {
+          "entityType": {
+            "type": "string",
+            "description": "实体全限定类名",
+            "example": "com.astracloud.modules.asset.domain.entity.AssetLibrary"
+          },
+          "entityId": {
+            "type": "string",
+            "description": "记录主键ID",
+            "example": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+          },
+          "targetVersion": {
+            "minimum": 1,
+            "type": "integer",
+            "description": "目标版本号（要回退到的版本）",
+            "format": "int32",
+            "example": 3
+          }
+        },
+        "description": "数据回退请求"
+      },
+      "ResultDataHistoryVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/DataHistoryVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "ResultObject": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "type": "object"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "DataHistoryQueryDTO": {
+        "required": ["entityId", "entityType"],
+        "type": "object",
+        "properties": {
+          "entityType": {
+            "type": "string",
+            "description": "实体全限定类名",
+            "example": "com.astracloud.modules.asset.domain.entity.AssetLibrary"
+          },
+          "entityId": {
+            "type": "string",
+            "description": "记录主键ID",
+            "example": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+          }
+        },
+        "description": "历史版本查询参数"
+      },
+      "ResultListDataHistoryVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataHistoryVO"
+            }
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "ResultDataHistoryDetailVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/DataHistoryDetailVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      }
+    }
+  }
+}

@@ -274,6 +274,7 @@
 
 <script setup lang="ts">
   import { ElMessage } from 'element-plus'
+  import { useRoute } from 'vue-router'
   import { fetchGetStoryboardList } from '@/api/storyboard'
   defineOptions({ name: 'StoryboardPreview' })
 
@@ -303,6 +304,8 @@
     thumbnail: string
   }
 
+  const route = useRoute()
+
   const viewMode = ref<ViewMode>('storyboard')
   const currentIndex = ref(0)
   const currentStoryboard = ref<number>(1)
@@ -311,13 +314,27 @@
   const exportLoading = ref(false)
   let playTimer: ReturnType<typeof setInterval> | null = null
 
-  const storyboardOptions: StoryboardOption[] = [
-    { id: 1, code: 'SB-001', name: '开场·山巅俯瞰' },
-    { id: 2, code: 'SB-002', name: '九尾狐现身' },
-    { id: 3, code: 'SB-003', name: '对话·寻药之旅' },
-    { id: 4, code: 'SB-004', name: '昆仑仙境' },
-    { id: 5, code: 'SB-005', name: '白泽授业' }
-  ]
+  const storyboardOptions = ref<StoryboardOption[]>([])
+
+  const loadStoryboardOptions = async () => {
+    try {
+      const projectId = (route.params.projectId as string) || '1'
+      const res = await fetchGetStoryboardList(projectId)
+      if (res) {
+        const list = Array.isArray(res) ? res : (res as any).records || []
+        storyboardOptions.value = list.map((item: any) => ({
+          id: item.id,
+          code: item.code ?? '',
+          name: item.name ?? ''
+        })) as StoryboardOption[]
+        if (storyboardOptions.value.length > 0) {
+          currentStoryboard.value = storyboardOptions.value[0].id
+        }
+      }
+    } catch {
+      console.error('获取分镜选项失败')
+    }
+  }
 
   const shotTypeTagMap: Record<ShotType, 'primary' | 'success' | 'warning' | 'info' | 'danger'> = {
     closeup: 'primary',
@@ -349,237 +366,12 @@
 
   const shotList = ref<ShotItem[]>([])
 
-  const mockShotData: ShotItem[] = [
-    {
-      id: 1001,
-      storyboardId: 1,
-      name: '山巅全景',
-      type: 'full',
-      description: '从高空俯瞰山巅全貌，云海翻涌，气势磅礴',
-      duration: 8,
-      transition: 'fade',
-      cameraPosition: '正上方俯拍',
-      focalLength: 24,
-      movements: ['上升', '横移'],
-      remark: '开场第一镜，奠定基调',
-      thumbnail: ''
-    },
-    {
-      id: 1002,
-      storyboardId: 1,
-      name: '主角面部特写',
-      type: 'closeup',
-      description: '主角站在山巅，衣袂飘飘，目光坚定望向远方',
-      duration: 3,
-      transition: 'cut',
-      cameraPosition: '正前方平视',
-      focalLength: 85,
-      movements: ['固定'],
-      remark: '展示主角神态',
-      thumbnail: ''
-    },
-    {
-      id: 1003,
-      storyboardId: 1,
-      name: '远山远景',
-      type: 'long',
-      description: '层峦叠嶂的远山，薄雾笼罩，若隐若现',
-      duration: 6,
-      transition: 'dissolve',
-      cameraPosition: '侧面远景',
-      focalLength: 14,
-      movements: [],
-      remark: '空镜过渡，营造氛围',
-      thumbnail: ''
-    },
-    {
-      id: 1004,
-      storyboardId: 2,
-      name: '九尾狐全景',
-      type: 'full',
-      description: '九尾狐从迷雾中现身，九条尾巴缓缓展开，散发金色光芒',
-      duration: 7,
-      transition: 'wipe',
-      cameraPosition: '斜前方低角度',
-      focalLength: 35,
-      movements: ['环绕', '推进'],
-      remark: '核心角色登场',
-      thumbnail: ''
-    },
-    {
-      id: 1005,
-      storyboardId: 2,
-      name: '九尾狐大特写',
-      type: 'extreme_closeup',
-      description: '九尾狐的眼眸特写，瞳孔中映射出星辰流转',
-      duration: 2,
-      transition: 'zoom',
-      cameraPosition: '正前方极近距离',
-      focalLength: 200,
-      movements: ['固定'],
-      remark: '强调神秘感',
-      thumbnail: ''
-    },
-    {
-      id: 1006,
-      storyboardId: 2,
-      name: '幻境近景',
-      type: 'medium',
-      description: '九尾狐周围浮现幻境光效，空间扭曲波动',
-      duration: 4,
-      transition: 'slide',
-      cameraPosition: '侧面中景',
-      focalLength: 50,
-      movements: ['横移'],
-      remark: '配合特效转场',
-      thumbnail: ''
-    },
-    {
-      id: 1007,
-      storyboardId: 3,
-      name: '对话过肩',
-      type: 'over_shoulder',
-      description: '主角与药师面对面交谈，过肩镜头展现两人互动',
-      duration: 5,
-      transition: 'cut',
-      cameraPosition: '主角肩后',
-      focalLength: 70,
-      movements: ['固定'],
-      remark: '经典对话镜头',
-      thumbnail: ''
-    },
-    {
-      id: 1008,
-      storyboardId: 3,
-      name: '主角特写',
-      type: 'closeup',
-      description: '主角认真聆听药师讲述寻药线索，神情专注',
-      duration: 3,
-      transition: 'fade',
-      cameraPosition: '正前方略低',
-      focalLength: 100,
-      movements: ['推拉'],
-      remark: '捕捉情感变化',
-      thumbnail: ''
-    },
-    {
-      id: 1009,
-      storyboardId: 3,
-      name: '路途远景',
-      type: 'long',
-      description: '主角行走在蜿蜒山路上，两侧古木参天',
-      duration: 8,
-      transition: 'none',
-      cameraPosition: '高处俯拍',
-      focalLength: 28,
-      movements: ['跟拍', '横移'],
-      remark: '展示旅途艰辛',
-      thumbnail: ''
-    },
-    {
-      id: 1010,
-      storyboardId: 4,
-      name: '昆仑全景',
-      type: 'full',
-      description: '昆仑仙境全貌，琼楼玉宇悬浮于云端之上',
-      duration: 10,
-      transition: 'dissolve',
-      cameraPosition: '正前方远景',
-      focalLength: 16,
-      movements: ['上升', '环绕'],
-      remark: '仙境大场景展示',
-      thumbnail: ''
-    },
-    {
-      id: 1011,
-      storyboardId: 4,
-      name: '仙境近景',
-      type: 'medium',
-      description: '仙鹤在灵池旁栖息，灵雾缭绕其间',
-      duration: 4,
-      transition: 'fade',
-      cameraPosition: '侧面中景',
-      focalLength: 45,
-      movements: ['推进'],
-      remark: '展示仙境细节',
-      thumbnail: ''
-    },
-    {
-      id: 1012,
-      storyboardId: 4,
-      name: '仙草大特写',
-      type: 'extreme_closeup',
-      description: '灵药仙草特写，叶片上凝结着晶莹露珠，散发微光',
-      duration: 2,
-      transition: 'cut',
-      cameraPosition: '正前方微距',
-      focalLength: 150,
-      movements: ['固定'],
-      remark: '关键道具展示',
-      thumbnail: ''
-    },
-    {
-      id: 1013,
-      storyboardId: 5,
-      name: '白泽全景',
-      type: 'full',
-      description: '白泽端坐于古树下，周身环绕古籍竹简',
-      duration: 6,
-      transition: 'wipe',
-      cameraPosition: '正面中远景',
-      focalLength: 35,
-      movements: ['横移', '推拉'],
-      remark: '导师角色登场',
-      thumbnail: ''
-    },
-    {
-      id: 1014,
-      storyboardId: 5,
-      name: '讲课过肩',
-      type: 'over_shoulder',
-      description: '从学生背后拍摄白泽讲学，白泽手指点化空中符文',
-      duration: 5,
-      transition: 'slide',
-      cameraPosition: '学生肩后',
-      focalLength: 85,
-      movements: ['固定'],
-      remark: '教学互动场景',
-      thumbnail: ''
-    },
-    {
-      id: 1015,
-      storyboardId: 5,
-      name: '听课近景',
-      type: 'medium',
-      description: '学生聚精会神聆听，手中笔录不停',
-      duration: 3,
-      transition: 'cut',
-      cameraPosition: '侧面近景',
-      focalLength: 50,
-      movements: ['跟拍'],
-      remark: '学生反应镜头',
-      thumbnail: ''
-    },
-    {
-      id: 1016,
-      storyboardId: 5,
-      name: '书卷特写',
-      type: 'closeup',
-      description: '古籍书卷缓缓展开，文字发出金色光芒',
-      duration: 4,
-      transition: 'zoom',
-      cameraPosition: '正上方俯拍',
-      focalLength: 105,
-      movements: ['推进', '环绕'],
-      remark: '关键道具特写，衔接下集',
-      thumbnail: ''
-    }
-  ]
-
   const loadShotList = async () => {
     try {
-      const projectId = '1'
-      const res = await fetchGetStoryboardList(projectId)
+      const projectId = (route.params.projectId as string) || '1'
+      const res = await fetchGetStoryboardList(projectId, {
+        episodeId: String(currentStoryboard.value)
+      })
       if (res) {
         const list = Array.isArray(res) ? res : (res as any).records || []
         if (list.length > 0) {
@@ -597,13 +389,11 @@
             remark: item.remark ?? '',
             thumbnail: item.thumbnail ?? ''
           })) as ShotItem[]
-          return
         }
       }
     } catch {
-      // fallback to mock data
+      console.error('获取分镜列表失败')
     }
-    shotList.value = mockShotData
   }
 
   const filteredShotList = computed(() => {
@@ -694,17 +484,40 @@
     exportDialogVisible.value = true
   }
 
-  const handleExportSubmit = () => {
+  const handleExportSubmit = async () => {
     exportLoading.value = true
-    // TODO: 暂无分镜导出API，后续对接 fetchExportStoryboard 后替换此 setTimeout
-    setTimeout(() => {
+    try {
+      // 根据导出类型构建下载请求
+      const storyboardId = String(currentStoryboard.value)
+      if (exportForm.type === 'image') {
+        // 获取分镜配图列表，逐个下载
+        const { fetchGetStoryboardImages } = await import('@/api/storyboard')
+        const images = await fetchGetStoryboardImages(storyboardId)
+        if (images && Array.isArray(images) && images.length > 0) {
+          for (const img of images) {
+            window.open(img.url, '_blank')
+          }
+          ElMessage.success('图片导出成功')
+        } else {
+          ElMessage.warning('暂无可导出的图片')
+        }
+      } else if (exportForm.type === 'pdf') {
+        // PDF 导出 - 暂无后端 API，提示用户
+        ElMessage.info('PDF导出功能开发中，请使用图片导出')
+      } else if (exportForm.type === 'video') {
+        // 视频导出 - 暂无后端 API，提示用户
+        ElMessage.info('视频导出功能开发中，请使用图片导出')
+      }
+    } catch {
+      ElMessage.error('导出失败')
+    } finally {
       exportLoading.value = false
       exportDialogVisible.value = false
-      ElMessage.success(`${exportTitle.value}成功`)
-    }, 1500)
+    }
   }
 
   onMounted(() => {
+    loadStoryboardOptions()
     loadShotList()
   })
 
@@ -753,35 +566,32 @@
 
         .shot-overlay {
           position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
+          inset: 0;
           display: flex;
-          justify-content: space-between;
           align-items: flex-start;
+          justify-content: space-between;
           padding: 8px;
           pointer-events: none;
 
           .shot-index {
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            background: var(--el-color-primary);
-            color: white;
             display: flex;
             align-items: center;
             justify-content: center;
+            width: 28px;
+            height: 28px;
             font-size: 12px;
             font-weight: 600;
+            color: white;
+            background: var(--el-color-primary);
+            border-radius: 50%;
           }
 
           .shot-duration {
             padding: 2px 8px;
-            border-radius: 4px;
-            background: rgba(0, 0, 0, 0.6);
-            color: white;
             font-size: 12px;
+            color: white;
+            background: rgb(0 0 0 / 60%);
+            border-radius: 4px;
           }
         }
       }
@@ -795,14 +605,14 @@
         }
 
         .shot-desc {
-          font-size: 12px;
-          color: var(--el-text-color-secondary);
-          line-height: 1.5;
-          margin-bottom: 8px;
           display: -webkit-box;
+          margin-bottom: 8px;
+          overflow: hidden;
+          font-size: 12px;
+          line-height: 1.5;
+          color: var(--el-text-color-secondary);
           -webkit-line-clamp: 2;
           -webkit-box-orient: vertical;
-          overflow: hidden;
         }
 
         .shot-meta {
@@ -826,9 +636,9 @@
         .slideshow-image {
           flex: 1;
           min-height: 400px;
+          overflow: hidden;
           background: var(--el-fill-color-lighter);
           border-radius: var(--custom-radius);
-          overflow: hidden;
 
           .main-image {
             width: 100%;
@@ -842,32 +652,32 @@
         }
 
         .slideshow-info {
-          width: 400px;
           flex-shrink: 0;
+          width: 400px;
         }
       }
 
       .slideshow-controls {
         display: flex;
-        justify-content: center;
         gap: 12px;
+        justify-content: center;
       }
 
       .slideshow-thumbnails {
         display: flex;
         gap: 8px;
-        overflow-x: auto;
         padding: 8px 0;
+        overflow-x: auto;
 
         .thumb-item {
           position: relative;
+          flex-shrink: 0;
           width: 100px;
           height: 70px;
-          border-radius: 6px;
           overflow: hidden;
           cursor: pointer;
           border: 2px solid transparent;
-          flex-shrink: 0;
+          border-radius: 6px;
 
           &:hover {
             border-color: var(--el-color-primary-light-7);
@@ -897,16 +707,16 @@
             position: absolute;
             top: 4px;
             left: 4px;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: var(--el-color-primary);
-            color: white;
             display: flex;
             align-items: center;
             justify-content: center;
+            width: 20px;
+            height: 20px;
             font-size: 10px;
             font-weight: 600;
+            color: white;
+            background: var(--el-color-primary);
+            border-radius: 50%;
           }
         }
       }
@@ -929,12 +739,12 @@
           transform: translateX(-50%);
 
           &::before {
-            content: '';
             display: block;
             width: 1px;
             height: 8px;
-            background: var(--el-border-color);
             margin: 0 auto 2px;
+            content: '';
+            background: var(--el-border-color);
           }
 
           .tick-label {
@@ -948,21 +758,21 @@
     .timeline-tracks {
       .timeline-track {
         display: flex;
-        align-items: center;
         gap: 12px;
+        align-items: center;
         margin-bottom: 8px;
 
         .track-label {
+          flex-shrink: 0;
           width: 60px;
           font-size: 12px;
           color: var(--el-text-color-secondary);
           text-align: right;
-          flex-shrink: 0;
         }
 
         .track-content {
-          flex: 1;
           position: relative;
+          flex: 1;
           height: 40px;
           background: var(--el-fill-color-lighter);
           border-radius: 4px;
@@ -974,15 +784,15 @@
             cursor: pointer;
 
             .timeline-bar {
-              height: 100%;
-              border-radius: 4px;
               display: flex;
               align-items: center;
               justify-content: space-between;
+              height: 100%;
               padding: 0 8px;
-              color: white;
-              font-size: 11px;
               overflow: hidden;
+              font-size: 11px;
+              color: white;
+              border-radius: 4px;
 
               &.closeup {
                 background: var(--el-color-primary);
@@ -1009,9 +819,9 @@
               }
 
               .bar-name {
-                white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
+                white-space: nowrap;
               }
 
               .bar-duration {

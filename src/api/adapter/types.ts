@@ -1,10 +1,11 @@
 export interface RequestConfig {
   url: string
-  method: 'GET' | 'POST' | 'PUT' | 'DELETE'
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'
   data?: any
   params?: any
   headers?: Record<string, string>
   signal?: AbortSignal
+  responseType?: 'json' | 'blob' | 'arraybuffer' | 'text' | 'stream'
 }
 
 export interface PaginatedResponse<T> {
@@ -26,4 +27,5 @@ export interface IApiAdapter {
   post<T>(url: string, data?: any, config?: Partial<RequestConfig>): Promise<T>
   put<T>(url: string, data?: any, config?: Partial<RequestConfig>): Promise<T>
   del<T>(url: string, params?: any, config?: Partial<RequestConfig>): Promise<T>
+  patch<T>(url: string, data?: any, config?: Partial<RequestConfig>): Promise<T>
 }

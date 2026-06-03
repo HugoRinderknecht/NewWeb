@@ -1,0 +1,477 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "OpenAPI definition - 视频-提示词",
+    "version": "v0",
+    "description": "模块: 视频-提示词"
+  },
+  "servers": [
+    {
+      "url": "http://server.bsuniversal.cn:10006",
+      "description": "Generated server url"
+    }
+  ],
+  "tags": [
+    {
+      "name": "视频-提示词",
+      "description": "将分镜拆解结果转换为Seedance视频提示词格式、违规检测、违规词自动修复"
+    }
+  ],
+  "paths": {
+    "/api/projects/{projectId}/scripts/{scriptId}/episodes/{episodeId}/video-prompts": {
+      "post": {
+        "tags": ["视频-提示词"],
+        "summary": "生成视频提示词",
+        "description": "将分镜拆解结果和风格配置转换为Seedance v2.4兼容的视频提示词JSON格式。包括景别→焦距光圈映射、镜头类型→scene_type_and_pacing映射、几何微表情词汇替换主观情绪词。自动校验P0规则：段落时长4-15s、单镜头≤10s、资产数量≤7。需要先完成分镜拆解和风格配置步骤。结果持久化到ai_video_prompts表，同时记录Token用量并从积分账户扣减。",
+        "operationId": "generateVideoPrompts",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "项目唯一标识符",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "proj-abc123"
+          },
+          {
+            "name": "scriptId",
+            "in": "path",
+            "description": "剧本唯一标识符",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "script-abc123"
+          },
+          {
+            "name": "episodeId",
+            "in": "path",
+            "description": "分集唯一标识符",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "ep-abc123"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VideoPromptRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultAiProcessResultVOVideoPromptResultVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/scripts/{scriptId}/episodes/{episodeId}/video-prompts/violation-check": {
+      "post": {
+        "tags": ["视频-提示词"],
+        "summary": "视频提示词违规检测",
+        "description": "对已生成的视频提示词进行三层违规检测：第一层：文字敏感词(继承剧本违规审核规则)；第二层：Seedance模型禁词(从Seedance API内容安全规则读取)；第三层：画面违禁内容(裸露/血腥/儿童相关/间接组合如'肤色+紧/薄')。仅扫描视觉相关字段(action_input/diegetic_text_render/script_reference/assets/角色信息.服装)，不扫描技术参数(镜号/时长/焦距/运镜/音频)。Seedance词库不可用时自动降级为内置词库。结果持久化到ai_prompt_violations表，同时记录Token用量并从积分账户扣减。",
+        "operationId": "checkViolations",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "项目唯一标识符",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "proj-abc123"
+          },
+          {
+            "name": "scriptId",
+            "in": "path",
+            "description": "剧本唯一标识符",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "script-abc123"
+          },
+          {
+            "name": "episodeId",
+            "in": "path",
+            "description": "分集唯一标识符",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "ep-abc123"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ViolationCheckRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultAiProcessResultVOViolationCheckResultVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/scripts/{scriptId}/episodes/{episodeId}/video-prompts/fix": {
+      "post": {
+        "tags": ["视频-提示词"],
+        "summary": "视频提示词修改",
+        "description": "根据违规检测结果和用户修改说明，使用最小改动原则替换提示词中的违规词语。替换策略示例：'全裸'→'裸肩'、'虐杀'→'激烈战斗'、'血泊'→'暗红液体'。替换词经过三层禁令预检，script_reference字段永不修改。无法自动修改的项(如核心剧情元素)记入阻断标记，前端不得传入视频生成。结果持久化到ai_prompt_fixes表，同时记录Token用量并从积分账户扣减。",
+        "operationId": "fixPrompts",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "项目唯一标识符",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "proj-abc123"
+          },
+          {
+            "name": "scriptId",
+            "in": "path",
+            "description": "剧本唯一标识符",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "script-abc123"
+          },
+          {
+            "name": "episodeId",
+            "in": "path",
+            "description": "分集唯一标识符",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "ep-abc123"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PromptFixRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultAiProcessResultVOPromptFixResultVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "VideoPromptRequest": {
+        "type": "object",
+        "properties": {
+          "styleConfigId": {
+            "type": "string",
+            "description": "风格配置ID（ai_style_config.id）"
+          },
+          "force": {
+            "type": "boolean",
+            "description": "是否强制重处理，默认 false"
+          }
+        },
+        "description": "视频提示词生成请求"
+      },
+      "ResultAiProcessResultVOVideoPromptResultVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AiProcessResultVOVideoPromptResultVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "ResultObject": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "type": "object"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "ViolationCheckRequest": {
+        "required": ["videoPromptId"],
+        "type": "object",
+        "properties": {
+          "videoPromptId": {
+            "type": "string",
+            "description": "视频提示词记录ID（ai_video_prompts.id）"
+          },
+          "force": {
+            "type": "boolean",
+            "description": "是否强制重处理，默认 false"
+          }
+        },
+        "description": "视频提示词违规检测请求"
+      },
+      "ResultAiProcessResultVOViolationCheckResultVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AiProcessResultVOViolationCheckResultVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "PromptFixRequest": {
+        "required": ["modifyInstructions", "videoPromptId"],
+        "type": "object",
+        "properties": {
+          "videoPromptId": {
+            "type": "string",
+            "description": "视频提示词记录ID（ai_video_prompts.id）"
+          },
+          "modifyInstructions": {
+            "type": "string",
+            "description": "修改说明（替换违规词、调整描述等）",
+            "example": "将'虐杀'替换为'激烈战斗'"
+          },
+          "force": {
+            "type": "boolean",
+            "description": "是否强制重处理，默认 false"
+          }
+        },
+        "description": "视频提示词修改请求"
+      },
+      "ResultAiProcessResultVOPromptFixResultVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AiProcessResultVOPromptFixResultVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,1142 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "OpenAPI definition - 工作流执行",
+    "version": "v0",
+    "description": "模块: 工作流执行"
+  },
+  "servers": [
+    {
+      "url": "http://server.bsuniversal.cn:10006",
+      "description": "Generated server url"
+    }
+  ],
+  "tags": [
+    {
+      "name": "工作流执行",
+      "description": "Dify工作流执行/文件上传/状态查询/SSE流式推送,需JWT认证"
+    },
+    {
+      "name": "工作流执行",
+      "description": "AI风格反推：从参考图推理视觉风格特征"
+    },
+    {
+      "name": "工作流执行",
+      "description": "自适应多模态工作流：文件自动上传、类型检测、链式编排、SSE流式执行"
+    }
+  ],
+  "paths": {
+    "/api/dify-workflows/{workflowCode}/upload-file": {
+      "post": {
+        "tags": ["工作流执行"],
+        "summary": "上传文件到 Dify",
+        "description": "上传文件(图片/视频/音频/文档)到 Dify,返回文件 ID 用于后续工作流执行时引用。仅允许白名单内的文件类型。",
+        "operationId": "uploadFile_2",
+        "parameters": [
+          {
+            "name": "workflowCode",
+            "in": "path",
+            "description": "工作流编码",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "image_to_3d_generation"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "required": ["file"],
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "description": "上传文件",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultDifyFileUploadVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dify-workflows/{workflowCode}/execute": {
+      "post": {
+        "tags": ["工作流执行"],
+        "summary": "阻塞模式执行工作流",
+        "description": "同步执行工作流,等待 Dify 完整执行完毕后返回结果",
+        "operationId": "execute",
+        "parameters": [
+          {
+            "name": "workflowCode",
+            "in": "path",
+            "description": "工作流编码",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "image_to_3d_generation"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DifyWorkflowExecuteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultDifyWorkflowExecuteResultVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dify-workflows/{workflowCode}/execute-stream": {
+      "post": {
+        "tags": ["工作流执行"],
+        "summary": "SSE 流式模式执行工作流",
+        "description": "SSE流式执行工作流。基于 POST 请求，前端必须使用 fetch+ReadableStream 方式接收事件流，不可使用 EventSource（仅支持 GET）。响应 Content-Type: text/event-stream。超时: 300s。事件类型: workflow_started, node_started, node_finished, workflow_finished, error",
+        "operationId": "executeStream",
+        "parameters": [
+          {
+            "name": "workflowCode",
+            "in": "path",
+            "description": "工作流编码",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "image_to_3d_generation"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DifyWorkflowExecuteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/SseEmitter"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dify-workflows/runs/{workflowCode}/{taskId}/stop": {
+      "post": {
+        "tags": ["工作流执行"],
+        "summary": "停止工作流执行",
+        "description": "停止正在运行的工作流任务",
+        "operationId": "stopRun",
+        "parameters": [
+          {
+            "name": "workflowCode",
+            "in": "path",
+            "description": "工作流编码",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "taskId",
+            "in": "path",
+            "description": "Dify 任务 ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "task-xxx-xxx-xxx"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dify-workflows/multimodal/execute": {
+      "post": {
+        "tags": ["工作流执行"],
+        "summary": "自适应执行单一工作流(阻塞模式)",
+        "description": "指定 workflowCode + inputs,自动上传文件后调用工作流,等待完整执行完毕后返回结果。",
+        "operationId": "execute_1",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdaptiveWorkflowRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultAdaptiveWorkflowResultVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dify-workflows/multimodal/execute-stream": {
+      "post": {
+        "tags": ["工作流执行"],
+        "summary": "自适应执行工作流(SSE 流式模式)",
+        "description": "SSE流式执行工作流。基于 POST 请求，前端必须使用 fetch+ReadableStream 方式接收事件流，不可使用 EventSource（仅支持 GET）。\n响应 Content-Type: text/event-stream。超时: 300s。事件类型: workflow_started, node_started, node_finished, workflow_finished, error。\n注意: 链式调用不支持流式模式,请使用 /execute 端点。",
+        "operationId": "executeStream_1",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdaptiveWorkflowRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/SseEmitter"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dify-workflows/multimodal/execute-chain": {
+      "post": {
+        "tags": ["工作流执行"],
+        "summary": "链式执行工作流(阻塞模式)",
+        "description": "串行执行多个 Dify 工作流,前一步输出可通过 ${chain[N].outputs.key} 引用。\n最多 10 步,仅支持阻塞模式(不支持 SSE 流式)。",
+        "operationId": "executeChain",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdaptiveWorkflowRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultChainExecutionResultVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ai/style-inference": {
+      "post": {
+        "tags": ["工作流执行"],
+        "summary": "风格反推",
+        "description": "根据参考图片分析提取视觉风格标签,返回风格关键词列表",
+        "operationId": "analyzeStyle",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StyleInferenceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultStyleInferenceResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dify-workflows/runs/{workflowCode}/{runId}": {
+      "get": {
+        "tags": ["工作流执行"],
+        "summary": "查询工作流运行状态",
+        "description": "查询指定工作流运行的当前状态,包括进度、输出和耗时",
+        "operationId": "getRunStatus",
+        "parameters": [
+          {
+            "name": "workflowCode",
+            "in": "path",
+            "description": "工作流编码",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "runId",
+            "in": "path",
+            "description": "Dify 工作流运行 ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "wfr-xxx-xxx-xxx"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultDifyWorkflowRunStatusVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dify-workflows/catalog": {
+      "get": {
+        "tags": ["工作流执行"],
+        "summary": "工作流目录",
+        "description": "返回所有已启用 Dify 工作流的输入输出定义,供前端动态生成界面",
+        "operationId": "catalog",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultListDifyWorkflowCatalogVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ResultDifyFileUploadVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/DifyFileUploadVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "ResultObject": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "type": "object"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "DifyWorkflowExecuteRequest": {
+        "required": ["inputs"],
+        "type": "object",
+        "properties": {
+          "inputs": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "description": "工作流输入参数,具体结构由 input_schema 定义",
+              "example": {
+                "prompt": "生成一个3D场景",
+                "duration": 10
+              }
+            },
+            "description": "工作流输入参数,具体结构由 input_schema 定义",
+            "example": {
+              "prompt": "生成一个3D场景",
+              "duration": 10
+            }
+          },
+          "traceId": {
+            "maxLength": 64,
+            "minLength": 0,
+            "type": "string",
+            "description": "链路追踪 ID,用于关联前后端日志",
+            "example": "trace-xxx-xxx-xxx"
+          },
+          "userContext": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "description": "用户上下文(projectId, sessionId 等)",
+              "example": "{\"projectId\":\"5001\",\"sessionId\":\"session-xxx\"}"
+            },
+            "description": "用户上下文(projectId, sessionId 等)",
+            "example": {
+              "projectId": "5001",
+              "sessionId": "session-xxx"
+            }
+          }
+        },
+        "description": "工作流执行请求"
+      },
+      "ResultDifyWorkflowExecuteResultVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/DifyWorkflowExecuteResultVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "SseEmitter": {
+        "type": "object",
+        "properties": {
+          "timeout": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ResultVoid": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "type": "object"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "AdaptiveWorkflowRequest": {
+        "type": "object",
+        "properties": {
+          "workflowCode": {
+            "maxLength": 64,
+            "minLength": 0,
+            "type": "string",
+            "description": "工作流唯一编码(单一模式,与 chain 互斥)",
+            "example": "multi_modal_analysis"
+          },
+          "inputs": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "description": "工作流输入参数,值可以是纯文本/数字/布尔,或 MultimodalField 文件描述符",
+              "example": {
+                "prompt": "生成一个3D场景",
+                "image": {
+                  "type": "image",
+                  "url": "https://..."
+                }
+              }
+            },
+            "description": "工作流输入参数,值可以是纯文本/数字/布尔,或 MultimodalField 文件描述符",
+            "example": {
+              "prompt": "生成一个3D场景",
+              "image": {
+                "type": "image",
+                "url": "https://..."
+              }
+            }
+          },
+          "chain": {
+            "maxItems": 10,
+            "minItems": 1,
+            "type": "array",
+            "description": "链式调用步骤列表(链式模式,与 workflowCode 互斥),最多 10 步,按数组顺序串行执行",
+            "items": {
+              "$ref": "#/components/schemas/ChainStepRequest"
+            }
+          },
+          "traceId": {
+            "maxLength": 64,
+            "minLength": 0,
+            "type": "string",
+            "description": "链路追踪 ID,用于关联前后端日志",
+            "example": "trace-xxx-xxx-xxx"
+          },
+          "userContext": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "description": "用户上下文(projectId, sessionId 等)",
+              "example": "{\"projectId\":\"5001\",\"sessionId\":\"session-xxx\"}"
+            },
+            "description": "用户上下文(projectId, sessionId 等)",
+            "example": {
+              "projectId": "5001",
+              "sessionId": "session-xxx"
+            }
+          }
+        },
+        "description": "自适应多模态工作流执行请求"
+      },
+      "ResultAdaptiveWorkflowResultVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AdaptiveWorkflowResultVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "ResultChainExecutionResultVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ChainExecutionResultVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "StyleInferenceRequest": {
+        "required": ["imageUrl"],
+        "type": "object",
+        "properties": {
+          "imageUrl": {
+            "type": "string",
+            "description": "参考图片URL",
+            "example": "https://example.com/reference.jpg"
+          },
+          "tagCount": {
+            "type": "integer",
+            "description": "返回风格标签数量",
+            "format": "int32",
+            "example": 5
+          }
+        },
+        "description": "风格反推请求"
+      },
+      "ResultStyleInferenceResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/StyleInferenceResponse"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "ResultDifyWorkflowRunStatusVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/DifyWorkflowRunStatusVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "ResultListDifyWorkflowCatalogVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DifyWorkflowCatalogVO"
+            }
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      }
+    }
+  }
+}

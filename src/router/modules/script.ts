@@ -44,7 +44,7 @@ export const scriptRoutes: AppRouteRecord = {
       path: 'version',
       name: 'ScriptVersion',
       component: '/script/version',
-      meta: { title: '版本管理', keepAlive: true }
+      meta: { title: '创意资产', keepAlive: true }
     }
   ]
 }

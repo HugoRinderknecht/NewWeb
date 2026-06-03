@@ -93,11 +93,11 @@
   /** 分页配置接口 */
   interface PaginationConfig {
     /** 当前页码 */
-    current: number
+    current?: number
     /** 每页显示条目个数 */
-    size: number
+    size?: number
     /** 总条目数 */
-    total: number
+    total?: number
   }
 
   /** 分页器配置选项接口 */
@@ -313,7 +313,7 @@
   // 全局序号
   const getGlobalIndex = (index: number) => {
     if (!props.pagination) return index + 1
-    const { current, size } = props.pagination
+    const { current = 1, size = 10 } = props.pagination
     return (current - 1) * size + index + 1
   }
 

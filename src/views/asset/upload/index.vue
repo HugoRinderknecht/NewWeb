@@ -150,6 +150,7 @@
     fetchUploadChunk,
     fetchCompleteChunkUpload
   } from '@/api/asset'
+  import { useProjectDataStore } from '@/store/modules/project-data'
 
   defineOptions({ name: 'AssetUpload' })
 
@@ -323,14 +324,15 @@
   }
 
   const CHUNK_SIZE = 5 * 1024 * 1024
-  const projectId = '1'
+  const projectStore = useProjectDataStore()
+  const projectId = computed(() => projectStore.currentProjectId || '')
 
   const uploadSingleFile = async (item: UploadItem) => {
     const file = item.raw
     if (!file) return
     if (file.size > CHUNK_SIZE) {
       try {
-        const initRes = await fetchInitChunkUpload(projectId, {
+        const initRes = await fetchInitChunkUpload(projectId.value, {
           fileName: file.name,
           fileSize: file.size,
           assetType: item.category,
@@ -342,21 +344,21 @@
           const start = i * CHUNK_SIZE
           const end = Math.min(start + CHUNK_SIZE, file.size)
           const chunk = file.slice(start, end)
-          await fetchUploadChunk(projectId, {
+          await fetchUploadChunk(projectId.value, {
             uploadId,
             chunkNumber: i + 1,
             chunk: chunk as any
           })
           item.progress = Math.round(((i + 1) / totalChunks) * 100)
         }
-        await fetchCompleteChunkUpload(projectId, { uploadId })
+        await fetchCompleteChunkUpload(projectId.value, { uploadId })
         item.status = 'success' as any
       } catch {
         item.status = 'error' as any
       }
     } else {
       try {
-        await fetchUploadAsset(projectId, {
+        await fetchUploadAsset(projectId.value, {
           file: file as any,
           assetName: item.name,
           assetType: item.category,
@@ -385,7 +387,7 @@
         category: item.category,
         tags: item.tags
       }))
-      await fetchBatchUploadAssets(projectId, { files } as any)
+      await fetchBatchUploadAssets(projectId.value, { files } as any)
       readyItems.forEach((item) => {
         item.status = 'success' as any
         item.progress = 100
@@ -406,6 +408,7 @@
     :deep(.el-upload) {
       width: 100%;
     }
+
     :deep(.el-upload-dragger) {
       width: 100%;
       padding: 40px 20px;
@@ -416,15 +419,15 @@
     text-align: center;
 
     .upload-icon {
+      margin-bottom: 12px;
       font-size: 48px;
       color: var(--el-text-color-placeholder);
-      margin-bottom: 12px;
     }
 
     .upload-tip {
+      margin-top: 8px;
       font-size: 12px;
       color: var(--el-text-color-placeholder);
-      margin-top: 8px;
     }
   }
 
@@ -432,46 +435,46 @@
     margin-top: 24px;
 
     .section-title {
+      margin-bottom: 12px;
       font-size: 14px;
       font-weight: 600;
       color: var(--el-text-color-primary);
-      margin-bottom: 12px;
     }
   }
 
   .file-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 8px;
     display: flex;
+    flex-shrink: 0;
     align-items: center;
     justify-content: center;
+    width: 40px;
+    height: 40px;
     font-size: 20px;
-    flex-shrink: 0;
+    border-radius: 8px;
 
     &.image {
-      background: var(--el-color-primary-light-9);
       color: var(--el-color-primary);
+      background: var(--el-color-primary-light-9);
     }
 
     &.video {
-      background: var(--el-color-success-light-9);
       color: var(--el-color-success);
+      background: var(--el-color-success-light-9);
     }
 
     &.audio {
-      background: var(--el-color-warning-light-9);
       color: var(--el-color-warning);
+      background: var(--el-color-warning-light-9);
     }
 
     &.document {
-      background: var(--el-color-info-light-9);
       color: var(--el-color-info);
+      background: var(--el-color-info-light-9);
     }
 
     &.other {
-      background: var(--el-fill-color-lighter);
       color: var(--el-text-color-secondary);
+      background: var(--el-fill-color-lighter);
     }
   }
 </style>

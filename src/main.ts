@@ -9,6 +9,7 @@ import { setupGlobDirectives } from './directives'
 import { setupErrorHandle } from './utils/sys/error-handle'
 import { dataFlowBus } from './utils/data-flow'
 import { initWebVitals } from './utils/sys/web-vitals'
+import { useProjectDataStore } from '@/store/modules/project-data'
 
 document.addEventListener(
   'touchstart',
@@ -25,6 +26,8 @@ async function bootstrap() {
   setupErrorHandle(app)
 
   app.mount('#app')
+
+  useProjectDataStore().loadProjects()
 
   dataFlowBus.init().catch((err) => {
     console.error('[DataFlow] 初始化失败:', err)

@@ -1,0 +1,1471 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "OpenAPI definition - 剧本-资产",
+    "version": "v0",
+    "description": "模块: 剧本-资产"
+  },
+  "servers": [
+    {
+      "url": "http://server.bsuniversal.cn:10006",
+      "description": "Generated server url"
+    }
+  ],
+  "tags": [
+    {
+      "name": "剧本-资产",
+      "description": "基于creative_asset资产表生成图像提示词、调用GPT-Image-2生成资产图片、内容安全审核"
+    },
+    {
+      "name": "剧本-资产",
+      "description": "剧本提取资产(人物/服装/场景/道具/其他)的CRUD管理"
+    }
+  ],
+  "paths": {
+    "/api/script-assets/{assetId}": {
+      "get": {
+        "tags": ["剧本-资产"],
+        "summary": "获取创意资产详情",
+        "description": "获取单个创意资产的详细信息,包含创建者名称、来源剧本标题和完整谱系链",
+        "operationId": "getAssetDetail_1",
+        "parameters": [
+          {
+            "name": "assetId",
+            "in": "path",
+            "description": "资产ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "uuid-xxx"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultCreativeAssetVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["剧本-资产"],
+        "summary": "更新创意资产",
+        "description": "更新创意资产的名称、分类、描述、参考图、标签、审核状态、扩展数据或排序",
+        "operationId": "updateAsset",
+        "parameters": [
+          {
+            "name": "assetId",
+            "in": "path",
+            "description": "资产ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "uuid-xxx"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreativeAssetUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["剧本-资产"],
+        "summary": "删除创意资产",
+        "description": "软删除指定创意资产,需要项目写入权限",
+        "operationId": "deleteAsset",
+        "parameters": [
+          {
+            "name": "assetId",
+            "in": "path",
+            "description": "资产ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "uuid-xxx"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/script-assets/{assetId}/upload-image": {
+      "post": {
+        "tags": ["剧本-资产"],
+        "summary": "上传资产参考图",
+        "description": "为指定创意资产上传参考图片,自动存储至StorageService并回填referenceUrl。返回图片访问URL。",
+        "operationId": "uploadImage",
+        "parameters": [
+          {
+            "name": "assetId",
+            "in": "path",
+            "description": "资产ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "uuid-xxx"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": ["file"],
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "description": "图片文件",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultString"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/scripts/{scriptId}/assets/prompts": {
+      "post": {
+        "tags": ["剧本-资产"],
+        "summary": "生成资产提示词",
+        "description": "根据已提取的资产表(需先调用提取资产表接口)，为每个人物/场景/道具生成对应的图片生成提示词。人物：4视角角色立绘(正面/侧面/背面/头像特写)，白色背景，柔光；场景：广角平视，无透视畸变，无人物/动物，无动态模糊；道具：5视角(正面/侧面/背面/顶部/细节微距)，白色背景。自动读取creative_asset中的资产数据，可通过assetExtractId指定特定提取批次。结果持久化到creative_asset表，同时记录Token用量并从积分账户扣减。",
+        "operationId": "generateAssetPrompts",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "项目唯一标识符",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "proj-abc123"
+          },
+          {
+            "name": "scriptId",
+            "in": "path",
+            "description": "剧本唯一标识符",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "script-abc123"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssetPromptRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultAiProcessResultVOAssetPromptResultVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/scripts/{scriptId}/assets/images/review": {
+      "post": {
+        "tags": ["剧本-资产"],
+        "summary": "审核资产图片",
+        "description": "对生成的资产图片进行Seedance内容安全合规审核。仅检查内容安全(不检查画质/构图)，提交时附带资产类型上下文(character_portrait/environment/prop_still)。含误判缓解策略(如人物立绘的肩部裸露、场景资产的人体模型不标记为违规)。Dify API不可用时降级标记为'待审核'，不阻断流程。结果持久化到creative_asset表，同时记录Token用量并从积分账户扣减。",
+        "operationId": "reviewImages",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "项目唯一标识符",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "proj-abc123"
+          },
+          {
+            "name": "scriptId",
+            "in": "path",
+            "description": "剧本唯一标识符",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "script-abc123"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImageReviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultAiProcessResultVOImageReviewResultVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/scripts/{scriptId}/assets/images/generate": {
+      "post": {
+        "tags": ["剧本-资产"],
+        "summary": "生成资产图片",
+        "description": "根据资产提示词调用GPT-Image-2 API生成资产图片。直接POST api.apimart.ai/v1/images/generations，不走Dify工作流。支持文生图和图生图(referenceImageUrls参数)。参数：model=gpt-image-2, size=1:1, resolution=1k, n=1。支持两种模式：sync=true 同步阻塞轮询(最长120s,2s间隔)返回结果；sync=false 异步提交后立即返回,由后台调度器轮询。结果持久化到creative_asset表(asset_subtype=image, source=ai_image)，同步模式自动下载外部CDN图片存储到MinIO，按图片数量估算Token用量并从积分账户扣减。",
+        "operationId": "generateImages",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "项目唯一标识符",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "proj-abc123"
+          },
+          {
+            "name": "scriptId",
+            "in": "path",
+            "description": "剧本唯一标识符",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "script-abc123"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssetImageGenRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultAssetImageResultVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/script-assets": {
+      "get": {
+        "tags": ["剧本-资产"],
+        "summary": "查询剧本资产列表",
+        "description": "分页查询指定项目下的创意资产列表,支持按剧本、资产分类、子类型、来源、审核状态、关键词筛选",
+        "operationId": "listAssets_1",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "项目ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "proj-001"
+          },
+          {
+            "name": "query",
+            "in": "query",
+            "description": "查询条件",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/CreativeAssetQueryRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultPageResultCreativeAssetVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["剧本-资产"],
+        "summary": "创建创意资产",
+        "description": "在指定项目下创建一个新的创意资产,assetType不传默认other,支持标签和谱系关联",
+        "operationId": "createAsset",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "项目ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "proj-001"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreativeAssetCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultCreativeAssetVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/script-assets/batch": {
+      "post": {
+        "tags": ["剧本-资产"],
+        "summary": "批量创建创意资产",
+        "description": "在指定项目下批量创建多个创意资产,单次最多100条,assetType不传默认other",
+        "operationId": "batchCreateAssets",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "项目ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "proj-001"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreativeAssetBatchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultListCreativeAssetVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ResultCreativeAssetVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/CreativeAssetVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "ResultObject": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "type": "object"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "CreativeAssetUpdateRequest": {
+        "type": "object",
+        "properties": {
+          "assetName": {
+            "maxLength": 200,
+            "minLength": 0,
+            "type": "string",
+            "description": "资产名称",
+            "example": "男主角-李明(修订)"
+          },
+          "assetType": {
+            "type": "string",
+            "description": "资产分类: character/costume/scene/prop/other",
+            "example": "character"
+          },
+          "description": {
+            "maxLength": 2000,
+            "minLength": 0,
+            "type": "string",
+            "description": "资产描述",
+            "example": "30岁男性主角，身材高大，黑色短发，左脸有疤痕"
+          },
+          "referenceUrl": {
+            "maxLength": 500,
+            "minLength": 0,
+            "type": "string",
+            "description": "参考图URL",
+            "example": "https://example.com/ref/char-01-v2.jpg"
+          },
+          "extraData": {
+            "type": "string",
+            "description": "扩展数据JSON",
+            "example": "{\"age\":30,\"gender\":\"male\",\"scar\":true}"
+          },
+          "tags": {
+            "type": "array",
+            "description": "内联标签",
+            "example": ["主角", "男性", "疤痕"],
+            "items": {
+              "type": "string",
+              "description": "内联标签",
+              "example": "[\"主角\",\"男性\",\"疤痕\"]"
+            }
+          },
+          "reviewStatus": {
+            "type": "string",
+            "description": "审核状态: not_submitted/pending/approved/rejected",
+            "example": "approved"
+          },
+          "parentAssetId": {
+            "type": "string",
+            "description": "管线父资产ID",
+            "example": "uuid-parent"
+          },
+          "libraryAssetId": {
+            "type": "string",
+            "description": "团队资产库引用ID",
+            "example": "lib-001"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "description": "排序",
+            "format": "int32",
+            "example": 1
+          },
+          "assetLevel": {
+            "type": "string",
+            "description": "人物等级: 主角/配角/龙套",
+            "example": "主角"
+          },
+          "assetAliases": {
+            "type": "array",
+            "description": "别名列表",
+            "example": ["陆大天才"],
+            "items": {
+              "type": "string",
+              "description": "别名列表",
+              "example": "[\"陆大天才\"]"
+            }
+          },
+          "assetCategory": {
+            "type": "string",
+            "description": "道具分类: 信物/武器",
+            "example": "信物"
+          },
+          "assetOwner": {
+            "type": "string",
+            "description": "道具归属人物",
+            "example": "陆洵"
+          },
+          "assetCharacterRef": {
+            "type": "string",
+            "description": "服装关联人物",
+            "example": "赵凯越"
+          },
+          "assetSceneRef": {
+            "type": "string",
+            "description": "服装关联场景/集数",
+            "example": "1-1"
+          },
+          "assetSceneType": {
+            "type": "string",
+            "description": "场景类型: 室外/室内",
+            "example": "室外"
+          }
+        },
+        "description": "更新创意资产请求"
+      },
+      "ResultVoid": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "type": "object"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "ResultString": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "AssetPromptRequest": {
+        "type": "object",
+        "properties": {
+          "assetExtractId": {
+            "type": "string",
+            "description": "资产提取批次ID（creative_asset.id, source=extract），null则取最新一批"
+          },
+          "force": {
+            "type": "boolean",
+            "description": "是否强制重处理，默认 false"
+          }
+        },
+        "description": "资产提示词生成请求"
+      },
+      "ResultAiProcessResultVOAssetPromptResultVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AiProcessResultVOAssetPromptResultVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "ImageReviewRequest": {
+        "required": ["assetImageIds"],
+        "type": "object",
+        "properties": {
+          "assetImageIds": {
+            "type": "array",
+            "description": "资产图片记录ID列表（creative_asset.id, asset_subtype=image）",
+            "items": {
+              "type": "string",
+              "description": "资产图片记录ID列表（creative_asset.id, asset_subtype=image）"
+            }
+          },
+          "force": {
+            "type": "boolean",
+            "description": "是否强制重处理，默认 false"
+          }
+        },
+        "description": "图片审核请求"
+      },
+      "ResultAiProcessResultVOImageReviewResultVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AiProcessResultVOImageReviewResultVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "AssetImageGenRequest": {
+        "required": ["assetPromptIds"],
+        "type": "object",
+        "properties": {
+          "assetPromptIds": {
+            "type": "array",
+            "description": "提示词记录ID列表，即 /assets/prompts 接口返回的 assetId 字段（creative_asset.id, asset_subtype=prompt, source=ai_prompt）",
+            "items": {
+              "type": "string",
+              "description": "提示词记录ID列表，即 /assets/prompts 接口返回的 assetId 字段（creative_asset.id, asset_subtype=prompt, source=ai_prompt）"
+            }
+          },
+          "referenceImageUrls": {
+            "type": "array",
+            "description": "参考图片URL列表（可选）",
+            "items": {
+              "type": "string",
+              "description": "参考图片URL列表（可选）"
+            }
+          },
+          "force": {
+            "type": "boolean",
+            "description": "是否强制重处理，默认 false"
+          },
+          "sync": {
+            "type": "boolean",
+            "description": "同步模式: true=阻塞等待结果(最长120s), false=提交后立即返回(需轮询查询)",
+            "default": false
+          },
+          "model": {
+            "type": "string",
+            "description": "模型编码: gpt-image-2 / gpt-image-2-official",
+            "example": "gpt-image-2-official",
+            "default": "gpt-image-2"
+          },
+          "size": {
+            "type": "string",
+            "description": "图像比例",
+            "example": "16:9",
+            "default": "1:1"
+          },
+          "resolution": {
+            "type": "string",
+            "description": "分辨率: 1k/2k/4k",
+            "example": "2k",
+            "default": "1k"
+          }
+        },
+        "description": "资产图片生成请求"
+      },
+      "ResultAssetImageResultVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AssetImageResultVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "CreativeAssetQueryRequest": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "minimum": 1,
+            "type": "integer",
+            "description": "当前页码, 从 1 开始",
+            "format": "int32",
+            "example": 1
+          },
+          "pageSize": {
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer",
+            "description": "每页大小, 最大 100",
+            "format": "int32",
+            "example": 10
+          },
+          "sortField": {
+            "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$",
+            "type": "string",
+            "description": "排序字段, 如 createTime",
+            "example": "createTime"
+          },
+          "sortOrder": {
+            "pattern": "^(asc|desc|ASC|DESC)$",
+            "type": "string",
+            "description": "排序方向: asc-升序, desc-降序",
+            "example": "desc"
+          },
+          "projectId": {
+            "type": "string",
+            "description": "项目ID(从路径获取)",
+            "example": "proj-001"
+          },
+          "scriptId": {
+            "type": "string",
+            "description": "来源剧本ID(可选)",
+            "example": "uuid-xxx"
+          },
+          "assetType": {
+            "type": "string",
+            "description": "资产分类筛选: character/costume/scene/prop/other",
+            "example": "character"
+          },
+          "assetSubtype": {
+            "type": "string",
+            "description": "资产子类型筛选: extract/prompt/image/review",
+            "example": "prompt"
+          },
+          "source": {
+            "type": "string",
+            "description": "数据来源筛选",
+            "example": "ai_prompt"
+          },
+          "reviewStatus": {
+            "type": "string",
+            "description": "审核状态筛选",
+            "example": "pending"
+          },
+          "keyword": {
+            "type": "string",
+            "description": "搜索关键词(模糊匹配资产名称)",
+            "example": "李明"
+          },
+          "desc": {
+            "type": "boolean"
+          },
+          "asc": {
+            "type": "boolean"
+          },
+          "offset": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "description": "查询创意资产请求"
+      },
+      "ResultPageResultCreativeAssetVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PageResultCreativeAssetVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "CreativeAssetCreateRequest": {
+        "required": ["assetName"],
+        "type": "object",
+        "properties": {
+          "scriptId": {
+            "type": "string",
+            "description": "来源剧本ID(可选)",
+            "example": "uuid-xxx"
+          },
+          "assetName": {
+            "maxLength": 200,
+            "minLength": 0,
+            "type": "string",
+            "description": "资产名称",
+            "example": "男主角-李明"
+          },
+          "assetType": {
+            "type": "string",
+            "description": "资产分类: character/costume/scene/prop/other(默认)",
+            "example": "character"
+          },
+          "description": {
+            "maxLength": 2000,
+            "minLength": 0,
+            "type": "string",
+            "description": "资产描述",
+            "example": "30岁男性主角，身材高大，黑色短发"
+          },
+          "referenceUrl": {
+            "maxLength": 500,
+            "minLength": 0,
+            "type": "string",
+            "description": "参考图URL(可选)",
+            "example": "https://example.com/ref/char-01.jpg"
+          },
+          "extraData": {
+            "type": "string",
+            "description": "扩展数据JSON(可选)",
+            "example": "{\"age\":30,\"gender\":\"male\"}"
+          },
+          "tags": {
+            "type": "array",
+            "description": "内联标签",
+            "example": ["主角", "男性"],
+            "items": {
+              "type": "string",
+              "description": "内联标签",
+              "example": "[\"主角\",\"男性\"]"
+            }
+          },
+          "parentAssetId": {
+            "type": "string",
+            "description": "管线父资产ID(可选)",
+            "example": "uuid-parent"
+          },
+          "libraryAssetId": {
+            "type": "string",
+            "description": "团队资产库引用ID(可选)",
+            "example": "lib-001"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "description": "排序(默认0)",
+            "format": "int32",
+            "example": 0
+          },
+          "assetLevel": {
+            "type": "string",
+            "description": "人物等级: 主角/配角/龙套",
+            "example": "主角"
+          },
+          "assetAliases": {
+            "type": "array",
+            "description": "别名列表",
+            "example": ["陆大天才"],
+            "items": {
+              "type": "string",
+              "description": "别名列表",
+              "example": "[\"陆大天才\"]"
+            }
+          },
+          "assetCategory": {
+            "type": "string",
+            "description": "道具分类: 信物/武器",
+            "example": "信物"
+          },
+          "assetOwner": {
+            "type": "string",
+            "description": "道具归属人物",
+            "example": "陆洵"
+          },
+          "assetCharacterRef": {
+            "type": "string",
+            "description": "服装关联人物",
+            "example": "赵凯越"
+          },
+          "assetSceneRef": {
+            "type": "string",
+            "description": "服装关联场景/集数",
+            "example": "1-1"
+          },
+          "assetSceneType": {
+            "type": "string",
+            "description": "场景类型: 室外/室内",
+            "example": "室外"
+          }
+        },
+        "description": "创建创意资产请求"
+      },
+      "CreativeAssetBatchRequest": {
+        "required": ["assets"],
+        "type": "object",
+        "properties": {
+          "assets": {
+            "type": "array",
+            "description": "批量操作的资产列表",
+            "items": {
+              "$ref": "#/components/schemas/CreativeAssetCreateRequest"
+            }
+          }
+        },
+        "description": "批量操作创意资产请求"
+      },
+      "ResultListCreativeAssetVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CreativeAssetVO"
+            }
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      }
+    }
+  }
+}

@@ -204,7 +204,6 @@
   const uploadedFileName = ref('')
   const parsedContent = ref('')
   const errorMessage = ref('')
-  let uploadTimer: ReturnType<typeof setInterval> | null = null
 
   const formData = reactive({
     name: '',
@@ -307,10 +306,6 @@
     formData.name = ''
     formData.type = 'animation'
     formData.description = ''
-    if (uploadTimer) {
-      clearInterval(uploadTimer)
-      uploadTimer = null
-    }
   }
 
   const handleFileChange = (uploadFile: UploadFile) => {
@@ -366,29 +361,20 @@
     uploadStatus.value = 'uploading'
     uploadProgress.value = 0
 
-    // 模拟上传进度
-    uploadTimer = setInterval(() => {
-      const increment = Math.floor(Math.random() * 15) + 5
-      uploadProgress.value = Math.min(uploadProgress.value + increment, 95)
-    }, 300)
-
-    // 模拟上传完成
-    setTimeout(async () => {
-      if (uploadTimer) {
-        clearInterval(uploadTimer)
-        uploadTimer = null
-      }
-      uploadProgress.value = 100
-      uploadStatus.value = 'success'
-      uploadedFileName.value = file.name
-
-      // 解析文件内容
+    try {
       if (props.autoParse) {
         parsedContent.value = await parseFileContent(file)
       }
 
-      ElMessage.success('文件上传成功')
-    }, 2000)
+      uploadProgress.value = 100
+      uploadStatus.value = 'success'
+      uploadedFileName.value = file.name
+      ElMessage.success('文件处理成功')
+    } catch {
+      uploadStatus.value = 'error'
+      errorMessage.value = '文件处理失败'
+      ElMessage.error('文件处理失败')
+    }
   }
 
   const handleConfirm = () => {
@@ -414,12 +400,6 @@
     emit('cancel')
     resetState()
   }
-
-  onBeforeUnmount(() => {
-    if (uploadTimer) {
-      clearInterval(uploadTimer)
-    }
-  })
 </script>
 
 <style lang="scss" scoped>
@@ -449,53 +429,53 @@
       text-align: center;
 
       .upload-icon {
+        margin-bottom: 12px;
         font-size: 48px;
         color: var(--el-text-color-placeholder);
-        margin-bottom: 12px;
       }
 
       .upload-text {
         p {
           margin: 0;
-          color: var(--el-text-color-regular);
           font-size: 14px;
+          color: var(--el-text-color-regular);
 
           em {
-            color: var(--el-color-primary);
             font-style: normal;
             font-weight: 500;
+            color: var(--el-color-primary);
           }
         }
 
         .upload-tip {
+          margin-top: 8px;
           font-size: 12px;
           color: var(--el-text-color-placeholder);
-          margin-top: 8px;
         }
       }
     }
 
     .upload-file-info {
       display: flex;
-      align-items: center;
       gap: 16px;
+      align-items: center;
       padding: 16px;
       background: var(--el-fill-color-lighter);
       border-radius: var(--custom-radius);
 
       .file-icon {
-        width: 48px;
-        height: 48px;
-        border-radius: 8px;
         display: flex;
+        flex-shrink: 0;
         align-items: center;
         justify-content: center;
+        width: 48px;
+        height: 48px;
         font-size: 24px;
-        flex-shrink: 0;
+        border-radius: 8px;
 
         &.document {
-          background: var(--el-color-primary-light-9);
           color: var(--el-color-primary);
+          background: var(--el-color-primary-light-9);
         }
       }
 
@@ -505,23 +485,23 @@
         text-align: left;
 
         .file-name {
-          font-weight: 500;
           font-size: 14px;
+          font-weight: 500;
           color: var(--el-text-color-primary);
           word-break: break-all;
         }
 
         .file-size {
+          margin-top: 4px;
           font-size: 12px;
           color: var(--el-text-color-secondary);
-          margin-top: 4px;
         }
       }
     }
 
     .upload-progress-section {
-      margin-top: 20px;
       padding: 16px;
+      margin-top: 20px;
       background: var(--el-fill-color-lighter);
       border-radius: var(--custom-radius);
 
@@ -555,10 +535,10 @@
     }
 
     .upload-result {
-      margin-top: 20px;
       padding: 24px;
-      border-radius: var(--custom-radius);
+      margin-top: 20px;
       text-align: center;
+      border-radius: var(--custom-radius);
 
       &.success {
         background: var(--el-color-success-light-9);
@@ -571,8 +551,8 @@
       }
 
       .result-icon {
-        font-size: 48px;
         margin-bottom: 12px;
+        font-size: 48px;
 
         .success & {
           color: var(--el-color-success);
@@ -584,9 +564,9 @@
       }
 
       .result-title {
+        margin-bottom: 8px;
         font-size: 16px;
         font-weight: 600;
-        margin-bottom: 8px;
 
         .success & {
           color: var(--el-color-success);
@@ -604,26 +584,26 @@
       }
 
       .parsed-content-preview {
+        padding: 12px;
         margin-top: 16px;
         text-align: left;
         background: var(--el-bg-color);
-        padding: 12px;
         border-radius: var(--custom-radius);
 
         .preview-title {
+          margin-bottom: 8px;
           font-size: 13px;
           font-weight: 500;
           color: var(--el-text-color-primary);
-          margin-bottom: 8px;
         }
 
         .preview-text {
-          font-size: 12px;
-          color: var(--el-text-color-secondary);
-          line-height: 1.6;
-          white-space: pre-wrap;
           max-height: 120px;
           overflow-y: auto;
+          font-size: 12px;
+          line-height: 1.6;
+          color: var(--el-text-color-secondary);
+          white-space: pre-wrap;
         }
       }
     }
@@ -641,6 +621,7 @@
     from {
       transform: rotate(0deg);
     }
+
     to {
       transform: rotate(360deg);
     }

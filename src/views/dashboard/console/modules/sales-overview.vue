@@ -32,7 +32,11 @@
 
   const loadData = async () => {
     try {
-      const { data: resData } = await fetchGetTrends()
+      const { data: resData } = await fetchGetTrends({
+        eventType: 'credits',
+        granularity: 'day',
+        metrics: ['credits']
+      })
       if (resData) {
         data.value = resData.values ?? []
         xAxisData.value = resData.labels ?? []

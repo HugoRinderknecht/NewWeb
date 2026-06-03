@@ -1,0 +1,863 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "OpenAPI definition - 剧本-内容生成",
+    "version": "v0",
+    "description": "模块: 剧本-内容生成"
+  },
+  "servers": [
+    {
+      "url": "http://server.bsuniversal.cn:10006",
+      "description": "Generated server url"
+    }
+  ],
+  "tags": [
+    {
+      "name": "剧本-内容生成",
+      "description": "AI风格配置：视觉风格生成、参考图风格反推，为分镜拆解和资产生成提供风格指导"
+    },
+    {
+      "name": "剧本-内容生成",
+      "description": "AI内容分析：人物小传生成、资产表提取(人物/场景/道具)、违规内容审核"
+    },
+    {
+      "name": "剧本-内容生成",
+      "description": "根据人物小传生成TTS音色提示词，支持生理匹配校验和角色间区分度检查"
+    }
+  ],
+  "paths": {
+    "/api/projects/{projectId}/scripts/{scriptId}/voice-prompts": {
+      "post": {
+        "tags": ["剧本-内容生成"],
+        "summary": "生成音色提示词",
+        "description": "根据人物小传(需先调用人物小传生成接口)中每个角色的音色参考，生成增强后的TTS音色提示词。包含三个处理步骤：1)生理匹配度校验(年龄/性别vs音色)；2)角色一致性检查(允许'外冷内热'型反差)；3)高频互动角色间区分度检测。主角最多采样10句台词增强分析。最终输出每个角色的基线音色+变化规则+特殊需求的结构化提示词。自动读取ai_character_profiles中的人物小传数据，可通过characterProfileId指定特定小传批次。结果持久化到ai_voice_prompts表，同时记录Token用量并从积分账户扣减。",
+        "operationId": "generateVoicePrompts",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "项目唯一标识符",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "proj-abc123"
+          },
+          {
+            "name": "scriptId",
+            "in": "path",
+            "description": "剧本唯一标识符",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "script-abc123"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VoicePromptRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultAiProcessResultVOVoicePromptResultVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/scripts/{scriptId}/style-config": {
+      "post": {
+        "tags": ["剧本-内容生成"],
+        "summary": "生成风格配置",
+        "description": "根据文本描述和可选参考图片，生成包含整体画风、光影体系、色彩体系、材质质感、情绪氛围、画质标准、避免特征七维度的完整风格配置。同时生成美术拼接后缀和分镜拼接后缀供后续流程使用。参考图片最多5张，通过Dify工作流中的qwen视觉模型提取风格特征后与文本描述融合。结果持久化到ai_style_config表，同时记录Token用量并从积分账户扣减。",
+        "operationId": "generateStyleConfig",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "项目唯一标识符",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "proj-abc123"
+          },
+          {
+            "name": "scriptId",
+            "in": "path",
+            "description": "剧本唯一标识符",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "script-abc123"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StyleConfigRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultAiProcessResultVOStyleConfigResultVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/scripts/{scriptId}/review-content": {
+      "post": {
+        "tags": ["剧本-内容生成"],
+        "summary": "剧本违规审核",
+        "description": "对剧本内容进行三层违规检测：文字敏感词、Seedance模型禁词、画面违禁内容。检测范围包括暴力/色情、政治敏感、IP侵权(漫威/DC/哈利波特等)。可通过episodeIds指定分集范围。支持幂等性：相同内容已处理过则返回缓存结果。force=true 可强制重处理。",
+        "operationId": "reviewContent",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "项目唯一标识符",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "proj-abc123"
+          },
+          {
+            "name": "scriptId",
+            "in": "path",
+            "description": "剧本唯一标识符",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "script-abc123"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScriptReviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultAiProcessResultVOScriptReviewResultVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/scripts/{scriptId}/ref-analysis": {
+      "post": {
+        "tags": ["剧本-内容生成"],
+        "summary": "参考图风格反推",
+        "description": "从参考图片中提取风格描述、质感与光影、色彩体系等风格特征，用于风格配置的图片端输入。使用qwen视觉模型分析图片的绘制方式(而非内容)，最多支持5张图片的共性融合或分别描述。也可作为风格配置工作流的嵌入式步骤。结果持久化到ai_ref_analysis表，同时记录Token用量并从积分账户扣减。",
+        "operationId": "analyzeReferences",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "项目唯一标识符",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "proj-abc123"
+          },
+          {
+            "name": "scriptId",
+            "in": "path",
+            "description": "剧本唯一标识符",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "script-abc123"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefAnalysisRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultAiProcessResultVORefAnalysisResultVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/scripts/{scriptId}/extract-assets": {
+      "post": {
+        "tags": ["剧本-内容生成"],
+        "summary": "提取资产表",
+        "description": "从剧本中智能提取所有资产信息，分类为人物(含等级/别名)、场景(含场景类型)、道具(含分类/归属)、服装(含关联人物/场景)四类。可通过episodeIds指定分集范围，不传则处理全剧本所有分集。支持幂等性：相同内容已处理过则返回缓存结果。force=true 可强制重处理。v2 返回格式: characters(AssetCharacterVO), scenes(AssetSceneVO), props(AssetPropVO), costumes(AssetCostumeVO)",
+        "operationId": "extractAssets",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "项目唯一标识符",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "proj-abc123"
+          },
+          {
+            "name": "scriptId",
+            "in": "path",
+            "description": "剧本唯一标识符",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "script-abc123"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssetExtractRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultAiProcessResultVOAssetExtractResultVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/scripts/{scriptId}/character-profiles": {
+      "post": {
+        "tags": ["剧本-内容生成"],
+        "summary": "生成人物小传",
+        "description": "对指定剧本进行AI人物深度分析，生成包含姓名、身份、外貌、性格、背景、音色参考、出场跨度、人物关系的人物小传列表。可通过episodeIds指定分集范围，不传则处理全剧本所有分集。支持幂等性：相同内容已处理过则返回缓存结果。force=true 可强制重处理。",
+        "operationId": "generateCharacterProfiles",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "项目唯一标识符",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "proj-abc123"
+          },
+          {
+            "name": "scriptId",
+            "in": "path",
+            "description": "剧本唯一标识符",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "script-abc123"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CharacterProfileRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultAiProcessResultVOCharacterProfileResultVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "VoicePromptRequest": {
+        "type": "object",
+        "properties": {
+          "characterProfileId": {
+            "type": "string",
+            "description": "人物小传记录ID（ai_character_profiles.id），null则取最新"
+          },
+          "force": {
+            "type": "boolean",
+            "description": "是否强制重处理，默认 false"
+          }
+        },
+        "description": "人物音色提示词生成请求"
+      },
+      "ResultAiProcessResultVOVoicePromptResultVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AiProcessResultVOVoicePromptResultVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "ResultObject": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "type": "object"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "StyleConfigRequest": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "风格描述文本"
+          },
+          "imageUrls": {
+            "type": "array",
+            "description": "参考图片URL列表（最多5张）",
+            "items": {
+              "type": "string",
+              "description": "参考图片URL列表（最多5张）"
+            }
+          },
+          "force": {
+            "type": "boolean",
+            "description": "是否强制重处理，默认 false"
+          }
+        },
+        "description": "风格配置请求"
+      },
+      "ResultAiProcessResultVOStyleConfigResultVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AiProcessResultVOStyleConfigResultVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "ScriptReviewRequest": {
+        "type": "object",
+        "properties": {
+          "episodeIds": {
+            "type": "array",
+            "description": "指定分集ID列表，null或空表示全剧本",
+            "items": {
+              "type": "string",
+              "description": "指定分集ID列表，null或空表示全剧本"
+            }
+          },
+          "force": {
+            "type": "boolean",
+            "description": "是否强制重处理，默认 false"
+          }
+        },
+        "description": "剧本违规审核请求"
+      },
+      "ResultAiProcessResultVOScriptReviewResultVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AiProcessResultVOScriptReviewResultVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "RefAnalysisRequest": {
+        "required": ["imageUrls"],
+        "type": "object",
+        "properties": {
+          "imageUrls": {
+            "type": "array",
+            "description": "参考图片URL列表（最多5张）",
+            "items": {
+              "type": "string",
+              "description": "参考图片URL列表（最多5张）"
+            }
+          },
+          "force": {
+            "type": "boolean",
+            "description": "是否强制重处理，默认 false"
+          }
+        },
+        "description": "图片参考反推请求"
+      },
+      "ResultAiProcessResultVORefAnalysisResultVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AiProcessResultVORefAnalysisResultVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "AssetExtractRequest": {
+        "type": "object",
+        "properties": {
+          "episodeIds": {
+            "type": "array",
+            "description": "指定分集ID列表，null或空表示全剧本",
+            "items": {
+              "type": "string",
+              "description": "指定分集ID列表，null或空表示全剧本"
+            }
+          },
+          "force": {
+            "type": "boolean",
+            "description": "是否强制重处理，默认 false"
+          }
+        },
+        "description": "资产提取请求"
+      },
+      "ResultAiProcessResultVOAssetExtractResultVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AiProcessResultVOAssetExtractResultVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "CharacterProfileRequest": {
+        "type": "object",
+        "properties": {
+          "episodeIds": {
+            "type": "array",
+            "description": "指定分集ID列表，null或空表示全剧本",
+            "items": {
+              "type": "string",
+              "description": "指定分集ID列表，null或空表示全剧本"
+            }
+          },
+          "force": {
+            "type": "boolean",
+            "description": "是否强制重处理，默认 false"
+          }
+        },
+        "description": "人物小传生成请求"
+      },
+      "ResultAiProcessResultVOCharacterProfileResultVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AiProcessResultVOCharacterProfileResultVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      }
+    }
+  }
+}

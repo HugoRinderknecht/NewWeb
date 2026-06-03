@@ -3,14 +3,15 @@ import request from '@/utils/http'
 
 export class HttpAdapter implements IApiAdapter {
   async request<T>(config: RequestConfig): Promise<T> {
-    const { url, method, data, params, headers, signal } = config
+    const { url, method, data, params, headers, signal, responseType } = config
     return request.request<T>({
       url,
       method,
       data,
       params,
       headers,
-      signal
+      signal,
+      responseType
     })
   }
 
@@ -28,5 +29,9 @@ export class HttpAdapter implements IApiAdapter {
 
   del<T>(url: string, params?: any, config?: Partial<RequestConfig>): Promise<T> {
     return this.request<T>({ ...config, url, method: 'DELETE', params })
+  }
+
+  patch<T>(url: string, data?: any, config?: Partial<RequestConfig>): Promise<T> {
+    return this.request<T>({ ...config, url, method: 'PATCH', data })
   }
 }

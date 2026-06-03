@@ -1,0 +1,1603 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "OpenAPI definition - 平台-管理",
+    "version": "v0",
+    "description": "模块: 平台-管理"
+  },
+  "servers": [
+    {
+      "url": "http://server.bsuniversal.cn:10006",
+      "description": "Generated server url"
+    }
+  ],
+  "tags": [
+    {
+      "name": "平台-管理",
+      "description": "平台管理员专属：全局团队列表、创建/删除/启用/禁用、成员管理"
+    }
+  ],
+  "paths": {
+    "/api/admin/teams/{teamId}": {
+      "get": {
+        "tags": ["平台-管理"],
+        "summary": "团队详情(平台管理)",
+        "description": "获取任意团队详细信息,包含成员统计(ownerName/memberCount/adminCount/pendingCount)。与 TeamController 版本的区别:无需是该团队成员。需要平台管理员权限。",
+        "operationId": "getTeamDetail_1",
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "description": "团队ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultTeamDetailVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["平台-管理"],
+        "summary": "更新团队(平台管理)",
+        "description": "平台管理员更新任意团队基本信息。请求参数(全部可选,仅更新非null字段): teamName(2-50字符)、description(最长500字符)、avatar(头像URL)。需要平台管理员权限。",
+        "operationId": "updateTeam_1",
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "description": "团队ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeamUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["平台-管理"],
+        "summary": "删除团队",
+        "description": "逻辑删除团队(设置 deleted=1),同时级联禁用所有团队成员(批量设置 status=0)。不可逆操作。需要平台管理员权限。",
+        "operationId": "deleteTeam",
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "description": "团队ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/teams/{teamId}/status": {
+      "put": {
+        "tags": ["平台-管理"],
+        "summary": "设置团队状态(平台管理)",
+        "description": "平台管理员启用(1)或禁用(0)指定团队。禁用后团队成员无法使用该团队的功能。需要平台管理员权限。",
+        "operationId": "setTeamStatus",
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "description": "团队ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": 1
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "目标状态: 1-启用, 0-禁用",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/teams/{teamId}/owner": {
+      "put": {
+        "tags": ["平台-管理"],
+        "summary": "转移所有权(平台管理)",
+        "description": "平台管理员强制转移团队所有权,无需当前所有者同意。新所有者设为admin角色,旧所有者降级为普通成员(member)。与 TeamController 版本的区别:平台管理员可强制操作,无需是当前所有者。需要平台管理员权限。",
+        "operationId": "transferOwnership_1",
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "description": "团队ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": 1
+          },
+          {
+            "name": "newOwnerId",
+            "in": "query",
+            "description": "新所有者的用户ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": 1005
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/members/{id}/status": {
+      "put": {
+        "tags": ["平台-管理"],
+        "summary": "更新成员状态(平台管理)",
+        "description": "启用(1)或禁用(0)指定成员。通过成员记录ID先查询所属团队和用户信息,再执行状态更新。团队所有者不可被禁用。此端点与 TeamController 版本的区别:不需要传 teamId,由系统通过 memberId 自动查询。需要平台管理员权限。",
+        "operationId": "updateMemberStatus_1",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "成员记录ID(team_member.id)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": 1
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "目标状态: 1-启用, 0-禁用",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/applications/{id}/reject": {
+      "put": {
+        "tags": ["平台-管理"],
+        "summary": "审批拒绝(平台管理)",
+        "description": "平台管理员拒绝任意团队的加入申请。更新申请状态为3(已拒绝),记录处理人和拒绝原因。需要平台管理员权限。",
+        "operationId": "rejectApplication_1",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "申请记录ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": 1
+          },
+          {
+            "name": "reason",
+            "in": "query",
+            "description": "拒绝原因",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "暂不符合团队招募要求"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/applications/{id}/approve": {
+      "put": {
+        "tags": ["平台-管理"],
+        "summary": "审批通过(平台管理)",
+        "description": "平台管理员审批通过任意团队的加入申请。自动创建 TeamMember 记录(role=member, status=1)并刷新申请人团队上下文。受团队成员上限(memberLimit)限制。需要平台管理员权限。",
+        "operationId": "approveApplication_1",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "申请记录ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/teams": {
+      "get": {
+        "tags": ["平台-管理"],
+        "summary": "团队列表(全局)",
+        "description": "平台管理员分页查询系统中所有团队(全局视图,不受用户团队范围限制),支持按名称关键词模糊搜索和状态筛选。返回 TeamVO: id、teamName、teamCode(格式TM-{RANDOM_6})、description、avatar、memberCount(活跃成员数)、memberLimit(成员上限,默认50)、ownerId、status(0-禁用/1-正常)、createTime。查询参数: page(页码,默认1)、pageSize(页大小,默认10,最大100)、keyword(团队名称模糊搜索)、status(状态筛选:null=所有/1=正常/0=禁用)。注意——排序固定为createTime DESC,PageRequest中的sortField和sortOrder参数当前不生效。需要平台管理员权限。",
+        "operationId": "listTeams",
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "description": "查询参数(分页+关键词+状态筛选)",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TeamQueryRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultPageResultTeamVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["平台-管理"],
+        "summary": "创建团队(平台管理)",
+        "description": "平台管理员创建新团队。自动生成唯一团队编码(格式 TM-{RANDOM_6},最多重试5次防碰撞),创建者自动成为团队管理员(role=admin)。请求参数: teamName(必填,2-50字符)、description(可选,最长500字符)、memberLimit(可选,默认50,成员上限)。使用团队名称锁防止并发重复创建。需要平台管理员权限。",
+        "operationId": "createTeam",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeamCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultTeamVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/teams/{teamId}/invite-codes": {
+      "get": {
+        "tags": ["平台-管理"],
+        "summary": "邀请码列表(平台管理)",
+        "description": "平台管理员分页查询任意团队的邀请码列表,可按状态筛选,按创建时间倒序排列。返回 InviteCodeVO 含 code(格式 INV-{TEAM_CODE}-{RANDOM_8})、maxUses、usedCount、remainingUses、expireTime(null=永不过期)、status(1-有效/0-已撤销/2-已过期)等。需要平台管理员权限。",
+        "operationId": "listInviteCodes_1",
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "description": "团队ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": 1
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "邀请码状态: 1-有效, 0-已撤销, 2-已过期, null-所有",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "example": 1
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "当前页码",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            },
+            "example": 1
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "每页大小",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            },
+            "example": 10
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultPageResultInviteCodeVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["平台-管理"],
+        "summary": "创建邀请码(平台管理)",
+        "description": "平台管理员为任意团队创建邀请码。自动生成唯一邀请码字符串(格式 INV-{TEAM_CODE}-{RANDOM_8})。请求参数: teamId(必填)、maxUses(可选,默认1)、expireTime(可选,LocalDateTime,null=永不过期)。需要平台管理员权限。",
+        "operationId": "createInviteCode_1",
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "description": "团队ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InviteCodeCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultInviteCodeVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/teams/{teamId}/members": {
+      "get": {
+        "tags": ["平台-管理"],
+        "summary": "成员列表(平台管理)",
+        "description": "平台管理员分页查询任意团队成员列表,可按状态筛选,按加入时间升序排列。返回 TeamMemberVO 含 memberId、userId、username、email、avatar、role(admin/member/自定义角色编码)、teamRoleId、teamRoleCode、nickName、status(1-正常/2-待审核/0-禁用)、joinTime。需要平台管理员权限。",
+        "operationId": "listMembers_2",
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "description": "团队ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": 1
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "成员状态: 1-正常, 2-待审核, 0-禁用, null-所有",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "example": 1
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "当前页码",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            },
+            "example": 1
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "每页大小",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            },
+            "example": 10
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultPageResultTeamMemberVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/teams/{teamId}/applications": {
+      "get": {
+        "tags": ["平台-管理"],
+        "summary": "加入申请列表(平台管理)",
+        "description": "平台管理员分页查询任意团队的加入申请,可按状态筛选,按创建时间倒序排列。返回 JoinApplicationVO 含 username、avatar、reason、status(1-待审核/2-已通过/3-已拒绝)、handledByName、rejectReason、handleTime 等。需要平台管理员权限。",
+        "operationId": "listApplications_1",
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "description": "团队ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": 1
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "申请状态: 1-待审核, 2-已通过, 3-已拒绝, null-所有",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "example": 1
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "当前页码",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            },
+            "example": 1
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "每页大小",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            },
+            "example": 10
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultPageResultJoinApplicationVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/invite-codes/{id}": {
+      "delete": {
+        "tags": ["平台-管理"],
+        "summary": "撤销邀请码(平台管理)",
+        "description": "平台管理员撤销任意邀请码(设置 status=0),撤销后不可恢复。需要平台管理员权限。",
+        "operationId": "revokeInviteCode_1",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "邀请码记录ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ResultTeamDetailVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/TeamDetailVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "ResultObject": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "type": "object"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "TeamUpdateRequest": {
+        "type": "object",
+        "properties": {
+          "teamName": {
+            "maxLength": 50,
+            "minLength": 2,
+            "type": "string",
+            "description": "团队名称, 长度 2-50",
+            "example": "星辰创作团队"
+          },
+          "description": {
+            "maxLength": 500,
+            "minLength": 0,
+            "type": "string",
+            "description": "团队描述, 不超过 500 字",
+            "example": "专注于AI短剧创作与内容创新"
+          },
+          "avatar": {
+            "type": "string",
+            "description": "团队头像URL",
+            "example": "https://example.com/team-avatar/1.jpg"
+          }
+        }
+      },
+      "ResultVoid": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "type": "object"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "TeamQueryRequest": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "minimum": 1,
+            "type": "integer",
+            "description": "当前页码, 从 1 开始",
+            "format": "int32",
+            "example": 1
+          },
+          "pageSize": {
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer",
+            "description": "每页大小, 最大 100",
+            "format": "int32",
+            "example": 10
+          },
+          "sortField": {
+            "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$",
+            "type": "string",
+            "description": "排序字段, 如 createTime",
+            "example": "createTime"
+          },
+          "sortOrder": {
+            "pattern": "^(asc|desc|ASC|DESC)$",
+            "type": "string",
+            "description": "排序方向: asc-升序, desc-降序",
+            "example": "desc"
+          },
+          "status": {
+            "type": "integer",
+            "description": "团队状态筛选: null-所有, 1-正常, 0-禁用",
+            "format": "int32",
+            "example": 1
+          },
+          "keyword": {
+            "type": "string",
+            "description": "团队名称关键词(模糊查询)",
+            "example": "星辰"
+          },
+          "desc": {
+            "type": "boolean"
+          },
+          "asc": {
+            "type": "boolean"
+          },
+          "offset": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ResultPageResultTeamVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PageResultTeamVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "TeamCreateRequest": {
+        "required": ["teamName"],
+        "type": "object",
+        "properties": {
+          "teamName": {
+            "maxLength": 50,
+            "minLength": 2,
+            "type": "string",
+            "description": "团队名称, 长度 2-50",
+            "example": "星辰创作团队"
+          },
+          "description": {
+            "maxLength": 500,
+            "minLength": 0,
+            "type": "string",
+            "description": "团队描述, 不超过 500 字",
+            "example": "专注于AI短剧创作与内容创新"
+          },
+          "memberLimit": {
+            "type": "integer",
+            "description": "成员上限, 不传则使用默认值 50",
+            "format": "int32",
+            "example": 50
+          }
+        }
+      },
+      "ResultTeamVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/TeamVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "ResultPageResultInviteCodeVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PageResultInviteCodeVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "InviteCodeCreateRequest": {
+        "required": ["teamId"],
+        "type": "object",
+        "properties": {
+          "teamId": {
+            "type": "string",
+            "description": "所属团队ID",
+            "example": "1"
+          },
+          "maxUses": {
+            "type": "integer",
+            "description": "最大使用次数, 默认 1 次, 不传则为单次使用",
+            "format": "int32",
+            "example": 10
+          },
+          "expireTime": {
+            "type": "string",
+            "description": "过期时间, null 表示永不过期",
+            "format": "date-time"
+          }
+        }
+      },
+      "ResultInviteCodeVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/InviteCodeVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "ResultPageResultTeamMemberVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PageResultTeamMemberVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "ResultPageResultJoinApplicationVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PageResultJoinApplicationVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      }
+    }
+  }
+}

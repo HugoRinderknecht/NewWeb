@@ -1,0 +1,799 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "OpenAPI definition - 视频-生成",
+    "version": "v0",
+    "description": "模块: 视频-生成"
+  },
+  "servers": [
+    {
+      "url": "http://server.bsuniversal.cn:10006",
+      "description": "Generated server url"
+    }
+  ],
+  "tags": [
+    {
+      "name": "视频-生成",
+      "description": "Seedance 2.0：文生视频/图生视频/多模态参考生视频，提交生成、任务查询、结果获取"
+    }
+  ],
+  "paths": {
+    "/api/seedance/tasks/{taskId}/cancel": {
+      "post": {
+        "tags": ["视频-生成"],
+        "summary": "取消任务",
+        "description": "取消排队中或运行中的任务。排队任务直接取消，运行中任务调用API取消。",
+        "operationId": "cancelTask",
+        "parameters": [
+          {
+            "name": "taskId",
+            "in": "path",
+            "description": "本地任务ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/seedance/generations": {
+      "post": {
+        "tags": ["视频-生成"],
+        "summary": "提交视频生成任务",
+        "description": "提交 Seedance 2.0 视频生成任务，进入排队队列（最大并发10）。\n\n快捷模式：传入 prompt/images/videos/audioUrls，后端自动构建 v3 content 数组。\n首张图片自动设为首帧(role=first_frame)，其余为参考图(role=reference_image)。\n\n模型: doubao-seedance-2-0-260128 (480p/720p/1080p) | doubao-seedance-2-0-fast-260128 (480p/720p)\n时长: 4-15秒  分辨率: 480p/720p/1080p\n宽高比: 21:9/16:9/4:3/1:1/3:4/9:16/adaptive\n\n重要: 提交前必须先调用 POST /generations/preview 获取 previewToken，并在本请求中回传。\n",
+        "operationId": "generate",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SeedanceGenerateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultSeedanceSubmitVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/seedance/generations/preview": {
+      "post": {
+        "tags": ["视频-生成"],
+        "summary": "预览视频生成参数（提交前确认）",
+        "description": "预览视频生成参数，返回将生成的视频数量、总时长、分辨率、模型、预估积分、分镜明细(批量时)。\n\n返回的 previewToken 需在提交生成时回传，确保参数与预览一致。\n提交前必须调用此接口确认参数，否则 generate 接口会拒绝请求。\n",
+        "operationId": "preview",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SeedanceGenerateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultSeedancePreviewVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/seedance/tasks": {
+      "get": {
+        "tags": ["视频-生成"],
+        "summary": "查询任务列表",
+        "description": "查询当前用户的视频生成任务列表，可按项目ID筛选，按创建时间倒序排列",
+        "operationId": "listTasks",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "query",
+            "description": "项目ID筛选(可选)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "页码",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "每页大小",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultPageResultSeedanceTaskVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/seedance/tasks/{taskId}": {
+      "get": {
+        "tags": ["视频-生成"],
+        "summary": "查询任务详情",
+        "description": "查询视频生成任务的处理状态和结果。succeeded时返回videoUrl。状态: queued/running/succeeded/failed/cancelled/expired",
+        "operationId": "getTaskStatus",
+        "parameters": [
+          {
+            "name": "taskId",
+            "in": "path",
+            "description": "本地任务ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultSeedanceTaskVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/seedance/tasks/{taskId}/result": {
+      "get": {
+        "tags": ["视频-生成"],
+        "summary": "获取任务结果（含积分消耗）",
+        "description": "获取已完成任务的视频URL和积分消耗。仅当 status=succeeded 时返回。",
+        "operationId": "getTaskResult",
+        "parameters": [
+          {
+            "name": "taskId",
+            "in": "path",
+            "description": "本地任务ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "resolution",
+            "in": "query",
+            "description": "分辨率(用于积分估算)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "720p"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultSeedanceResultVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ResultVoid": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "type": "object"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "ResultObject": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "type": "object"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "SeedanceGenerateRequest": {
+        "type": "object",
+        "properties": {
+          "model": {
+            "type": "string",
+            "description": "模型ID: doubao-seedance-2-0-260128 | doubao-seedance-2-0-fast-260128",
+            "example": "doubao-seedance-2-0-260128",
+            "default": "doubao-seedance-2-0-260128"
+          },
+          "prompt": {
+            "maxLength": 1000,
+            "minLength": 0,
+            "type": "string",
+            "description": "视频描述文本(中英文，≤1000字符)",
+            "example": "一只金毛犬在阳光明媚的草地上奔跑，电影级光影，慢动作"
+          },
+          "images": {
+            "maxItems": 9,
+            "minItems": 0,
+            "type": "array",
+            "description": "参考图片URL数组(最多9张)，首帧=列表第一个，尾帧=列表第二个(可选)",
+            "items": {
+              "type": "string",
+              "description": "参考图片URL数组(最多9张)，首帧=列表第一个，尾帧=列表第二个(可选)"
+            }
+          },
+          "videos": {
+            "maxItems": 3,
+            "minItems": 0,
+            "type": "array",
+            "description": "参考视频URL数组(最多3个，合计≤15秒)",
+            "items": {
+              "type": "string",
+              "description": "参考视频URL数组(最多3个，合计≤15秒)"
+            }
+          },
+          "audioUrls": {
+            "maxItems": 3,
+            "minItems": 0,
+            "type": "array",
+            "description": "参考音频URL数组(最多3个，合计≤15秒)",
+            "items": {
+              "type": "string",
+              "description": "参考音频URL数组(最多3个，合计≤15秒)"
+            }
+          },
+          "resolution": {
+            "type": "string",
+            "description": "分辨率: 480p | 720p | 1080p (fast模型不支持1080p)",
+            "example": "720p",
+            "default": "720p"
+          },
+          "ratio": {
+            "type": "string",
+            "description": "宽高比: 16:9 | 4:3 | 1:1 | 3:4 | 9:16 | 21:9 | adaptive",
+            "example": "16:9",
+            "default": "adaptive"
+          },
+          "duration": {
+            "type": "integer",
+            "description": "视频时长(秒): 4-15, 或 -1 由模型自动选择",
+            "format": "int32",
+            "example": 5,
+            "default": 5
+          },
+          "frames": {
+            "type": "integer",
+            "description": "帧数 (与duration二选一, frames优先级更高)",
+            "format": "int32",
+            "example": 120
+          },
+          "seed": {
+            "type": "integer",
+            "description": "种子整数(-1=随机), 用于复现结果",
+            "format": "int32",
+            "example": -1,
+            "default": -1
+          },
+          "cameraFixed": {
+            "type": "boolean",
+            "description": "是否固定摄像头",
+            "default": false
+          },
+          "watermark": {
+            "type": "boolean",
+            "description": "是否添加水印",
+            "default": false
+          },
+          "generateAudio": {
+            "type": "boolean",
+            "description": "是否生成同步音频(人声/音效/BGM)",
+            "default": true
+          },
+          "priority": {
+            "type": "integer",
+            "description": "队列优先级 0-9, 越大越优先",
+            "format": "int32",
+            "example": 0,
+            "default": 0
+          },
+          "returnLastFrame": {
+            "type": "boolean",
+            "description": "是否返回尾帧图像(用于连续视频生成)",
+            "default": false
+          },
+          "serviceTier": {
+            "type": "string",
+            "description": "服务等级: default(在线) | flex(离线,半价)",
+            "default": "default"
+          },
+          "executionExpiresAfter": {
+            "type": "integer",
+            "description": "任务超时阈值(秒), 默认172800(48h)",
+            "format": "int32",
+            "example": 86400
+          },
+          "callbackUrl": {
+            "type": "string",
+            "description": "回调通知URL(任务状态变更时推送)"
+          },
+          "safetyIdentifier": {
+            "type": "string",
+            "description": "终端用户标识符(用于安全审核), 长度≤64"
+          },
+          "projectId": {
+            "type": "string",
+            "description": "关联项目ID(必填)",
+            "example": "proj-001"
+          },
+          "scriptId": {
+            "type": "string",
+            "description": "关联剧本ID(从分镜生成视频时必填)",
+            "example": "script-001"
+          },
+          "storyboardId": {
+            "type": "string",
+            "description": "分镜ID(从分镜生成视频时必填, 自动读取durationSeconds/prompt/资产图等)"
+          },
+          "episodeId": {
+            "type": "string",
+            "description": "大集ID(从大集批量生成视频时使用, 自动遍历大集下所有分镜分别提交, 与storyboardId互斥)"
+          },
+          "previewToken": {
+            "type": "string",
+            "description": "预览确认令牌(调用预览接口获取, 提交时必传以确保生成参数与预览一致)"
+          }
+        },
+        "description": "Seedance 视频生成请求 (兼容 v3 API content 数组格式)"
+      },
+      "ResultSeedanceSubmitVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/SeedanceSubmitVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "ResultSeedancePreviewVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/SeedancePreviewVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "ResultPageResultSeedanceTaskVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PageResultSeedanceTaskVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "ResultSeedanceTaskVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/SeedanceTaskVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "ResultSeedanceResultVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/SeedanceResultVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,33 +1,32 @@
-import request from '@/utils/http'
+import { getApiAdapter } from './adapter'
 
 export function fetchGetVideoModelList() {
-  return request.get<Api.VideoModel.VideoModelListItem[]>({
-    url: '/api/admin/videos/models'
-  })
+  return getApiAdapter().get<Api.VideoModel.VideoModelListItem[]>('/api/admin/videos/models')
 }
 
 export function fetchCreateVideoModel(data: Api.VideoModel.CreateVideoModelParams) {
-  return request.post<Api.VideoModel.VideoModelDetail>({
-    url: '/api/admin/videos/models',
-    data
-  })
+  return getApiAdapter().post<Api.VideoModel.VideoModelDetail>('/api/admin/videos/models', data)
 }
 
-export function fetchUpdateVideoModel(modelId: string, data: Api.VideoModel.UpdateVideoModelParams) {
-  return request.put<Api.VideoModel.VideoModelDetail>({
-    url: `/api/admin/videos/models/${modelId}`,
+export function fetchUpdateVideoModel(
+  modelId: string,
+  data: Api.VideoModel.UpdateVideoModelParams
+) {
+  return getApiAdapter().put<Api.VideoModel.VideoModelDetail>(
+    `/api/admin/videos/models/${modelId}`,
     data
-  })
+  )
 }
 
 export function fetchDeleteVideoModel(modelId: string) {
-  return request.del<void>({
-    url: `/api/admin/videos/models/${modelId}`
-  })
+  return getApiAdapter().del<void>(`/api/admin/videos/models/${modelId}`)
 }
 
-export function fetchToggleVideoModelStatus(modelId: string, data: Api.VideoModel.ToggleVideoModelStatusParams) {
-  return request.request<void>({
+export function fetchToggleVideoModelStatus(
+  modelId: string,
+  data: Api.VideoModel.ToggleVideoModelStatusParams
+) {
+  return getApiAdapter().request<void>({
     method: 'PATCH',
     url: `/api/admin/videos/models/${modelId}/status`,
     data

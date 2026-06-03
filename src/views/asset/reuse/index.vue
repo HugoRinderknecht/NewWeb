@@ -436,6 +436,7 @@
   import { ElMessage, ElMessageBox } from 'element-plus'
   import type { FormInstance, FormRules } from 'element-plus'
   import { useRoute } from 'vue-router'
+  import { useTeamStore } from '@/store/modules/team'
   import { fetchGetTeamAssets } from '@/api/asset'
 
   defineOptions({ name: 'AssetReuse' })
@@ -556,8 +557,9 @@
     project: [{ required: true, message: '请选择目标项目', trigger: 'change' }]
   }
 
+  const teamStore = useTeamStore()
   const route = useRoute()
-  const teamId = computed(() => (route.params.teamId as string) || '1')
+  const teamId = computed(() => (route.params.teamId as string) || teamStore.currentTeamId || '')
 
   const sharedList = ref<SharedAsset[]>([])
 
@@ -770,40 +772,40 @@
   .reuse-stats {
     .stat-card {
       display: flex;
-      align-items: center;
       gap: 16px;
+      align-items: center;
       padding: 20px;
       background: var(--el-fill-color-lighter);
       border-radius: var(--custom-radius);
 
       .stat-icon {
-        width: 48px;
-        height: 48px;
-        border-radius: 12px;
         display: flex;
+        flex-shrink: 0;
         align-items: center;
         justify-content: center;
+        width: 48px;
+        height: 48px;
         font-size: 24px;
-        flex-shrink: 0;
+        border-radius: 12px;
 
         &.primary {
-          background: var(--el-color-primary-light-9);
           color: var(--el-color-primary);
+          background: var(--el-color-primary-light-9);
         }
 
         &.success {
-          background: var(--el-color-success-light-9);
           color: var(--el-color-success);
+          background: var(--el-color-success-light-9);
         }
 
         &.warning {
-          background: var(--el-color-warning-light-9);
           color: var(--el-color-warning);
+          background: var(--el-color-warning-light-9);
         }
 
         &.info {
-          background: var(--el-color-info-light-9);
           color: var(--el-color-info);
+          background: var(--el-color-info-light-9);
         }
       }
 
@@ -815,47 +817,47 @@
         }
 
         .stat-label {
+          margin-top: 2px;
           font-size: 13px;
           color: var(--el-text-color-secondary);
-          margin-top: 2px;
         }
       }
     }
   }
 
   .asset-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 8px;
     display: flex;
+    flex-shrink: 0;
     align-items: center;
     justify-content: center;
+    width: 40px;
+    height: 40px;
     font-size: 20px;
-    flex-shrink: 0;
+    border-radius: 8px;
 
     &.image {
-      background: var(--el-color-primary-light-9);
       color: var(--el-color-primary);
+      background: var(--el-color-primary-light-9);
     }
 
     &.video {
-      background: var(--el-color-success-light-9);
       color: var(--el-color-success);
+      background: var(--el-color-success-light-9);
     }
 
     &.audio {
-      background: var(--el-color-warning-light-9);
       color: var(--el-color-warning);
+      background: var(--el-color-warning-light-9);
     }
 
     &.document {
-      background: var(--el-color-info-light-9);
       color: var(--el-color-info);
+      background: var(--el-color-info-light-9);
     }
 
     &.ai-generated {
-      background: var(--el-color-danger-light-9);
       color: var(--el-color-danger);
+      background: var(--el-color-danger-light-9);
     }
   }
 
@@ -880,20 +882,20 @@
 
     .project-share-header {
       display: flex;
-      align-items: center;
       gap: 12px;
+      align-items: center;
 
       .project-icon {
-        width: 48px;
-        height: 48px;
-        border-radius: 12px;
-        background: var(--el-color-primary-light-9);
-        color: var(--el-color-primary);
         display: flex;
+        flex-shrink: 0;
         align-items: center;
         justify-content: center;
+        width: 48px;
+        height: 48px;
         font-size: 24px;
-        flex-shrink: 0;
+        color: var(--el-color-primary);
+        background: var(--el-color-primary-light-9);
+        border-radius: 12px;
       }
 
       .project-info {
@@ -907,15 +909,15 @@
       .share-direction {
         .direction-item {
           display: flex;
-          align-items: flex-start;
           gap: 8px;
+          align-items: flex-start;
 
           .label {
+            flex-shrink: 0;
+            width: 56px;
             font-size: 13px;
             color: var(--el-text-color-secondary);
             white-space: nowrap;
-            flex-shrink: 0;
-            width: 56px;
           }
         }
       }
@@ -931,38 +933,38 @@
   .detail-content {
     .detail-header {
       .detail-icon {
-        width: 64px;
-        height: 64px;
-        border-radius: 16px;
         display: flex;
+        flex-shrink: 0;
         align-items: center;
         justify-content: center;
+        width: 64px;
+        height: 64px;
         font-size: 32px;
-        flex-shrink: 0;
+        border-radius: 16px;
 
         &.image {
-          background: var(--el-color-primary-light-9);
           color: var(--el-color-primary);
+          background: var(--el-color-primary-light-9);
         }
 
         &.video {
-          background: var(--el-color-success-light-9);
           color: var(--el-color-success);
+          background: var(--el-color-success-light-9);
         }
 
         &.audio {
-          background: var(--el-color-warning-light-9);
           color: var(--el-color-warning);
+          background: var(--el-color-warning-light-9);
         }
 
         &.document {
-          background: var(--el-color-info-light-9);
           color: var(--el-color-info);
+          background: var(--el-color-info-light-9);
         }
 
         &.ai-generated {
-          background: var(--el-color-danger-light-9);
           color: var(--el-color-danger);
+          background: var(--el-color-danger-light-9);
         }
       }
     }

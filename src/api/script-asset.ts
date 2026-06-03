@@ -1,72 +1,67 @@
-import request from '@/utils/http'
+import { getApiAdapter } from './adapter'
 
-export function fetchGetScriptAssetList(projectId: string, params?: Api.ScriptAsset.ScriptAssetSearchParams) {
-  return request.get<Api.ScriptAsset.ScriptAssetListItem[]>({
-    url: `/api/projects/${projectId}/script-assets`,
+// ==================== 创意资产 CRUD ====================
+
+/** 查询创意资产列表 */
+export function fetchGetScriptAssetList(
+  projectId: string,
+  params?: Api.ScriptAsset.ScriptAssetSearchParams
+) {
+  return getApiAdapter().get<Api.Common.PaginatedResponse<Api.ScriptAsset.ScriptAssetListItem>>(
+    `/api/projects/${projectId}/script-assets`,
     params
-  })
+  )
 }
 
-export function fetchCreateScriptAsset(projectId: string, data: Api.ScriptAsset.CreateScriptAssetParams) {
-  return request.post<Api.ScriptAsset.ScriptAssetDetail>({
-    url: `/api/projects/${projectId}/script-assets`,
+/** 创建创意资产 */
+export function fetchCreateScriptAsset(
+  projectId: string,
+  data: Api.ScriptAsset.CreateScriptAssetParams
+) {
+  return getApiAdapter().post<Api.ScriptAsset.ScriptAssetDetail>(
+    `/api/projects/${projectId}/script-assets`,
     data
-  })
+  )
 }
 
-export function fetchBatchCreateScriptAssets(projectId: string, data: Api.ScriptAsset.BatchCreateScriptAssetItem[]) {
-  return request.post<Api.ScriptAsset.ScriptAssetDetail[]>({
-    url: `/api/projects/${projectId}/script-assets/batch`,
-    data
-  })
+/** 批量创建创意资产 */
+export function fetchBatchCreateScriptAssets(
+  projectId: string,
+  data: Api.ScriptAsset.BatchCreateScriptAssetItem[]
+) {
+  return getApiAdapter().post<Api.ScriptAsset.ScriptAssetDetail[]>(
+    `/api/projects/${projectId}/script-assets/batch`,
+    { assets: data }
+  )
 }
 
+/** 获取创意资产详情 */
 export function fetchGetScriptAssetDetail(assetId: string) {
-  return request.get<Api.ScriptAsset.ScriptAssetDetail>({
-    url: `/api/script-assets/${assetId}`
-  })
+  return getApiAdapter().get<Api.ScriptAsset.ScriptAssetDetail>(`/api/script-assets/${assetId}`)
 }
 
-export function fetchUpdateScriptAsset(assetId: string, data: Api.ScriptAsset.UpdateScriptAssetParams) {
-  return request.put<Api.ScriptAsset.ScriptAssetDetail>({
-    url: `/api/script-assets/${assetId}`,
+/** 更新创意资产 */
+export function fetchUpdateScriptAsset(
+  assetId: string,
+  data: Api.ScriptAsset.UpdateScriptAssetParams
+) {
+  return getApiAdapter().put<Api.ScriptAsset.ScriptAssetDetail>(
+    `/api/script-assets/${assetId}`,
     data
-  })
+  )
 }
 
+/** 删除创意资产 */
 export function fetchDeleteScriptAsset(assetId: string) {
-  return request.del<void>({
-    url: `/api/script-assets/${assetId}`
-  })
+  return getApiAdapter().del<void>(`/api/script-assets/${assetId}`)
 }
 
+/** 上传资产参考图 */
 export function fetchUploadScriptAssetImage(assetId: string, file: File) {
   const formData = new FormData()
   formData.append('file', file)
-  return request.post<Api.ScriptAsset.UploadImageResult>({
-    url: `/api/script-assets/${assetId}/upload-image`,
-    data: formData,
-    headers: { 'Content-Type': 'multipart/form-data' }
-  })
-}
-
-export function fetchGenerateAssetPrompts(projectId: string, scriptId: string, data?: Api.ScriptAsset.GenerateAssetPromptsParams) {
-  return request.post<Api.ScriptAsset.ScriptAssetDetail[]>({
-    url: `/api/projects/${projectId}/scripts/${scriptId}/assets/prompts`,
-    data
-  })
-}
-
-export function fetchGenerateAssetImages(projectId: string, scriptId: string, data?: Api.ScriptAsset.GenerateAssetImagesParams) {
-  return request.post<Api.ScriptAsset.ScriptAssetDetail[]>({
-    url: `/api/projects/${projectId}/scripts/${scriptId}/assets/images/generate`,
-    data
-  })
-}
-
-export function fetchReviewAssetImages(projectId: string, scriptId: string, data: Api.ScriptAsset.ReviewAssetImagesParams) {
-  return request.post<void>({
-    url: `/api/projects/${projectId}/scripts/${scriptId}/assets/images/review`,
-    data
-  })
+  return getApiAdapter().post<Api.ScriptAsset.UploadImageResult>(
+    `/api/script-assets/${assetId}/upload-image`,
+    formData
+  )
 }

@@ -5,7 +5,7 @@
         <div class="flex-cb">
           <div class="flex items-center gap-4">
             <span class="text-lg font-medium">剧本管理</span>
-            <ElTag type="info" size="small">山海经动画</ElTag>
+            <ElTag v-if="projectName" type="info" size="small">{{ projectName }}</ElTag>
           </div>
           <ElSpace>
             <ElInput
@@ -55,8 +55,8 @@
                   <ArtSvgIcon icon="ri:file-text-line" />
                 </div>
                 <div>
-                  <div class="font-medium">{{ scope.row.name }}</div>
-                  <div class="text-xs text-g-400">{{ scope.row.code }}</div>
+                  <div class="font-medium">{{ scope.row.title }}</div>
+                  <div class="text-xs text-g-400">{{ scope.row.description }}</div>
                 </div>
               </div>
             </template>
@@ -76,7 +76,6 @@
               <span v-else class="text-g-400">-</span>
             </template>
           </ElTableColumn>
-          <ElTableColumn prop="wordCount" label="字数" width="120" />
           <ElTableColumn prop="author" label="作者" width="140" />
           <ElTableColumn prop="updateTime" label="更新时间" width="160" sortable />
           <ElTableColumn label="操作" width="220" fixed="right">
@@ -110,14 +109,13 @@
       destroy-on-close
     >
       <ElForm ref="createFormRef" :model="createForm" :rules="createRules" label-width="100px">
-        <ElFormItem label="剧本名称" prop="name">
-          <ElInput v-model="createForm.name" placeholder="请输入剧本名称" />
-        </ElFormItem>
-        <ElFormItem label="剧本编码">
-          <ElInput v-model="createForm.code" placeholder="请输入剧本编码" disabled />
-        </ElFormItem>
-        <ElFormItem label="作者" prop="author">
-          <ElInput v-model="createForm.author" placeholder="请输入作者名称" />
+        <ElFormItem label="剧本名称" prop="title">
+          <ElInput
+            v-model="createForm.title"
+            placeholder="请输入剧本名称"
+            maxlength="200"
+            show-word-limit
+          />
         </ElFormItem>
         <ElFormItem label="剧本简介">
           <ElInput
@@ -183,11 +181,13 @@
       destroy-on-close
     >
       <ElForm ref="editFormRef" :model="editForm" :rules="editRules" label-width="100px">
-        <ElFormItem label="剧本名称" prop="name">
-          <ElInput v-model="editForm.name" placeholder="请输入剧本名称" />
-        </ElFormItem>
-        <ElFormItem label="作者" prop="author">
-          <ElInput v-model="editForm.author" placeholder="请输入作者名称" />
+        <ElFormItem label="剧本名称" prop="title">
+          <ElInput
+            v-model="editForm.title"
+            placeholder="请输入剧本名称"
+            maxlength="200"
+            show-word-limit
+          />
         </ElFormItem>
         <ElFormItem label="状态">
           <ElSelect v-model="editForm.status" placeholder="请选择状态" style="width: 100%">
@@ -228,30 +228,33 @@
     fetchUpdateScript,
     fetchDeleteScript
   } from '@/api/script'
-  import { useRoute } from 'vue-router'
+  import { useRoute, useRouter } from 'vue-router'
   import { ref, reactive, computed, watch, onMounted } from 'vue'
+  import { logger } from '@/utils/logger'
 
   defineOptions({ name: 'ProjectScripts' })
 
   const route = useRoute()
+  const router = useRouter()
 
-  type ScriptStatus = 'draft' | 'writing' | 'review' | 'completed'
+  /** 1=草稿, 2=待审核, 3=已通过, 4=已驳回 */
+  type ScriptStatus = 1 | 2 | 3 | 4
 
   interface ScriptItem {
     id: number
-    name: string
-    code: string
+    title: string
+    description: string
+    content: string
     status: ScriptStatus
     episodeCount: number
-    wordCount: string
     author: string
-    description: string
     updateTime: string
     createTime: string
   }
 
   const searchQuery = ref('')
   const filterStatus = ref<ScriptStatus | ''>('')
+  const projectName = ref('')
   const selectedScripts = ref<ScriptItem[]>([])
   const createDialogVisible = ref(false)
   const uploadDialogVisible = ref(false)
@@ -268,59 +271,60 @@
   })
 
   const statusOptions = [
-    { label: '草稿', value: 'draft' },
-    { label: '创作中', value: 'writing' },
-    { label: '审核中', value: 'review' },
-    { label: '已完成', value: 'completed' }
+    { label: '草稿', value: 1 },
+    { label: '待审核', value: 2 },
+    { label: '已通过', value: 3 },
+    { label: '已驳回', value: 4 }
   ]
 
-  const statusTypeMap: Record<ScriptStatus, 'info' | 'primary' | 'warning' | 'success'> = {
-    draft: 'info',
-    writing: 'primary',
-    review: 'warning',
-    completed: 'success'
+  const statusTypeMap: Record<ScriptStatus, 'info' | 'warning' | 'success' | 'danger'> = {
+    1: 'info',
+    2: 'warning',
+    3: 'success',
+    4: 'danger'
   }
 
   const statusLabelMap: Record<ScriptStatus, string> = {
-    draft: '草稿',
-    writing: '创作中',
-    review: '审核中',
-    completed: '已完成'
+    1: '草稿',
+    2: '待审核',
+    3: '已通过',
+    4: '已驳回'
   }
 
   const scriptList = ref<ScriptItem[]>([])
 
   const loadScriptList = async () => {
     try {
-      const projectId = (route.params.projectId as string) || '1'
+      const projectId = (route.params.projectId as string) || (route.query.id as string) || ''
+      logger.apiRequest('Scripts', 'fetchGetScriptList', projectId)
       const res = await fetchGetScriptList(projectId)
       if (res) {
         const list = Array.isArray(res) ? res : res.records || []
         scriptList.value = list.map((item: any) => ({
           id: item.id,
-          name: item.name || '',
-          code: item.code || '',
-          status: item.status || 'draft',
-          episodeCount: item.episodeCount || 0,
-          wordCount: item.wordCount || '0',
-          author: item.author || '',
+          title: item.title || '',
           description: item.description || '',
+          content: item.content || '',
+          status: item.status ?? 1,
+          episodeCount: item.episodeCount || 0,
+          author: item.author || '',
           updateTime: item.updateTime || '',
           createTime: item.createTime || ''
         })) as ScriptItem[]
         pagination.total = scriptList.value.length
+        logger.apiSuccess('Scripts', 'fetchGetScriptList', `加载 ${scriptList.value.length} 条剧本`)
       }
-    } catch {
+    } catch (err) {
+      logger.apiError('Scripts', 'fetchGetScriptList', err)
       ElMessage.error('加载剧本列表失败')
     }
   }
 
   const columns: ColumnOption[] = [
     { type: 'selection' },
-    { prop: 'name', label: '剧本名称', minWidth: 200 },
+    { prop: 'title', label: '剧本名称', minWidth: 200 },
     { prop: 'status', label: '状态', width: 120 },
     { prop: 'episodeCount', label: '集数', width: 100 },
-    { prop: 'wordCount', label: '字数', width: 120 },
     { prop: 'author', label: '作者', width: 140 },
     { prop: 'updateTime', label: '更新时间', width: 160, sortable: true },
     { prop: 'operation', label: '操作', width: 220, fixed: 'right' }
@@ -332,10 +336,7 @@
     if (searchQuery.value) {
       const q = searchQuery.value.toLowerCase()
       result = result.filter(
-        (item) =>
-          item.name.toLowerCase().includes(q) ||
-          item.code.toLowerCase().includes(q) ||
-          item.author.toLowerCase().includes(q)
+        (item) => item.title.toLowerCase().includes(q) || item.description.toLowerCase().includes(q)
       )
     }
 
@@ -367,21 +368,17 @@
 
   // 新建剧本
   const createForm = reactive({
-    name: '',
-    code: '',
-    author: '',
+    title: '',
     description: ''
   })
 
   const createRules: FormRules = {
-    name: [{ required: true, message: '请输入剧本名称', trigger: 'blur' }],
-    author: [{ required: true, message: '请输入作者名称', trigger: 'blur' }]
+    title: [{ required: true, message: '请输入剧本名称', trigger: 'blur' }]
   }
 
   const handleCreate = () => {
-    createForm.name = ''
-    createForm.code = `SCR-${String(scriptList.value.length + 1).padStart(3, '0')}`
-    createForm.author = ''
+    logger.info('Scripts', 'handleCreate', '打开新建剧本弹窗')
+    createForm.title = ''
     createForm.description = ''
     createDialogVisible.value = true
   }
@@ -391,17 +388,18 @@
     await createFormRef.value.validate(async (valid) => {
       if (valid) {
         try {
-          const projectId = (route.params.projectId as string) || '1'
+          const projectId = (route.params.projectId as string) || (route.query.id as string) || ''
+          logger.apiRequest('Scripts', 'fetchCreateScript', { projectId, title: createForm.title })
           await fetchCreateScript(projectId, {
-            name: createForm.name,
-            code: createForm.code,
-            author: createForm.author,
+            title: createForm.title,
             description: createForm.description
           })
+          logger.apiSuccess('Scripts', 'fetchCreateScript', `剧本创建成功：${createForm.title}`)
           ElMessage.success('剧本创建成功')
           createDialogVisible.value = false
           await loadScriptList()
-        } catch {
+        } catch (err) {
+          logger.apiError('Scripts', 'fetchCreateScript', err)
           ElMessage.error('剧本创建失败')
         }
       }
@@ -420,6 +418,7 @@
   }
 
   const handleUpload = () => {
+    logger.info('Scripts', 'handleUpload', '打开上传剧本弹窗')
     uploadForm.name = ''
     uploadForm.file = null
     uploadDialogVisible.value = true
@@ -434,17 +433,25 @@
     await uploadFormRef.value.validate(async (valid) => {
       if (valid) {
         try {
-          const projectId = (route.params.projectId as string) || '1'
+          const projectId = (route.params.projectId as string) || (route.query.id as string) || ''
+          logger.apiRequest('Scripts', 'fetchCreateScript(上传)', {
+            projectId,
+            name: uploadForm.name
+          })
           await fetchCreateScript(projectId, {
-            name: uploadForm.name,
-            code: `SCR-${String(scriptList.value.length + 1).padStart(3, '0')}`,
-            author: '当前用户',
+            title: uploadForm.name,
             description: '从文件导入'
           })
+          logger.apiSuccess(
+            'Scripts',
+            'fetchCreateScript(上传)',
+            `剧本上传成功：${uploadForm.name}`
+          )
           ElMessage.success('剧本上传成功')
           uploadDialogVisible.value = false
           await loadScriptList()
-        } catch {
+        } catch (err) {
+          logger.apiError('Scripts', 'fetchCreateScript(上传)', err)
           ElMessage.error('剧本上传失败')
         }
       }
@@ -454,22 +461,20 @@
   // 编辑剧本
   const editForm = reactive({
     id: 0,
-    name: '',
-    author: '',
-    status: 'draft' as ScriptStatus,
+    title: '',
+    status: 1 as ScriptStatus,
     description: ''
   })
 
   const editRules: FormRules = {
-    name: [{ required: true, message: '请输入剧本名称', trigger: 'blur' }],
-    author: [{ required: true, message: '请输入作者名称', trigger: 'blur' }]
+    title: [{ required: true, message: '请输入剧本名称', trigger: 'blur' }]
   }
 
   const handleEdit = (row: ScriptItem) => {
+    logger.info('Scripts', 'handleEdit', `编辑剧本：${row.title}`)
     Object.assign(editForm, {
       id: row.id,
-      name: row.name,
-      author: row.author,
+      title: row.title,
       status: row.status,
       description: row.description
     })
@@ -481,16 +486,21 @@
     await editFormRef.value.validate(async (valid) => {
       if (valid) {
         try {
+          logger.apiRequest('Scripts', 'fetchUpdateScript', {
+            id: editForm.id,
+            title: editForm.title
+          })
           await fetchUpdateScript(String(editForm.id), {
-            name: editForm.name,
-            author: editForm.author,
+            title: editForm.title,
             status: editForm.status,
             description: editForm.description
           })
+          logger.apiSuccess('Scripts', 'fetchUpdateScript', `剧本更新成功：${editForm.title}`)
           ElMessage.success('剧本信息已更新')
           editDialogVisible.value = false
           await loadScriptList()
-        } catch {
+        } catch (err) {
+          logger.apiError('Scripts', 'fetchUpdateScript', err)
           ElMessage.error('剧本更新失败')
         }
       }
@@ -498,20 +508,26 @@
   }
 
   const handleView = (row: ScriptItem) => {
-    ElMessage.info(`查看剧本「${row.name}」`)
+    logger.info('Scripts', 'handleView', `查看剧本：${row.title}`)
+    const projectId = (route.params.projectId as string) || (route.query.id as string) || ''
+    router.push({ name: 'ScriptDetail', params: { projectId, scriptId: String(row.id) } })
   }
 
   const handleDelete = (row: ScriptItem) => {
-    ElMessageBox.confirm(`确定要删除剧本「${row.name}」吗？`, '删除确认', {
+    logger.info('Scripts', 'handleDelete', `请求删除剧本：${row.title}`)
+    ElMessageBox.confirm(`确定要删除剧本「${row.title}」吗？`, '删除确认', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'warning'
     }).then(async () => {
       try {
+        logger.apiRequest('Scripts', 'fetchDeleteScript', { id: row.id })
         await fetchDeleteScript(String(row.id))
+        logger.apiSuccess('Scripts', 'fetchDeleteScript', `剧本已删除：${row.title}`)
         ElMessage.success('删除成功')
         await loadScriptList()
-      } catch {
+      } catch (err) {
+        logger.apiError('Scripts', 'fetchDeleteScript', err)
         ElMessage.error('删除失败')
       }
     })
@@ -525,17 +541,17 @@
 <style lang="scss" scoped>
   .project-scripts-page {
     .script-icon {
-      width: 40px;
-      height: 40px;
-      border-radius: 8px;
       display: flex;
+      flex-shrink: 0;
       align-items: center;
       justify-content: center;
-      font-size: 20px;
-      flex-shrink: 0;
-      background: var(--el-color-primary-light-9);
-      color: var(--el-color-primary);
+      width: 40px;
+      height: 40px;
       margin-right: 12px;
+      font-size: 20px;
+      color: var(--el-color-primary);
+      background: var(--el-color-primary-light-9);
+      border-radius: 8px;
     }
   }
 </style>

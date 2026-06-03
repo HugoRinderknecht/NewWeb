@@ -1,0 +1,2995 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "OpenAPI definition - 资产-库",
+    "version": "v0",
+    "description": "模块: 资产-库"
+  },
+  "servers": [
+    {
+      "url": "http://server.bsuniversal.cn:10006",
+      "description": "Generated server url"
+    }
+  ],
+  "tags": [
+    {
+      "name": "资产-库",
+      "description": "项目资产库：增删改查、上传下载、分片上传、版本管理"
+    },
+    {
+      "name": "资产-库",
+      "description": "团队参考资产库：查询和上传接口"
+    }
+  ],
+  "paths": {
+    "/api/projects/{projectId}/assets/{assetId}": {
+      "get": {
+        "tags": ["资产-库"],
+        "summary": "资产详情",
+        "description": "获取项目资产的详细信息,包括资产名称、类型、缩略图URL、文件大小、版本信息、分类路径、标签等",
+        "operationId": "getAssetDetail_2",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "项目ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "proj-001"
+          },
+          {
+            "name": "assetId",
+            "in": "path",
+            "description": "资产ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "asset-001"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultAssetDetailVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["资产-库"],
+        "summary": "更新资产",
+        "description": "更新项目资产的元数据信息,包括名称、描述、类型、分类、标签等",
+        "operationId": "updateAsset_1",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "项目ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "proj-001"
+          },
+          {
+            "name": "assetId",
+            "in": "path",
+            "description": "资产ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "asset-001"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssetUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["资产-库"],
+        "summary": "删除资产",
+        "description": "逻辑删除项目资产,资产移至回收站",
+        "operationId": "deleteAsset_1",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "项目ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "proj-001"
+          },
+          {
+            "name": "assetId",
+            "in": "path",
+            "description": "资产ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "asset-001"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/teams/{teamId}/assets": {
+      "get": {
+        "tags": ["资产-库"],
+        "summary": "团队资产列表",
+        "description": "分页查询团队参考资产库的资产列表,支持关键词/文件类型/分类等筛选",
+        "operationId": "listAssets",
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "description": "团队ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "team-001"
+          },
+          {
+            "name": "query",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AssetQueryRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultPageResultAssetVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["资产-库"],
+        "summary": "上传团队资产",
+        "description": "上传文件到团队参考资产库,支持设置资产名称、类型和标签",
+        "operationId": "uploadFile",
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "description": "团队ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "team-001"
+          },
+          {
+            "name": "assetName",
+            "in": "query",
+            "description": "资产名称",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "概念设计图_v2"
+          },
+          {
+            "name": "assetType",
+            "in": "query",
+            "description": "资产类型: character/scene/prop/audio/template",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "character"
+          },
+          {
+            "name": "categoryId",
+            "in": "query",
+            "description": "分类ID",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "cat-001"
+          },
+          {
+            "name": "description",
+            "in": "query",
+            "description": "资产描述",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "主角正面全身立绘"
+          },
+          {
+            "name": "tags",
+            "in": "query",
+            "description": "标签(逗号分隔)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "主角,古风,立绘"
+          },
+          {
+            "name": "allowDuplicate",
+            "in": "query",
+            "description": "是否允许重复上传(默认false,查重命中则返回已有资产)",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "example": false
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": ["file"],
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "description": "上传文件",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultAssetVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/assets": {
+      "get": {
+        "tags": ["资产-库"],
+        "summary": "资产列表",
+        "description": "分页查询项目资产列表,返回资产名称、类型、缩略图、文件大小等信息,支持关键词/文件类型/分类/标签等筛选",
+        "operationId": "listAssets_2",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "项目ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "proj-001"
+          },
+          {
+            "name": "query",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AssetQueryRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultPageResultAssetVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["资产-库"],
+        "summary": "上传单文件",
+        "description": "上传单个文件到项目资产库,支持设置资产名称、类型、分类和标签",
+        "operationId": "uploadFile_1",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "项目ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "proj-001"
+          },
+          {
+            "name": "assetName",
+            "in": "query",
+            "description": "资产名称",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "概念设计图_v2"
+          },
+          {
+            "name": "assetType",
+            "in": "query",
+            "description": "资产类型: character-角色, scene-场景, prop-道具, audio-音效, template-模板",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "scene"
+          },
+          {
+            "name": "categoryId",
+            "in": "query",
+            "description": "分类ID",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "cat-123"
+          },
+          {
+            "name": "description",
+            "in": "query",
+            "description": "资产描述",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "这是一个概念设计图"
+          },
+          {
+            "name": "tags",
+            "in": "query",
+            "description": "标签列表(JSON数组)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": ["概念", "设计"]
+          },
+          {
+            "name": "allowDuplicate",
+            "in": "query",
+            "description": "是否允许重复上传(默认false,查重命中则返回已有资产)",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "example": false
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": ["file"],
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "description": "上传文件",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultAssetVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/assets/{assetId}/rollback": {
+      "post": {
+        "tags": ["资产-库"],
+        "summary": "回滚版本",
+        "description": "将资产回滚到指定历史版本,当前版本会作为新历史版本保留",
+        "operationId": "rollbackVersion_1",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "项目ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "proj-001"
+          },
+          {
+            "name": "assetId",
+            "in": "path",
+            "description": "资产ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "asset-001"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "integer",
+                "description": "目标版本号",
+                "format": "int32"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/assets/reference-images": {
+      "get": {
+        "tags": ["资产-库"],
+        "summary": "获取参考图列表",
+        "description": "获取项目下标记为参考图的资产列表",
+        "operationId": "listReferenceImages",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "项目ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultPageResultAssetVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["资产-库"],
+        "summary": "上传参考图",
+        "description": "上传参考图片并标记为项目参考图",
+        "operationId": "uploadReferenceImage",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "项目ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "imageUrl",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "imageType",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "reference"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultAssetVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/assets/import-from-team": {
+      "post": {
+        "tags": ["资产-库"],
+        "summary": "从团队库导入",
+        "description": "从团队参考资产库导入资产到项目",
+        "operationId": "importFromTeam",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "项目ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "proj-001"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssetTransferRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/assets/chunk-upload": {
+      "post": {
+        "tags": ["资产-库"],
+        "summary": "上传分片",
+        "description": "上传单个分片文件,通过 uploadId 标识所属的分片上传会话",
+        "operationId": "uploadChunk",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "项目ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "proj-001"
+          },
+          {
+            "name": "uploadId",
+            "in": "query",
+            "description": "分片上传会话ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "chunk-upload-001"
+          },
+          {
+            "name": "chunkIndex",
+            "in": "query",
+            "description": "分片序号(从0开始)",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "example": 0
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": ["file"],
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "description": "分片文件内容",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/assets/chunk-init": {
+      "post": {
+        "tags": ["资产-库"],
+        "summary": "初始化分片上传",
+        "description": "初始化大文件分片上传会话,返回 uploadId 用于后续分片上传和合并",
+        "operationId": "initChunkUpload",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "项目ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "proj-001"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssetChunkInitRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultAssetChunkVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/assets/chunk-complete": {
+      "post": {
+        "tags": ["资产-库"],
+        "summary": "合并分片",
+        "description": "通知服务端合并所有已上传的分片并创建资产记录",
+        "operationId": "completeChunk",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "项目ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "proj-001"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssetChunkCompleteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultAssetVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/assets/batch": {
+      "post": {
+        "tags": ["资产-库"],
+        "summary": "批量上传",
+        "description": "一次上传多个文件到项目资产库,支持逐文件元数据设置",
+        "operationId": "batchUpload",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "项目ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "proj-001"
+          },
+          {
+            "name": "metadataJson",
+            "in": "query",
+            "description": "元数据JSON(可选),格式: [{\"assetName\":\"...\",\"assetType\":\"...\"}]",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": [
+              {
+                "assetName": "图1.png",
+                "assetType": "scene"
+              }
+            ]
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": ["files"],
+                "type": "object",
+                "properties": {
+                  "files": {
+                    "type": "array",
+                    "description": "文件列表",
+                    "items": {
+                      "type": "string",
+                      "format": "binary"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultListAssetVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/assets/batch-tags": {
+      "post": {
+        "tags": ["资产-库"],
+        "summary": "批量添加标签",
+        "description": "批量给项目资产添加标签",
+        "operationId": "batchAddTags",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "项目ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "proj-001"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssetBatchOperationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["资产-库"],
+        "summary": "批量移除标签",
+        "description": "批量移除项目资产的标签",
+        "operationId": "batchRemoveTags",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "项目ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "proj-001"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssetBatchOperationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/assets/batch-move": {
+      "post": {
+        "tags": ["资产-库"],
+        "summary": "批量移动分类",
+        "description": "批量移动项目资产到指定分类",
+        "operationId": "batchMoveCategory",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "项目ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "proj-001"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssetBatchOperationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/assets/batch-download": {
+      "post": {
+        "tags": ["资产-库"],
+        "summary": "批量下载",
+        "description": "批量打包下载项目资产为ZIP文件,流式输出防止OOM",
+        "operationId": "batchDownload",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "项目ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "proj-001"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssetBatchOperationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/StreamingResponseBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/assets/batch-delete": {
+      "post": {
+        "tags": ["资产-库"],
+        "summary": "批量删除",
+        "description": "批量逻辑删除项目资产(需要项目管理员权限)",
+        "operationId": "batchDelete",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "项目ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "proj-001"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssetBatchOperationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/assets/ai-generate": {
+      "post": {
+        "tags": ["资产-库"],
+        "summary": "AI 生成资产",
+        "description": "通过 AI 生成图片资产并存入项目库",
+        "operationId": "aiGenerate",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "项目ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "proj-001"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssetAiGenerateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultListAssetVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/teams/{teamId}/assets/{assetId}": {
+      "get": {
+        "tags": ["资产-库"],
+        "summary": "团队资产详情",
+        "description": "获取团队参考资产库中指定资产的详细信息",
+        "operationId": "getAssetDetail",
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "description": "团队ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "team-001"
+          },
+          {
+            "name": "assetId",
+            "in": "path",
+            "description": "资产ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "asset-001"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultAssetDetailVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/teams/{teamId}/asset-categories": {
+      "get": {
+        "tags": ["资产-库"],
+        "summary": "团队资产分类列表",
+        "description": "获取团队参考资产库中已使用的资产类型列表(去重)",
+        "operationId": "listAssetCategories",
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "description": "团队ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "team-001"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultListString"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/assets/{assetId}/versions": {
+      "get": {
+        "tags": ["资产-库"],
+        "summary": "版本列表",
+        "description": "获取资产的版本历史列表,包含版本号、文件大小、上传者、创建时间等信息",
+        "operationId": "listVersions",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "项目ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "proj-001"
+          },
+          {
+            "name": "assetId",
+            "in": "path",
+            "description": "资产ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "asset-001"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultListAssetVersionVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/assets/{assetId}/download": {
+      "get": {
+        "tags": ["资产-库"],
+        "summary": "下载文件",
+        "description": "下载项目资产的原文件,返回二进制文件流",
+        "operationId": "downloadAsset",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "项目ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "proj-001"
+          },
+          {
+            "name": "assetId",
+            "in": "path",
+            "description": "资产ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "asset-001"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "format": "byte"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/assets/reference-images/{assetId}": {
+      "delete": {
+        "tags": ["资产-库"],
+        "summary": "删除参考图",
+        "description": "删除指定的参考图资产",
+        "operationId": "deleteReferenceImage",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "项目ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "assetId",
+            "in": "path",
+            "description": "资产ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/assets/chunk-cancel": {
+      "delete": {
+        "tags": ["资产-库"],
+        "summary": "取消分片上传",
+        "description": "取消分片上传并清理已上传的临时文件",
+        "operationId": "cancelChunk",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "项目ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "proj-001"
+          },
+          {
+            "name": "uploadId",
+            "in": "query",
+            "description": "分片上传会话ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "chunk-upload-001"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ResultAssetDetailVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AssetDetailVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "ResultObject": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "type": "object"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "AssetUpdateRequest": {
+        "type": "object",
+        "properties": {
+          "assetName": {
+            "type": "string",
+            "description": "资产名称",
+            "example": "更新后的角色设计图"
+          },
+          "description": {
+            "type": "string",
+            "description": "资产描述",
+            "example": "更新后的描述信息"
+          },
+          "categoryId": {
+            "type": "string",
+            "description": "分类ID",
+            "example": "2"
+          },
+          "assetType": {
+            "type": "string",
+            "description": "资产类型: character/scene/prop/audio/template",
+            "example": "character"
+          },
+          "isPublic": {
+            "type": "integer",
+            "description": "是否公开: 0私有 1公开",
+            "format": "int32",
+            "example": 1
+          }
+        },
+        "description": "更新资产元数据请求"
+      },
+      "ResultVoid": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "type": "object"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "AssetQueryRequest": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "minimum": 1,
+            "type": "integer",
+            "description": "当前页码, 从 1 开始",
+            "format": "int32",
+            "example": 1
+          },
+          "pageSize": {
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer",
+            "description": "每页大小, 最大 100",
+            "format": "int32",
+            "example": 10
+          },
+          "sortField": {
+            "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$",
+            "type": "string",
+            "description": "排序字段, 如 createTime",
+            "example": "createTime"
+          },
+          "sortOrder": {
+            "pattern": "^(asc|desc|ASC|DESC)$",
+            "type": "string",
+            "description": "排序方向: asc-升序, desc-降序",
+            "example": "desc"
+          },
+          "keyword": {
+            "type": "string",
+            "description": "关键词(模糊匹配名称和描述)",
+            "example": "角色"
+          },
+          "fileType": {
+            "type": "string",
+            "description": "文件类型: image/video/audio/document",
+            "example": "image"
+          },
+          "assetType": {
+            "type": "string",
+            "description": "资产类型: character/scene/prop/audio/template",
+            "example": "character"
+          },
+          "categoryId": {
+            "type": "string",
+            "description": "分类ID",
+            "example": "1"
+          },
+          "tagName": {
+            "type": "string",
+            "description": "标签名称",
+            "example": "主角"
+          },
+          "createdBy": {
+            "type": "string",
+            "description": "创建者ID",
+            "example": "1"
+          },
+          "status": {
+            "type": "integer",
+            "description": "状态: 1正常 0禁用",
+            "format": "int32",
+            "example": 1
+          },
+          "startTime": {
+            "type": "string",
+            "description": "开始时间(yyyy-MM-dd HH:mm:ss)"
+          },
+          "endTime": {
+            "type": "string",
+            "description": "结束时间(yyyy-MM-dd HH:mm:ss)"
+          },
+          "desc": {
+            "type": "boolean"
+          },
+          "asc": {
+            "type": "boolean"
+          },
+          "offset": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "description": "资产分页查询请求"
+      },
+      "ResultPageResultAssetVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PageResultAssetVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "ResultAssetVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AssetVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "AssetTransferRequest": {
+        "required": ["assetIds"],
+        "type": "object",
+        "properties": {
+          "assetIds": {
+            "maxItems": 50,
+            "minItems": 0,
+            "type": "array",
+            "description": "资产ID列表",
+            "example": [1, 2, 3],
+            "items": {
+              "type": "string",
+              "description": "资产ID列表",
+              "example": "[1,2,3]"
+            }
+          },
+          "targetTeamId": {
+            "type": "string",
+            "description": "目标团队ID(导出到团队时使用)",
+            "example": "1"
+          },
+          "targetProjectId": {
+            "type": "string",
+            "description": "目标项目ID(导入到项目时使用)",
+            "example": "1"
+          },
+          "targetCategoryId": {
+            "type": "string",
+            "description": "复制到目标分类ID(可选)",
+            "example": "1"
+          }
+        },
+        "description": "跨库转移请求"
+      },
+      "AssetChunkInitRequest": {
+        "required": ["chunkSize", "fileName", "fileSize", "totalChunks"],
+        "type": "object",
+        "properties": {
+          "fileName": {
+            "type": "string",
+            "description": "文件名",
+            "example": "large_video.mp4"
+          },
+          "fileSize": {
+            "minimum": 1,
+            "type": "integer",
+            "description": "文件总大小(字节)",
+            "format": "int64",
+            "example": 104857600
+          },
+          "chunkSize": {
+            "maximum": 52428800,
+            "minimum": 1048576,
+            "type": "integer",
+            "description": "分片大小(字节)",
+            "format": "int32",
+            "example": 5242880
+          },
+          "totalChunks": {
+            "maximum": 10000,
+            "minimum": 1,
+            "type": "integer",
+            "description": "总分片数",
+            "format": "int32",
+            "example": 20
+          },
+          "assetName": {
+            "type": "string",
+            "description": "资产名称(可选,合并时自动使用文件名)",
+            "example": "视频素材"
+          },
+          "assetType": {
+            "type": "string",
+            "description": "资产类型: character/scene/prop/audio/template",
+            "example": "scene"
+          }
+        },
+        "description": "分片上传初始化请求"
+      },
+      "ResultAssetChunkVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AssetChunkVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "AssetChunkCompleteRequest": {
+        "required": ["uploadId"],
+        "type": "object",
+        "properties": {
+          "uploadId": {
+            "type": "string",
+            "description": "上传会话ID",
+            "example": "uuid-upload-xxx"
+          },
+          "assetName": {
+            "type": "string",
+            "description": "资产名称(可选,默认使用文件名)",
+            "example": "完整视频素材"
+          },
+          "assetType": {
+            "type": "string",
+            "description": "资产类型: character/scene/prop/audio/template",
+            "example": "scene"
+          },
+          "categoryId": {
+            "type": "string",
+            "description": "分类ID(可选)",
+            "example": "1"
+          },
+          "description": {
+            "type": "string",
+            "description": "资产描述(可选)",
+            "example": "第三集打斗场景素材"
+          },
+          "tags": {
+            "type": "string",
+            "description": "标签列表,逗号分隔(可选)",
+            "example": "打斗,特效"
+          },
+          "allowDuplicate": {
+            "type": "boolean",
+            "description": "是否允许重复上传(默认false,查重命中则返回已有资产)",
+            "example": false
+          }
+        },
+        "description": "分片合并请求"
+      },
+      "ResultListAssetVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AssetVO"
+            }
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "AssetBatchOperationRequest": {
+        "required": ["ids"],
+        "type": "object",
+        "properties": {
+          "ids": {
+            "maxItems": 100,
+            "minItems": 0,
+            "type": "array",
+            "description": "资产ID列表",
+            "example": [1, 2, 3],
+            "items": {
+              "type": "string",
+              "description": "资产ID列表",
+              "example": "[1,2,3]"
+            }
+          },
+          "targetCategoryId": {
+            "type": "string",
+            "description": "目标分类ID(移动分类时使用)",
+            "example": "2"
+          },
+          "tags": {
+            "type": "array",
+            "description": "标签名称列表(批量标签操作时使用)",
+            "example": ["主角", "场景"],
+            "items": {
+              "type": "string",
+              "description": "标签名称列表(批量标签操作时使用)",
+              "example": "[\"主角\",\"场景\"]"
+            }
+          }
+        },
+        "description": "批量操作请求"
+      },
+      "StreamingResponseBody": {
+        "type": "object"
+      },
+      "AssetAiGenerateRequest": {
+        "required": ["prompt"],
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "type": "string",
+            "description": "生成提示词",
+            "example": "古风庭院，樱花飘落，黄昏光线"
+          },
+          "negativePrompt": {
+            "type": "string",
+            "description": "负面提示词",
+            "example": "模糊，低质量，变形"
+          },
+          "width": {
+            "type": "integer",
+            "description": "图片宽度",
+            "format": "int32",
+            "example": 1920
+          },
+          "height": {
+            "type": "integer",
+            "description": "图片高度",
+            "format": "int32",
+            "example": 1080
+          },
+          "count": {
+            "type": "integer",
+            "description": "生成数量",
+            "format": "int32",
+            "example": 1
+          },
+          "assetName": {
+            "type": "string",
+            "description": "资产名称",
+            "example": "AI生成-古风庭院"
+          },
+          "assetType": {
+            "type": "string",
+            "description": "资产类型: character/scene/prop/audio/template",
+            "example": "scene"
+          },
+          "categoryId": {
+            "type": "string",
+            "description": "分类ID(可选)",
+            "example": "1"
+          }
+        },
+        "description": "AI 生成资产请求"
+      },
+      "ResultListString": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "ResultListAssetVersionVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AssetVersionVO"
+            }
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      }
+    }
+  }
+}

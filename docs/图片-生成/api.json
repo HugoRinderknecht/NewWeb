@@ -1,0 +1,726 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "OpenAPI definition - 图片-生成",
+    "version": "v0",
+    "description": "模块: 图片-生成"
+  },
+  "servers": [
+    {
+      "url": "http://server.bsuniversal.cn:10006",
+      "description": "Generated server url"
+    }
+  ],
+  "tags": [
+    {
+      "name": "图片-生成",
+      "description": "GPT-Image-2：图片生成提交、任务状态查询、生成结果获取"
+    }
+  ],
+  "paths": {
+    "/api/gpt-image/generations": {
+      "post": {
+        "tags": ["图片-生成"],
+        "summary": "提交图片生成任务",
+        "description": "提交 GPT-Image-2 图片生成请求,返回任务ID用于后续查询。支持文生图和图生图(referenceImages参数)。尺寸: 1:1/16:9 等; 分辨率: 1k/2k/4k; 质量: low/medium/high/auto。",
+        "operationId": "generate_1",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GptImageGenerateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultGptImageSubmitVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gpt-image/tasks/{taskId}": {
+      "get": {
+        "tags": ["图片-生成"],
+        "summary": "查询任务状态",
+        "description": "查询 GPT-Image-2 任务的处理状态和进度。状态值: submitted(已提交)/processing(处理中)/completed(已完成)/failed(失败)。completed时返回图片URL列表及实际费用(cost)。",
+        "operationId": "getTaskStatus_1",
+        "parameters": [
+          {
+            "name": "taskId",
+            "in": "path",
+            "description": "任务ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultGptImageTaskVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gpt-image/tasks/{taskId}/review-status": {
+      "get": {
+        "tags": ["图片-生成"],
+        "summary": "查询图片审核状态",
+        "description": "查询GPT-Image生成图片的审核状态。审核通过ReviewTask(reviewType=image)进行管理,使用assetId字段存储任务ID。",
+        "operationId": "getReviewStatus_3",
+        "parameters": [
+          {
+            "name": "taskId",
+            "in": "path",
+            "description": "任务ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultReviewDetailVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gpt-image/tasks/{taskId}/result": {
+      "get": {
+        "tags": ["图片-生成"],
+        "summary": "获取任务结果",
+        "description": "获取已完成任务的图片URL和Token用量。仅当任务status=completed时返回。包含积分消耗和Token用量信息。",
+        "operationId": "getTaskResult_1",
+        "parameters": [
+          {
+            "name": "taskId",
+            "in": "path",
+            "description": "任务ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "resolution",
+            "in": "query",
+            "description": "分辨率(用于积分估算)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "1k"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultGptImageResultVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gpt-image/models": {
+      "get": {
+        "tags": ["图片-生成"],
+        "summary": "获取模型列表",
+        "description": "返回所有可用的GPT-Image模型及其参数信息,包括支持的比例、分辨率、参考图数量等,供前端动态渲染参数表单。",
+        "operationId": "getModels",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultListGptImageModelVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gpt-image/models/{modelCode}": {
+      "get": {
+        "tags": ["图片-生成"],
+        "summary": "获取模型详情",
+        "description": "根据模型编码获取模型的详细参数信息,包括支持的比例、分辨率、参考图数量等。",
+        "operationId": "getModelDetail",
+        "parameters": [
+          {
+            "name": "modelCode",
+            "in": "path",
+            "description": "模型编码",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "gpt-image-2"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultGptImageModelVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "GptImageGenerateRequest": {
+        "required": ["prompt"],
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "type": "string",
+            "description": "图片描述文本(中英文均可)",
+            "example": "A ginger cat sitting on a windowsill, watercolor style"
+          },
+          "size": {
+            "type": "string",
+            "description": "图像生成比例, 支持15种比例和auto/像素尺寸",
+            "example": "16:9",
+            "enum": [
+              "auto",
+              "1:1",
+              "3:2",
+              "2:3",
+              "4:3",
+              "3:4",
+              "5:4",
+              "4:5",
+              "16:9",
+              "9:16",
+              "2:1",
+              "1:2",
+              "3:1",
+              "1:3",
+              "21:9",
+              "9:21"
+            ],
+            "default": "1:1"
+          },
+          "resolution": {
+            "type": "string",
+            "description": "输出分辨率档位: 1k/2k/4k",
+            "example": "2k",
+            "enum": ["1k", "2k", "4k"],
+            "default": "1k"
+          },
+          "n": {
+            "type": "integer",
+            "description": "生成图片数量(当前仅支持1)",
+            "format": "int32",
+            "example": 1,
+            "default": 1
+          },
+          "referenceImages": {
+            "type": "array",
+            "description": "参考图URL数组(图生图模式, 最多16张, 支持URL与base64混填)",
+            "items": {
+              "type": "string",
+              "description": "参考图URL数组(图生图模式, 最多16张, 支持URL与base64混填)"
+            }
+          },
+          "officialFallback": {
+            "type": "boolean",
+            "description": "是否使用官方渠道兜底",
+            "default": false
+          },
+          "quality": {
+            "type": "string",
+            "description": "质量: low/medium/high/auto",
+            "example": "high",
+            "default": "auto"
+          },
+          "callbackUrl": {
+            "type": "string",
+            "description": "完成回调URL"
+          },
+          "projectId": {
+            "type": "string",
+            "description": "关联项目ID(用于积分扣减)"
+          },
+          "model": {
+            "type": "string",
+            "description": "模型编码: gpt-image-2 / gpt-image-2-official",
+            "default": "gpt-image-2"
+          },
+          "outputFormat": {
+            "type": "string",
+            "description": "输出格式: png/jpeg/webp",
+            "default": "png"
+          },
+          "outputCompression": {
+            "type": "integer",
+            "description": "输出压缩强度 0-100",
+            "format": "int32"
+          },
+          "background": {
+            "type": "string",
+            "description": "背景模式: auto/opaque/transparent"
+          },
+          "moderation": {
+            "type": "string",
+            "description": "审核强度: auto/low"
+          },
+          "maskUrl": {
+            "type": "string",
+            "description": "遮罩图URL (局部重绘)"
+          }
+        },
+        "description": "GPT-Image-2 图片生成请求"
+      },
+      "ResultGptImageSubmitVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/GptImageSubmitVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "ResultObject": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "type": "object"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "ResultGptImageTaskVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/GptImageTaskVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "ResultReviewDetailVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ReviewDetailVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "ResultGptImageResultVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/GptImageResultVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "ResultListGptImageModelVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GptImageModelVO"
+            }
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "ResultGptImageModelVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/GptImageModelVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,1139 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "OpenAPI definition - 剪辑-管理",
+    "version": "v0",
+    "description": "模块: 剪辑-管理"
+  },
+  "servers": [
+    {
+      "url": "http://server.bsuniversal.cn:10006",
+      "description": "Generated server url"
+    }
+  ],
+  "tags": [
+    {
+      "name": "剪辑-管理",
+      "description": "剪辑项目创建、片段管理、时间轴编辑、导出"
+    }
+  ],
+  "paths": {
+    "/api/edit/projects/{projectId}": {
+      "get": {
+        "tags": ["剪辑-管理"],
+        "summary": "剪辑项目详情",
+        "description": "获取剪辑项目详情,含片段列表和时间线",
+        "operationId": "getProjectDetail_1",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "剪辑项目ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "edit-001"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultEditProjectVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["剪辑-管理"],
+        "summary": "更新剪辑项目",
+        "description": "更新剪辑项目名称或描述,需要团队管理员权限",
+        "operationId": "updateProject_1",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "剪辑项目ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "edit-001"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditProjectCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultEditProjectVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["剪辑-管理"],
+        "summary": "删除剪辑项目",
+        "description": "删除剪辑项目及其所有片段,需要团队管理员权限",
+        "operationId": "deleteProject_1",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "剪辑项目ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "edit-001"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/edit/projects/{projectId}/segments/{segmentId}": {
+      "put": {
+        "tags": ["剪辑-管理"],
+        "summary": "更新片段",
+        "description": "更新片段的起止时间或特效配置",
+        "operationId": "updateSegment",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "剪辑项目ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "edit-001"
+          },
+          {
+            "name": "segmentId",
+            "in": "path",
+            "description": "片段ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "seg-001"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditSegmentCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["剪辑-管理"],
+        "summary": "删除片段",
+        "description": "从剪辑项目中删除指定片段",
+        "operationId": "deleteSegment",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "剪辑项目ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "edit-001"
+          },
+          {
+            "name": "segmentId",
+            "in": "path",
+            "description": "片段ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "seg-001"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/edit/projects/{projectId}/segments/reorder": {
+      "put": {
+        "tags": ["剪辑-管理"],
+        "summary": "片段重排序",
+        "description": "调整片段在时间线上的顺序,需提供完整的排序列表",
+        "operationId": "reorderSegments",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "剪辑项目ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "edit-001"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditSegmentReorderRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/edit/projects": {
+      "get": {
+        "tags": ["剪辑-管理"],
+        "summary": "剪辑项目列表",
+        "description": "获取指定团队下的剪辑项目列表,分页查询",
+        "operationId": "listProjects_1",
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "query",
+            "description": "团队ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "team-001"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultPageResultEditProjectVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["剪辑-管理"],
+        "summary": "创建剪辑项目",
+        "description": "在指定团队下创建剪辑项目,需要团队成员权限",
+        "operationId": "createProject_1",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditProjectCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultEditProjectVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/edit/projects/{projectId}/segments": {
+      "post": {
+        "tags": ["剪辑-管理"],
+        "summary": "添加片段",
+        "description": "向剪辑项目添加视频片段,自动分配顺序号",
+        "operationId": "addSegment",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "剪辑项目ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "edit-001"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditSegmentCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultEditSegmentVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/edit/projects/{projectId}/export": {
+      "post": {
+        "tags": ["剪辑-管理"],
+        "summary": "导出成片",
+        "description": "将剪辑项目导出为视频文件,支持指定格式、分辨率和帧率",
+        "operationId": "exportProject",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "剪辑项目ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "edit-001"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditExportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultEditExportTaskVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/edit/exports/{exportId}": {
+      "get": {
+        "tags": ["剪辑-管理"],
+        "summary": "查询导出状态",
+        "description": "查询导出任务的状态、进度和结果URL",
+        "operationId": "getExportStatus",
+        "parameters": [
+          {
+            "name": "exportId",
+            "in": "path",
+            "description": "导出任务ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "export-001"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultEditExportTaskVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ResultEditProjectVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/EditProjectVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "ResultObject": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "type": "object"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "EditProjectCreateRequest": {
+        "required": ["projectName", "teamId"],
+        "type": "object",
+        "properties": {
+          "teamId": {
+            "type": "string",
+            "description": "团队ID",
+            "example": "team-001"
+          },
+          "projectName": {
+            "maxLength": 200,
+            "minLength": 0,
+            "type": "string",
+            "description": "剪辑项目名称",
+            "example": "第一集成片"
+          },
+          "description": {
+            "type": "string",
+            "description": "项目描述"
+          }
+        },
+        "description": "创建剪辑项目请求"
+      },
+      "ResultVoid": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "type": "object"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "EditSegmentCreateRequest": {
+        "required": ["videoId"],
+        "type": "object",
+        "properties": {
+          "videoId": {
+            "type": "string",
+            "description": "视频ID",
+            "example": "video-001"
+          },
+          "startTime": {
+            "type": "number",
+            "description": "开始时间(秒)",
+            "format": "float",
+            "example": 0
+          },
+          "endTime": {
+            "type": "number",
+            "description": "结束时间(秒)",
+            "format": "float",
+            "example": 5.5
+          },
+          "effects": {
+            "type": "string",
+            "description": "特效配置(JSON)"
+          },
+          "endTimeAfterStartTime": {
+            "type": "boolean"
+          }
+        },
+        "description": "添加剪辑片段请求"
+      },
+      "EditSegmentReorderRequest": {
+        "required": ["items"],
+        "type": "object",
+        "properties": {
+          "items": {
+            "maxItems": 200,
+            "minItems": 0,
+            "type": "array",
+            "description": "排序项列表",
+            "items": {
+              "$ref": "#/components/schemas/ReorderItem"
+            }
+          }
+        },
+        "description": "片段排序请求"
+      },
+      "ResultPageResultEditProjectVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PageResultEditProjectVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "ResultEditSegmentVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/EditSegmentVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "EditExportRequest": {
+        "type": "object",
+        "properties": {
+          "format": {
+            "type": "string",
+            "description": "输出格式",
+            "example": "MP4"
+          },
+          "resolution": {
+            "type": "string",
+            "description": "分辨率",
+            "example": "1080P"
+          },
+          "frameRate": {
+            "type": "integer",
+            "description": "帧率",
+            "format": "int32",
+            "example": 30
+          },
+          "bitrate": {
+            "type": "string",
+            "description": "码率",
+            "example": "8M"
+          }
+        },
+        "description": "导出成片请求"
+      },
+      "ResultEditExportTaskVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/EditExportTaskVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      }
+    }
+  }
+}

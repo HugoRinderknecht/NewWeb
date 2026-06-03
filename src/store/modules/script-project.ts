@@ -11,7 +11,8 @@ export interface ProjectItem {
 
 export const useScriptProjectStore = defineStore('script-project', {
   state: () => ({
-    currentProjectId: '1'
+    currentProjectId: '',
+    currentScriptId: ''
   }),
 
   getters: {
@@ -36,6 +37,14 @@ export const useScriptProjectStore = defineStore('script-project', {
   actions: {
     setCurrentProject(projectId: string) {
       this.currentProjectId = projectId
+      const projectDataStore = useProjectDataStore()
+      if (projectDataStore.currentProjectId !== projectId) {
+        projectDataStore.setCurrentProject(projectId)
+      }
+    },
+
+    setCurrentScript(scriptId: string) {
+      this.currentScriptId = scriptId
     },
 
     updateEpisodeCount(projectId: string, delta: number) {

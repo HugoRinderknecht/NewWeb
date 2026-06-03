@@ -1,39 +1,25 @@
-import request from '@/utils/http'
+import { getApiAdapter } from './adapter'
 
 export function fetchGetBillingList() {
-  return request.get<Api.Billing.BillingItem[]>({
-    url: '/api/admin/billing'
-  })
+  return getApiAdapter().get<Api.Billing.BillingItem[]>('/api/admin/billing')
 }
 
 export function fetchCreateBilling(data: Api.Billing.CreateBillingParams) {
-  return request.post<Api.Billing.BillingItem>({
-    url: '/api/admin/billing',
-    data
-  })
+  return getApiAdapter().post<Api.Billing.BillingItem>('/api/admin/billing', data)
 }
 
 export function fetchGetBillingDetail(id: string) {
-  return request.get<Api.Billing.BillingDetail>({
-    url: `/api/admin/billing/${id}`
-  })
+  return getApiAdapter().get<Api.Billing.BillingDetail>(`/api/admin/billing/${id}`)
 }
 
 export function fetchUpdateBilling(id: string, data: Api.Billing.UpdateBillingParams) {
-  return request.put<Api.Billing.BillingItem>({
-    url: `/api/admin/billing/${id}`,
-    data
-  })
+  return getApiAdapter().put<Api.Billing.BillingItem>(`/api/admin/billing/${id}`, data)
 }
 
 export function fetchToggleBilling(id: string) {
-  return request.put<Api.Billing.BillingItem>({
-    url: `/api/admin/billing/${id}/toggle`
-  })
+  return getApiAdapter().put<Api.Billing.BillingItem>(`/api/admin/billing/${id}/toggle`)
 }
 
 export function fetchGetBillingHistory(id: string) {
-  return request.get<Api.Billing.BillingHistoryItem[]>({
-    url: `/api/admin/billing/${id}/history`
-  })
+  return getApiAdapter().get<Api.Billing.BillingHistoryItem[]>(`/api/admin/billing/${id}/history`)
 }

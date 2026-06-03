@@ -1,39 +1,43 @@
-import request from '@/utils/http'
+import { getApiAdapter } from './adapter'
 
 export function fetchGetWorkflowList() {
-  return request.get<Api.WorkflowManage.WorkflowManageListItem[]>({
-    url: '/api/admin/dify-workflows'
-  })
+  return getApiAdapter().get<Api.WorkflowManage.WorkflowManageListItem[]>(
+    '/api/admin/dify-workflows'
+  )
 }
 
 export function fetchCreateWorkflow(data: Api.WorkflowManage.CreateWorkflowManageParams) {
-  return request.post<Api.WorkflowManage.WorkflowManageDetail>({
-    url: '/api/admin/dify-workflows',
+  return getApiAdapter().post<Api.WorkflowManage.WorkflowManageDetail>(
+    '/api/admin/dify-workflows',
     data
-  })
+  )
 }
 
 export function fetchGetWorkflowDetail(id: string) {
-  return request.get<Api.WorkflowManage.WorkflowManageDetail>({
-    url: `/api/admin/dify-workflows/${id}`
-  })
+  return getApiAdapter().get<Api.WorkflowManage.WorkflowManageDetail>(
+    `/api/admin/dify-workflows/${id}`
+  )
 }
 
-export function fetchUpdateWorkflow(id: string, data: Api.WorkflowManage.UpdateWorkflowManageParams) {
-  return request.put<Api.WorkflowManage.WorkflowManageDetail>({
-    url: `/api/admin/dify-workflows/${id}`,
+export function fetchUpdateWorkflow(
+  id: string,
+  data: Api.WorkflowManage.UpdateWorkflowManageParams
+) {
+  return getApiAdapter().put<Api.WorkflowManage.WorkflowManageDetail>(
+    `/api/admin/dify-workflows/${id}`,
     data
-  })
+  )
 }
 
 export function fetchDeleteWorkflow(id: string) {
-  return request.del<void>({
-    url: `/api/admin/dify-workflows/${id}`
-  })
+  return getApiAdapter().del<void>(`/api/admin/dify-workflows/${id}`)
 }
 
-export function fetchToggleWorkflowStatus(id: string, data: Api.WorkflowManage.ToggleWorkflowStatusParams) {
-  return request.request<void>({
+export function fetchToggleWorkflowStatus(
+  id: string,
+  data: Api.WorkflowManage.ToggleWorkflowStatusParams
+) {
+  return getApiAdapter().request<void>({
     method: 'PATCH',
     url: `/api/admin/dify-workflows/${id}/status`,
     data
@@ -41,14 +45,14 @@ export function fetchToggleWorkflowStatus(id: string, data: Api.WorkflowManage.T
 }
 
 export function fetchTestWorkflowConnection(data: Api.WorkflowManage.TestConnectionParams) {
-  return request.post<Api.WorkflowManage.TestConnectionResult>({
-    url: '/api/admin/dify-workflows/test-connection',
+  return getApiAdapter().post<Api.WorkflowManage.TestConnectionResult>(
+    '/api/admin/dify-workflows/test-connection',
     data
-  })
+  )
 }
 
 export function fetchTestAllWorkflowConnections() {
-  return request.post<Api.WorkflowManage.TestConnectionResult[]>({
-    url: '/api/admin/dify-workflows/test-all-connections'
-  })
+  return getApiAdapter().post<Api.WorkflowManage.TestConnectionResult[]>(
+    '/api/admin/dify-workflows/test-all-connections'
+  )
 }

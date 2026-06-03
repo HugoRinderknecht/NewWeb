@@ -259,6 +259,8 @@
 <script setup lang="ts">
   import { ElMessage } from 'element-plus'
   import type { UploadFile, UploadUserFile } from 'element-plus'
+  import { useTeamStore } from '@/store/modules/team'
+  import { useProjectDataStore } from '@/store/modules/project-data'
   import { fetchImportFromTeam, fetchGetTeamAssets } from '@/api/asset'
 
   defineOptions({ name: 'AssetImport' })
@@ -281,6 +283,10 @@
     status: ImportStatus
   }
 
+  const teamStore = useTeamStore()
+  const projectStore = useProjectDataStore()
+  const projectId = computed(() => projectStore.currentProjectId || '')
+  const teamId = computed(() => teamStore.currentTeamId || '')
   const currentStep = ref(0)
   const fileList = ref<UploadUserFile[]>([])
   const previewList = ref<FileItem[]>([])
@@ -292,9 +298,9 @@
   const teamAssetList = ref<any[]>([])
 
   const loadTeamAssets = async () => {
-    const teamId = '1'
+    if (!teamId.value) return
     try {
-      const res = await fetchGetTeamAssets(teamId)
+      const res = await fetchGetTeamAssets(teamId.value)
       if (res) {
         teamAssetList.value = Array.isArray(res) ? res : (res as any).records || []
       }
@@ -503,11 +509,10 @@
       status: 'pending' as ImportStatus
     }))
 
-    const projectId = '1'
     const teamAssetIds = selectedFiles.value.map((f) => String(f.id))
 
     try {
-      await fetchImportFromTeam(projectId, teamAssetIds)
+      await fetchImportFromTeam(projectId.value, teamAssetIds)
       importProgressList.value.forEach((item) => {
         item.status = 'success'
       })
@@ -556,64 +561,64 @@
       }
 
       :deep(.el-upload-dragger) {
-        width: 100%;
-        height: 240px;
         display: flex;
         align-items: center;
         justify-content: center;
+        width: 100%;
+        height: 240px;
       }
 
       .upload-content {
         text-align: center;
 
         .upload-icon {
+          margin-bottom: 16px;
           font-size: 48px;
           color: var(--el-color-primary);
-          margin-bottom: 16px;
         }
       }
     }
 
     .file-icon {
-      width: 40px;
-      height: 40px;
-      border-radius: 8px;
       display: flex;
+      flex-shrink: 0;
       align-items: center;
       justify-content: center;
+      width: 40px;
+      height: 40px;
       font-size: 20px;
-      flex-shrink: 0;
+      border-radius: 8px;
 
       &.image {
-        background: var(--el-color-primary-light-9);
         color: var(--el-color-primary);
+        background: var(--el-color-primary-light-9);
       }
 
       &.video {
-        background: var(--el-color-success-light-9);
         color: var(--el-color-success);
+        background: var(--el-color-success-light-9);
       }
 
       &.audio {
-        background: var(--el-color-warning-light-9);
         color: var(--el-color-warning);
+        background: var(--el-color-warning-light-9);
       }
 
       &.document {
-        background: var(--el-color-info-light-9);
         color: var(--el-color-info);
+        background: var(--el-color-info-light-9);
       }
 
       &.design {
-        background: var(--el-color-danger-light-9);
         color: var(--el-color-danger);
+        background: var(--el-color-danger-light-9);
       }
     }
 
     .import-progress {
       max-width: 800px;
-      margin: 0 auto;
       padding: 40px 0;
+      margin: 0 auto;
 
       .progress-percentage {
         color: var(--el-color-primary);

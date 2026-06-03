@@ -123,6 +123,7 @@
   import { ElMessage, ElMessageBox } from 'element-plus'
   import type { FormInstance, FormRules } from 'element-plus'
   import { fetchBatchAddTags, fetchBatchRemoveTags } from '@/api/asset'
+  import { useProjectDataStore } from '@/store/modules/project-data'
 
   defineOptions({ name: 'AssetTags' })
 
@@ -140,6 +141,8 @@
   const isEdit = ref(false)
   const currentId = ref<number | null>(null)
   const formRef = ref<FormInstance>()
+  const projectStore = useProjectDataStore()
+  const projectId = computed(() => projectStore.currentProjectId || '')
 
   const typeIconMap: Record<TagType, string> = {
     character: 'ri:user-line',
@@ -233,7 +236,6 @@
     if (!formRef.value) return
     await formRef.value.validate(async (valid) => {
       if (valid) {
-        const projectId = '1'
         if (isEdit.value && currentId.value) {
           const index = tagList.value.findIndex((i) => i.id === currentId.value)
           if (index !== -1) {
@@ -245,7 +247,7 @@
           ElMessage.success('编辑成功')
         } else {
           try {
-            await fetchBatchAddTags(projectId, {
+            await fetchBatchAddTags(projectId.value, {
               assetIds: [],
               tags: [form.name!]
             } as any)
@@ -268,10 +270,9 @@
   }
 
   const handleDeleteTag = (tag: TagItem) => {
-    const projectId = '1'
     const doDelete = async () => {
       try {
-        await fetchBatchRemoveTags(projectId, {
+        await fetchBatchRemoveTags(projectId.value, {
           assetIds: [],
           tags: [tag.name]
         } as any)
@@ -310,46 +311,46 @@
     .tag-stats {
       .stat-card {
         display: flex;
-        align-items: center;
         gap: 12px;
+        align-items: center;
         padding: 16px;
         background: var(--el-fill-color-lighter);
         border-radius: var(--custom-radius);
 
         .stat-icon {
-          width: 44px;
-          height: 44px;
-          border-radius: 10px;
           display: flex;
+          flex-shrink: 0;
           align-items: center;
           justify-content: center;
+          width: 44px;
+          height: 44px;
           font-size: 22px;
-          flex-shrink: 0;
+          border-radius: 10px;
         }
 
         &.character .stat-icon {
-          background: var(--el-color-primary-light-9);
           color: var(--el-color-primary);
+          background: var(--el-color-primary-light-9);
         }
 
         &.costume .stat-icon {
-          background: var(--el-color-success-light-9);
           color: var(--el-color-success);
+          background: var(--el-color-success-light-9);
         }
 
         &.scene .stat-icon {
-          background: var(--el-color-warning-light-9);
           color: var(--el-color-warning);
+          background: var(--el-color-warning-light-9);
         }
 
         &.prop .stat-icon {
-          background: var(--el-color-info-light-9);
           color: var(--el-color-info);
+          background: var(--el-color-info-light-9);
         }
 
         &.audio .stat-icon {
-          background: var(--el-color-danger-light-9);
           color: var(--el-color-danger);
+          background: var(--el-color-danger-light-9);
         }
 
         .stat-info {
@@ -360,9 +361,9 @@
           }
 
           .stat-label {
+            margin-top: 2px;
             font-size: 12px;
             color: var(--el-text-color-secondary);
-            margin-top: 2px;
           }
         }
       }
@@ -372,38 +373,38 @@
       .tag-group {
         .group-header {
           .group-icon {
-            width: 36px;
-            height: 36px;
-            border-radius: 8px;
             display: flex;
+            flex-shrink: 0;
             align-items: center;
             justify-content: center;
+            width: 36px;
+            height: 36px;
             font-size: 18px;
-            flex-shrink: 0;
+            border-radius: 8px;
 
             &.character {
-              background: var(--el-color-primary-light-9);
               color: var(--el-color-primary);
+              background: var(--el-color-primary-light-9);
             }
 
             &.costume {
-              background: var(--el-color-success-light-9);
               color: var(--el-color-success);
+              background: var(--el-color-success-light-9);
             }
 
             &.scene {
-              background: var(--el-color-warning-light-9);
               color: var(--el-color-warning);
+              background: var(--el-color-warning-light-9);
             }
 
             &.prop {
-              background: var(--el-color-info-light-9);
               color: var(--el-color-info);
+              background: var(--el-color-info-light-9);
             }
 
             &.audio {
-              background: var(--el-color-danger-light-9);
               color: var(--el-color-danger);
+              background: var(--el-color-danger-light-9);
             }
           }
 
@@ -429,8 +430,8 @@
 
             .tag-usage {
               margin-left: 4px;
-              opacity: 0.7;
               font-size: 12px;
+              opacity: 0.7;
             }
           }
 

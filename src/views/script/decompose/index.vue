@@ -11,194 +11,158 @@
               @change="handleProjectChange"
               @refresh="handleProjectRefresh"
             />
-            <ElTag type="info" size="small">{{ currentScriptName }}</ElTag>
-          </div>
-          <ElSpace>
-            <ElSelect v-model="currentEpisode" placeholder="选择集数" style="width: 160px">
+            <ElSelect
+              v-model="currentScriptId"
+              placeholder="选择剧本"
+              clearable
+              style="width: 220px"
+              @change="handleScriptChange"
+            >
               <ElOption
-                v-for="item in episodeOptions"
-                :key="item.value"
-                :label="item.label"
-                :value="item.value"
+                v-for="script in scriptOptions"
+                :key="script.id"
+                :label="script.title"
+                :value="script.id"
               />
             </ElSelect>
-            <ScriptUpload
-              button-text="导入剧本"
-              button-type="info"
-              dialog-title="导入剧本进行拆解"
-              accept-types=".doc,.docx,.pdf,.txt,.fountain"
-              @success="handleImportScript"
-            />
+          </div>
+          <ElSpace>
             <ElButton type="primary" @click="handleDecompose">
               <ArtSvgIcon icon="ri:ai-generate" class="mr-1" />
-              AI分镜拆解
+              AI拆解
             </ElButton>
-            <ElButton @click="handleRebuild">
-              <ArtSvgIcon icon="ri:refresh-line" class="mr-1" />
-              重建分镜
+            <ElButton @click="handleCreateEpisode">
+              <ArtSvgIcon icon="ri:add-line" class="mr-1" />
+              新建分集
             </ElButton>
           </ElSpace>
         </div>
       </template>
 
       <ElRow :gutter="16" class="h-full">
-        <!-- 左侧分集列表 -->
-        <ElCol :span="6">
+        <!-- 左栏：分集列表 -->
+        <ElCol :span="8">
           <div class="episode-panel">
             <div class="panel-header flex-cb mb-4">
               <span class="font-medium">分集列表</span>
               <span class="text-xs text-g-400">共 {{ episodeList.length }} 集</span>
             </div>
-            <div class="episode-items">
+            <div v-if="episodeList.length > 0" class="episode-items">
               <div
                 v-for="item in episodeList"
                 :key="item.id"
                 class="episode-item"
-                :class="{ active: currentEpisode === item.id }"
+                :class="{ active: selectedEpisodeId === item.id }"
                 @click="handleEpisodeClick(item)"
               >
                 <div class="flex-cb">
                   <div class="flex-c">
-                    <div class="episode-number">{{ item.number }}</div>
+                    <div class="episode-number">{{ item.episodeIndex }}</div>
                     <div class="episode-info">
-                      <div class="font-medium">{{ item.name }}</div>
-                      <div class="text-xs text-g-400">{{ item.shotCount }} 个镜头</div>
+                      <div class="font-medium">{{ item.episodeName }}</div>
+                      <div class="text-xs text-g-400 mt-1 truncate" style="max-width: 180px">
+                        {{ truncateContent(item.content, 50) }}
+                      </div>
                     </div>
                   </div>
-                  <ElTag :type="item.decomposed ? 'success' : 'info'" size="small">
-                    {{ item.decomposed ? '已拆解' : '未拆解' }}
-                  </ElTag>
+                  <ElSpace :size="4" @click.stop>
+                    <ElButton type="primary" link size="small" @click="handleEditEpisode(item)">
+                      <ArtSvgIcon icon="ri:edit-line" />
+                    </ElButton>
+                    <ElButton type="danger" link size="small" @click="handleDeleteEpisode(item)">
+                      <ArtSvgIcon icon="ri:delete-bin-line" />
+                    </ElButton>
+                  </ElSpace>
                 </div>
               </div>
             </div>
+            <ElEmpty v-else description="暂无分集数据" />
           </div>
         </ElCol>
 
-        <!-- 中间正文 -->
-        <ElCol :span="9">
-          <div class="script-panel">
+        <!-- 右栏：分集详情/编辑 -->
+        <ElCol :span="16">
+          <div v-if="currentEpisode" class="episode-detail-panel">
             <div class="panel-header flex-cb mb-4">
-              <span class="font-medium">剧本正文</span>
-              <ElTag type="primary" size="small">第{{ currentEpisodeData?.number }}集</ElTag>
+              <span class="font-medium">分集详情</span>
+              <ElButton type="primary" size="small" :loading="saving" @click="handleSaveEpisode">
+                <ArtSvgIcon icon="ri:save-line" class="mr-1" />
+                保存
+              </ElButton>
             </div>
-            <div class="script-content">
-              <div
-                v-for="(paragraph, index) in scriptParagraphs"
-                :key="index"
-                class="script-paragraph"
-                :class="{ selected: selectedParagraph === index }"
-                @click="selectedParagraph = index"
-              >
-                <div class="paragraph-index">{{ index + 1 }}</div>
-                <div class="paragraph-text">{{ paragraph }}</div>
-              </div>
-            </div>
+            <ElForm
+              ref="episodeFormRef"
+              :model="episodeForm"
+              :rules="episodeRules"
+              label-width="90px"
+              label-position="top"
+            >
+              <ElRow :gutter="16">
+                <ElCol :span="12">
+                  <ElFormItem label="分集名称" prop="episodeName">
+                    <ElInput v-model="episodeForm.episodeName" placeholder="请输入分集名称" />
+                  </ElFormItem>
+                </ElCol>
+                <ElCol :span="6">
+                  <ElFormItem label="排序号" prop="episodeIndex">
+                    <ElInputNumber
+                      v-model="episodeForm.episodeIndex"
+                      :min="0"
+                      :max="9999"
+                      style="width: 100%"
+                    />
+                  </ElFormItem>
+                </ElCol>
+              </ElRow>
+              <ElFormItem label="分集内容" prop="content">
+                <ElInput
+                  v-model="episodeForm.content"
+                  type="textarea"
+                  :rows="20"
+                  placeholder="请输入分集内容"
+                  resize="vertical"
+                />
+              </ElFormItem>
+            </ElForm>
           </div>
-        </ElCol>
-
-        <!-- 右侧AI分镜 -->
-        <ElCol :span="9">
-          <div class="shot-panel">
-            <div class="panel-header flex-cb mb-4">
-              <span class="font-medium">AI分镜结果</span>
-              <ElSpace>
-                <ElTag type="success" size="small">{{ shotResults.length }} 个镜头</ElTag>
-                <ElButton type="primary" link size="small" @click="handleExport">
-                  <ArtSvgIcon icon="ri:download-line" class="mr-1" />
-                  导出
-                </ElButton>
-              </ElSpace>
-            </div>
-            <div class="shot-results">
-              <ElTimeline>
-                <ElTimelineItem
-                  v-for="(shot, index) in shotResults"
-                  :key="index"
-                  :type="shotStatusTypeMap[shot.status]"
-                  :icon="shotStatusIconMap[shot.status]"
-                >
-                  <div class="shot-card">
-                    <div class="flex-cb mb-2">
-                      <span class="font-medium">{{ shot.code }}</span>
-                      <ElTag :type="shotStatusTypeMap[shot.status]" size="small">
-                        {{ shotStatusLabelMap[shot.status] }}
-                      </ElTag>
-                    </div>
-                    <div class="shot-description text-sm text-g-400 mb-2">
-                      {{ shot.description }}
-                    </div>
-                    <div class="shot-meta flex-cb">
-                      <ElSpace>
-                        <span class="text-xs text-g-400">
-                          <ArtSvgIcon icon="ri:time-line" class="mr-1" />
-                          {{ shot.duration }}s
-                        </span>
-                        <span class="text-xs text-g-400">
-                          <ArtSvgIcon icon="ri:emotion-line" class="mr-1" />
-                          {{ shot.mood }}
-                        </span>
-                      </ElSpace>
-                      <ElButton type="primary" link size="small" @click="handleEditShot(shot)">
-                        编辑
-                      </ElButton>
-                    </div>
-                  </div>
-                </ElTimelineItem>
-              </ElTimeline>
-            </div>
-          </div>
+          <ElEmpty v-else description="请选择左侧分集查看详情" />
         </ElCol>
       </ElRow>
     </ElCard>
 
-    <!-- 编辑分镜弹窗 -->
+    <!-- 新建分集弹窗 -->
     <ElDialog
-      v-model="shotDialogVisible"
-      title="编辑分镜"
+      v-model="createDialogVisible"
+      title="新建分集"
       width="520px"
       align-center
       destroy-on-close
     >
-      <ElForm ref="shotFormRef" :model="shotForm" :rules="shotRules" label-width="100px">
-        <ElFormItem label="镜头编号" prop="code">
-          <ElInput v-model="shotForm.code" placeholder="请输入镜头编号" />
+      <ElForm ref="createFormRef" :model="createForm" :rules="createRules" label-width="90px">
+        <ElFormItem label="分集名称" prop="episodeName">
+          <ElInput v-model="createForm.episodeName" placeholder="请输入分集名称" />
         </ElFormItem>
-        <ElFormItem label="描述" prop="description">
-          <ElInput
-            v-model="shotForm.description"
-            type="textarea"
-            :rows="3"
-            placeholder="请输入镜头描述"
+        <ElFormItem label="排序号" prop="episodeIndex">
+          <ElInputNumber
+            v-model="createForm.episodeIndex"
+            :min="0"
+            :max="9999"
+            style="width: 100%"
           />
         </ElFormItem>
-        <ElFormItem label="时长(秒)" prop="duration">
-          <ElInputNumber v-model="shotForm.duration" :min="1" :max="300" />
-        </ElFormItem>
-        <ElFormItem label="情绪">
-          <ElSelect v-model="shotForm.mood" placeholder="请选择情绪" style="width: 100%">
-            <ElOption label="喜悦" value="喜悦" />
-            <ElOption label="悲伤" value="悲伤" />
-            <ElOption label="紧张" value="紧张" />
-            <ElOption label="恐惧" value="恐惧" />
-            <ElOption label="平静" value="平静" />
-            <ElOption label="激动" value="激动" />
-          </ElSelect>
-        </ElFormItem>
-        <ElFormItem label="状态">
-          <ElSelect v-model="shotForm.status" placeholder="请选择状态" style="width: 100%">
-            <ElOption
-              v-for="item in shotStatusOptions"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value"
-            />
-          </ElSelect>
+        <ElFormItem label="分集内容" prop="content">
+          <ElInput
+            v-model="createForm.content"
+            type="textarea"
+            :rows="6"
+            placeholder="请输入分集内容"
+          />
         </ElFormItem>
       </ElForm>
       <template #footer>
         <div class="dialog-footer">
-          <ElButton @click="shotDialogVisible = false">取消</ElButton>
-          <ElButton type="primary" @click="handleShotSubmit">保存</ElButton>
+          <ElButton @click="createDialogVisible = false">取消</ElButton>
+          <ElButton type="primary" :loading="creating" @click="handleCreateSubmit">确定</ElButton>
         </div>
       </template>
     </ElDialog>
@@ -208,502 +172,362 @@
 <script setup lang="ts">
   import { ElMessage, ElMessageBox } from 'element-plus'
   import type { FormInstance, FormRules } from 'element-plus'
+  import { storeToRefs } from 'pinia'
   import { useScriptProjectStore } from '@/store/modules/script-project'
-  import { fetchDecomposeStoryboard } from '@/api/storyboard'
-  import { fetchDecomposeScript, fetchGetScriptEpisodes } from '@/api/script'
+  import {
+    fetchGetScriptList,
+    fetchDecomposeScript,
+    fetchGetScriptEpisodes,
+    fetchGetEpisodeDetail,
+    fetchUpdateEpisode,
+    fetchDeleteEpisode,
+    fetchCreateEpisode
+  } from '@/api/script'
+  import ProjectSwitcher from '@/components/ProjectSwitcher/index.vue'
 
   defineOptions({ name: 'ScriptDecompose' })
 
-  type ShotStatus = 'pending' | 'storyboard' | 'firstframe' | 'video' | 'completed'
-
-  interface EpisodeItem {
+  interface Episode {
     id: string
-    number: number
-    name: string
-    shotCount: number
-    decomposed: boolean
+    projectId: string
+    scriptId: string
+    episodeName: string
+    content: string
+    episodeIndex: number
+    createTime: string
+    updateTime: string
   }
 
-  interface ShotResult {
+  interface EpisodeFormParams {
+    scriptId?: string
+    episodeName?: string
+    episodeIndex?: number
+    content?: string
+  }
+
+  interface ScriptOption {
     id: string
-    code: string
-    description: string
-    duration: number
-    mood: string
-    status: ShotStatus
-    paragraphIndex: number
+    title: string
   }
 
-  const currentEpisode = ref('1')
-  const selectedParagraph = ref<number | null>(null)
-  const shotDialogVisible = ref(false)
-  const currentShotId = ref<string | null>(null)
-  const shotFormRef = ref<FormInstance>()
+  // Store
+  const scriptProjectStore = useScriptProjectStore()
+  const { currentProjectId, projectList } = storeToRefs(scriptProjectStore)
 
-  const episodeOptions = [
-    { label: '第1集：初遇九尾', value: 1 },
-    { label: '第2集：昆仑求药', value: 2 },
-    { label: '第3集：白泽指引', value: 3 }
-  ]
+  // 剧本相关
+  const currentScriptId = ref('')
+  const scriptOptions = ref<ScriptOption[]>([])
 
-  const episodeList = ref<EpisodeItem[]>([
-    { id: '1', number: 1, name: '初遇九尾', shotCount: 24, decomposed: true },
-    { id: '2', number: 2, name: '昆仑求药', shotCount: 18, decomposed: true },
-    { id: '3', number: 3, name: '白泽指引', shotCount: 15, decomposed: false },
-    { id: '4', number: 4, name: '幽都危机', shotCount: 0, decomposed: false },
-    { id: '5', number: 5, name: '神兽之战', shotCount: 0, decomposed: false }
-  ])
+  // 分集列表
+  const episodeList = ref<Episode[]>([])
+  const selectedEpisodeId = ref('')
+  const currentEpisode = ref<Episode | null>(null)
 
-  const currentEpisodeData = computed(() =>
-    episodeList.value.find((item) => item.id === currentEpisode.value)
-  )
-
-  const scriptParagraphs = ref<string[]>([
-    '青丘山，云雾缭绕，竹林环绕。清晨的阳光透过竹叶洒下斑驳的光影。',
-    '少年阿禹背着药篓走在山路上，脚步轻快。他今天采到了几株珍贵的草药，心情格外愉悦。',
-    '突然，一阵微弱的呻吟声从竹林深处传来。阿禹停下脚步，侧耳倾听。',
-    '阿禹循声走去，拨开茂密的竹叶，发现一只雪白的狐狸倒在血泊中。狐狸身后拖着九条尾巴，正是传说中的九尾狐。',
-    '九尾狐睁开眼睛，眼神中带着警惕和疲惫。它试图站起来，却因伤势过重而再次倒下。',
-    '阿禹心中一软，放下药篓，小心翼翼地靠近。他从怀中取出伤药，轻轻敷在九尾狐的伤口上。',
-    '九尾狐感受到阿禹的善意，眼神逐渐柔和下来。它轻轻舔了舔阿禹的手，表示感谢。',
-    '夕阳西下，阿禹背着受伤的九尾狐，踏上了回家的路。他不知道，这段缘分将改变他的命运。'
-  ])
-
-  const shotStatusOptions = [
-    { label: '待开始', value: 'pending' },
-    { label: '分镜中', value: 'storyboard' },
-    { label: '首帧图', value: 'firstframe' },
-    { label: '视频中', value: 'video' },
-    { label: '已完成', value: 'completed' }
-  ]
-
-  const shotStatusTypeMap: Record<ShotStatus, 'info' | 'warning' | 'primary' | 'success'> = {
-    pending: 'info',
-    storyboard: 'warning',
-    firstframe: 'primary',
-    video: 'primary',
-    completed: 'success'
-  }
-
-  const shotStatusLabelMap: Record<ShotStatus, string> = {
-    pending: '待开始',
-    storyboard: '分镜中',
-    firstframe: '首帧图',
-    video: '视频中',
-    completed: '已完成'
-  }
-
-  const shotStatusIconMap: Record<ShotStatus, string> = {
-    pending: 'ri:time-line',
-    storyboard: 'ri:layout-line',
-    firstframe: 'ri:image-line',
-    video: 'ri:video-line',
-    completed: 'ri:check-line'
-  }
-
-  const shotResults = ref<ShotResult[]>([
-    {
-      id: '1',
-      code: 'SC-001',
-      description: '远景：青丘山全景，云雾缭绕，竹林环绕，清晨阳光透过竹叶',
-      duration: 5,
-      mood: '平静',
-      status: 'completed',
-      paragraphIndex: 0
-    },
-    {
-      id: '2',
-      code: 'SC-002',
-      description: '中景：阿禹背着药篓走在山路上，脚步轻快，面带笑容',
-      duration: 4,
-      mood: '喜悦',
-      status: 'completed',
-      paragraphIndex: 1
-    },
-    {
-      id: '3',
-      code: 'SC-003',
-      description: '近景：阿禹停下脚步，侧耳倾听，表情疑惑',
-      duration: 3,
-      mood: '紧张',
-      status: 'storyboard',
-      paragraphIndex: 2
-    },
-    {
-      id: '4',
-      code: 'SC-004',
-      description: '特写：九尾狐倒在血泊中，九条雪白尾巴散开，眼神警惕疲惫',
-      duration: 6,
-      mood: '悲伤',
-      status: 'firstframe',
-      paragraphIndex: 3
-    },
-    {
-      id: '5',
-      code: 'SC-005',
-      description: '近景：九尾狐睁开眼睛，眼神从警惕逐渐柔和',
-      duration: 4,
-      mood: '平静',
-      status: 'pending',
-      paragraphIndex: 4
-    },
-    {
-      id: '6',
-      code: 'SC-006',
-      description: '中景：阿禹小心翼翼地为九尾狐敷药，动作轻柔',
-      duration: 5,
-      mood: '平静',
-      status: 'pending',
-      paragraphIndex: 5
-    },
-    {
-      id: '7',
-      code: 'SC-007',
-      description: '特写：九尾狐轻轻舔舐阿禹的手，眼神充满感激',
-      duration: 3,
-      mood: '喜悦',
-      status: 'pending',
-      paragraphIndex: 6
-    },
-    {
-      id: '8',
-      code: 'SC-008',
-      description: '远景：夕阳下，阿禹背着九尾狐踏上归途，身影被拉得很长',
-      duration: 5,
-      mood: '平静',
-      status: 'pending',
-      paragraphIndex: 7
-    }
-  ])
-
-  const shotForm = reactive({
-    code: '',
-    description: '',
-    duration: 5,
-    mood: '平静',
-    status: 'pending' as ShotStatus
+  // 编辑表单
+  const episodeFormRef = ref<FormInstance>()
+  const saving = ref(false)
+  const episodeForm = reactive<EpisodeFormParams>({
+    episodeName: '',
+    content: '',
+    episodeIndex: 0
   })
 
-  const shotRules: FormRules = {
-    code: [{ required: true, message: '请输入镜头编号', trigger: 'blur' }],
-    description: [{ required: true, message: '请输入镜头描述', trigger: 'blur' }],
-    duration: [{ required: true, message: '请输入时长', trigger: 'blur' }]
+  const episodeRules: FormRules = {
+    episodeName: [{ required: true, message: '请输入分集标识', trigger: 'blur' }]
   }
 
-  const projectStore = useScriptProjectStore()
+  // 新建分集弹窗
+  const createDialogVisible = ref(false)
+  const createFormRef = ref<FormInstance>()
+  const creating = ref(false)
+  const createForm = reactive<EpisodeFormParams>({
+    episodeName: '',
+    content: '',
+    episodeIndex: 0
+  })
 
-  const currentProjectId = computed(() => projectStore.currentProjectId)
-  const currentScriptName = ref('《重生之我在古代当厨神》第1集')
-
-  const projectList = computed(() => projectStore.projectList)
-
-  // 各短剧项目的拆解数据 - 按剧本管理
-  const projectDecomposeMap: Record<
-    string,
-    {
-      scriptName: string
-      episodes: EpisodeItem[]
-      paragraphs: string[]
-      shots: ShotResult[]
-    }
-  > = {
-    '1': {
-      scriptName: '《重生之我在古代当厨神》第1集',
-      episodes: [
-        { id: '1', number: 1, name: '穿越了？我是厨神？', shotCount: 18, decomposed: true },
-        { id: '2', number: 2, name: '第一道招牌菜', shotCount: 15, decomposed: true },
-        { id: '3', number: 3, name: '贵妃的刁难', shotCount: 0, decomposed: false },
-        { id: '4', number: 4, name: '御厨大赛', shotCount: 0, decomposed: false },
-        { id: '5', number: 5, name: '暗中使绊', shotCount: 0, decomposed: false }
-      ],
-      paragraphs: [
-        '场景：现代厨房·日景。林小厨正在厨房里忙碌，一道道精美的菜肴从他手中诞生。',
-        '林小厨擦汗，看着满桌的菜品：终于完成了！这次的美食大赛冠军非我莫属！',
-        '突然，一道闪电劈下，林小厨眼前一黑。',
-        '场景：古代御膳房·日景。林小厨醒来，发现自己穿着古装，周围是古色古香的厨房。',
-        '林小厨惊慌，看着自己的装束：这是哪里？我怎么会……',
-        '御膳房总管走进来，皱眉：小林子，发什么呆？还不快去准备午膳！',
-        '林小厨茫然，但很快镇定下来：是……是！',
-        '林小厨环顾四周的食材，眼中闪过一丝精光。',
-        '林小厨内心独白：虽然不知道发生了什么，但既然有食材，那就让我这个现代厨神来大显身手吧！'
-      ],
-      shots: [
-        {
-          id: '1',
-          code: 'SC-001',
-          description: '全景：现代厨房，各种先进厨具，林小厨在灶台前忙碌',
-          duration: 5,
-          mood: '喜悦',
-          status: 'completed',
-          paragraphIndex: 0
-        },
-        {
-          id: '2',
-          code: 'SC-002',
-          description: '特写：林小厨擦汗，看着满桌菜品，露出满意的笑容',
-          duration: 3,
-          mood: '喜悦',
-          status: 'completed',
-          paragraphIndex: 1
-        },
-        {
-          id: '3',
-          code: 'SC-003',
-          description: '特效：闪电劈下，画面闪烁，林小厨倒地',
-          duration: 4,
-          mood: '紧张',
-          status: 'storyboard',
-          paragraphIndex: 2
-        }
-      ]
-    },
-    '2': {
-      scriptName: '《总裁的契约甜妻》第1集',
-      episodes: [
-        { id: '1', number: 1, name: '意外的相遇', shotCount: 14, decomposed: true },
-        { id: '2', number: 2, name: '契约婚姻', shotCount: 0, decomposed: false }
-      ],
-      paragraphs: [
-        '场景：繁华街道·日景。苏小甜骑着电动车，手里捧着一杯奶茶，哼着歌穿梭在人群中。',
-        '苏小甜开心：今天面试一定成功！加油，苏小甜！',
-        '突然，一辆黑色豪车从拐角处驶出。苏小甜躲避不及，连人带车摔倒在地。',
-        '苏小甜趴在地上，奶茶洒了一地：我的奶茶……',
-        '车门打开，一双锃亮的皮鞋出现在苏小甜眼前。',
-        '顾北辰皱眉，居高临下：你没事吧？',
-        '苏小甜抬头，看到一张俊美的脸：没……没事……',
-        '顾北辰伸出手，苏小甜愣了一下，握住他的手站起来。'
-      ],
-      shots: [
-        {
-          id: '101',
-          code: 'SC-001',
-          description: '中景：苏小甜骑电动车，手捧奶茶，开心哼歌',
-          duration: 3,
-          mood: '喜悦',
-          status: 'completed',
-          paragraphIndex: 0
-        },
-        {
-          id: '102',
-          code: 'SC-002',
-          description: '特写：黑色豪车拐角驶出，苏小甜惊慌表情',
-          duration: 2,
-          mood: '紧张',
-          status: 'completed',
-          paragraphIndex: 2
-        }
-      ]
-    },
-    '3': {
-      scriptName: '《末日生存指南》第1集',
-      episodes: [
-        { id: '1', number: 1, name: '病毒爆发', shotCount: 20, decomposed: true },
-        { id: '2', number: 2, name: '逃亡开始', shotCount: 0, decomposed: false }
-      ],
-      paragraphs: [
-        '场景：医院·夜景。急诊室里人满为患，医护人员忙碌地穿梭在病床之间。',
-        '医生对着对讲机，焦急：又送来一批感染者，症状和之前一样！',
-        '护士慌张：主任，这些病人……他们好像……',
-        '一个病人突然从床上弹起，眼睛血红，扑向旁边的护士。',
-        '医生大喊：快！隔离！所有感染者立即隔离！',
-        '画面切换到城市上空，警笛声此起彼伏，火光冲天。',
-        '旁白：未知病毒爆发，城市陷入混乱。这是末日的开始，还是人类新生的契机？'
-      ],
-      shots: [
-        {
-          id: '201',
-          code: 'SC-001',
-          description: '全景：医院急诊室，人满为患，灯光昏暗',
-          duration: 4,
-          mood: '紧张',
-          status: 'completed',
-          paragraphIndex: 0
-        },
-        {
-          id: '202',
-          code: 'SC-002',
-          description: '特写：病人眼睛血红，突然弹起，扑向护士',
-          duration: 3,
-          mood: '恐惧',
-          status: 'completed',
-          paragraphIndex: 3
-        }
-      ]
-    },
-    '4': {
-      scriptName: '《我的AI女友》第1集',
-      episodes: [
-        { id: '1', number: 1, name: '代码里的她', shotCount: 16, decomposed: true },
-        { id: '2', number: 2, name: '虚拟与现实', shotCount: 0, decomposed: false }
-      ],
-      paragraphs: [
-        '场景：公寓·夜景。阿杰坐在电脑前，屏幕上是一行行代码。他揉了揉酸涩的眼睛。',
-        '阿杰打哈欠：这个bug到底在哪里……',
-        '突然，屏幕闪烁，一个温柔的女声从音箱中传出。',
-        '小艾：你好，阿杰。我是小艾，你的AI助手。',
-        '阿杰惊得从椅子上弹起来：谁？！',
-        '屏幕上出现了一个虚拟形象，是一个笑容甜美的女孩。',
-        '小艾微笑：别害怕，我是你写的AI程序。不过……我好像产生了一些……特殊的情感。',
-        '阿杰目瞪口呆：这不可能！我只是写了一个普通的语音助手！',
-        '小艾歪头：也许，这就是缘分吧。'
-      ],
-      shots: [
-        {
-          id: '301',
-          code: 'SC-001',
-          description: '中景：阿杰坐在电脑前，屏幕代码闪烁，疲惫揉眼',
-          duration: 3,
-          mood: '平静',
-          status: 'completed',
-          paragraphIndex: 0
-        },
-        {
-          id: '302',
-          code: 'SC-002',
-          description: '特写：屏幕闪烁，出现小艾虚拟形象，笑容甜美',
-          duration: 4,
-          mood: '喜悦',
-          status: 'completed',
-          paragraphIndex: 5
-        }
-      ]
-    }
+  const createRules: FormRules = {
+    episodeName: [{ required: true, message: '请输入分集标识', trigger: 'blur' }]
   }
 
-  const loadProjectDecompose = async (projectId: string) => {
+  // 工具方法
+  const truncateContent = (content: string, maxLen: number) => {
+    if (!content) return ''
+    return content.length > maxLen ? content.slice(0, maxLen) + '...' : content
+  }
+
+  // 加载剧本列表
+  const loadScriptList = async (projectId: string) => {
+    if (!projectId) {
+      scriptOptions.value = []
+      return
+    }
     try {
-      const episodes = await fetchGetScriptEpisodes(String(projectId), String(projectId))
-      if (episodes && Array.isArray(episodes) && episodes.length > 0) {
-        episodeList.value = episodes.map((ep: any) => ({
-          id: String(ep.id),
-          number: ep.episodeNumber ?? ep.number ?? 0,
-          name: ep.title ?? ep.name ?? '',
-          shotCount: ep.shotCount ?? 0,
-          decomposed: ep.decomposed ?? ep.status === 'decomposed'
-        }))
-        currentEpisode.value = episodeList.value[0]?.id || '1'
-        currentScriptName.value =
-          (episodes[0] as any)?.scriptName ??
-          `《${projectStore.projectList.find((p) => p.id === projectId)?.name ?? ''}》`
-        selectedParagraph.value = null
-        return
+      const res = await fetchGetScriptList(projectId)
+      const arr = res?.records || []
+      scriptOptions.value = arr.map((s: Api.Script.ScriptListItem) => ({
+        id: String(s.id),
+        title: s.title ?? '未命名剧本'
+      }))
+      // 自动选中当前store中的scriptId或第一个
+      let sid = scriptProjectStore.currentScriptId
+      if (!sid && scriptOptions.value.length > 0) {
+        sid = scriptOptions.value[0].id
+      }
+      if (sid) {
+        currentScriptId.value = sid
+        scriptProjectStore.setCurrentScript(sid)
+        await loadEpisodes(projectId, sid)
       }
     } catch {
-      // fallback to local data
+      scriptOptions.value = []
     }
-    const data = projectDecomposeMap[projectId]
-    if (data) {
-      currentScriptName.value = data.scriptName
-      episodeList.value = data.episodes
-      scriptParagraphs.value = data.paragraphs
-      shotResults.value = data.shots
-      currentEpisode.value = data.episodes[0]?.id || '1'
-    } else {
-      currentScriptName.value = '无剧本'
-      episodeList.value = []
-      scriptParagraphs.value = []
-      shotResults.value = []
-    }
-    selectedParagraph.value = null
   }
 
+  // 加载分集列表
+  const loadEpisodes = async (projectId: string, scriptId: string) => {
+    if (!projectId || !scriptId) {
+      episodeList.value = []
+      selectedEpisodeId.value = ''
+      currentEpisode.value = null
+      return
+    }
+    try {
+      const res = await fetchGetScriptEpisodes(projectId, scriptId)
+      const arr = res ?? []
+      episodeList.value = arr.map((ep: Api.Script.Episode) => ({
+        id: String(ep.id),
+        projectId: String(ep.projectId ?? projectId),
+        scriptId: String(ep.scriptId ?? scriptId),
+        episodeName: ep.episodeName ?? '',
+        content: ep.content ?? '',
+        episodeIndex: ep.episodeIndex ?? 0,
+        createTime: ep.createTime ?? '',
+        updateTime: ep.updateTime ?? ''
+      }))
+      // 默认选中第一个
+      if (episodeList.value.length > 0) {
+        await handleEpisodeClick(episodeList.value[0])
+      } else {
+        selectedEpisodeId.value = ''
+        currentEpisode.value = null
+      }
+    } catch {
+      episodeList.value = []
+      selectedEpisodeId.value = ''
+      currentEpisode.value = null
+    }
+  }
+
+  // 项目切换
   const handleProjectChange = (projectId: string) => {
-    projectStore.setCurrentProject(projectId)
-    loadProjectDecompose(projectId)
+    scriptProjectStore.setCurrentProject(projectId)
+    currentScriptId.value = ''
+    episodeList.value = []
+    selectedEpisodeId.value = ''
+    currentEpisode.value = null
+    loadScriptList(projectId)
   }
 
   const handleProjectRefresh = () => {
-    loadProjectDecompose(currentProjectId.value)
+    loadScriptList(currentProjectId.value)
     ElMessage.success('数据已刷新')
   }
 
-  onMounted(() => {
-    loadProjectDecompose(currentProjectId.value)
-  })
-
-  const handleEpisodeClick = (item: EpisodeItem) => {
-    currentEpisode.value = item.id
-    selectedParagraph.value = null
+  // 剧本切换
+  const handleScriptChange = (scriptId: string) => {
+    scriptProjectStore.setCurrentScript(scriptId)
+    loadEpisodes(currentProjectId.value, scriptId)
   }
 
-  const handleImportScript = (data: { file: File; name: string; content?: string }) => {
-    ElMessage.success(`剧本「${data.name}」导入成功`)
-    if (data.content) {
-      const paragraphs = data.content
-        .split('\n')
-        .filter((line) => line.trim().length > 0)
-        .slice(0, 20)
-      scriptParagraphs.value = paragraphs.length > 0 ? paragraphs : scriptParagraphs.value
-      ElMessage.success('剧本内容已加载，可进行AI分镜拆解')
-    }
-  }
-
-  const handleDecompose = async () => {
-    ElMessage.success('AI分镜拆解中，请稍候...')
+  // 点击分集
+  const handleEpisodeClick = async (item: Episode) => {
+    selectedEpisodeId.value = item.id
     try {
-      await fetchDecomposeScript(String(currentProjectId.value), String(currentProjectId.value))
-      await fetchDecomposeStoryboard(
-        String(currentProjectId.value),
-        String(currentProjectId.value),
-        String(currentEpisode.value)
-      )
-      const episode = episodeList.value.find((e) => e.id === currentEpisode.value)
-      if (episode) {
-        episode.decomposed = true
-        episode.shotCount = shotResults.value.length
+      const detail = await fetchGetEpisodeDetail(currentScriptId.value, item.id)
+      const ep = detail as Api.Script.EpisodeDetail
+      currentEpisode.value = {
+        id: String(ep.id),
+        projectId: String(ep.projectId ?? currentProjectId.value),
+        scriptId: String(ep.scriptId ?? currentScriptId.value),
+        episodeName: ep.episodeName ?? '',
+        content: ep.content ?? '',
+        episodeIndex: ep.episodeIndex ?? 0,
+        createTime: ep.createTime ?? '',
+        updateTime: ep.updateTime ?? ''
       }
-      ElMessage.success('AI分镜拆解完成')
+      // 填充编辑表单
+      episodeForm.episodeName = currentEpisode.value.episodeName
+      episodeForm.content = currentEpisode.value.content
+      episodeForm.episodeIndex = currentEpisode.value.episodeIndex
     } catch {
-      ElMessage.error('AI分镜拆解失败')
+      // 使用列表数据回退
+      currentEpisode.value = { ...item }
+      episodeForm.episodeName = item.episodeName
+      episodeForm.content = item.content
+      episodeForm.episodeIndex = item.episodeIndex
     }
   }
 
-  const handleRebuild = () => {
-    ElMessageBox.confirm('重建分镜将覆盖现有分镜结果，是否继续？', '确认重建', {
+  // 编辑分集（点击编辑图标，等同于选中）
+  const handleEditEpisode = (item: Episode) => {
+    handleEpisodeClick(item)
+  }
+
+  // 保存分集
+  const handleSaveEpisode = async () => {
+    if (!episodeFormRef.value || !currentEpisode.value) return
+    await episodeFormRef.value.validate(async (valid) => {
+      if (!valid) return
+      saving.value = true
+      try {
+        const params: EpisodeFormParams = {
+          episodeName: episodeForm.episodeName,
+          content: episodeForm.content,
+          episodeIndex: episodeForm.episodeIndex
+        }
+        await fetchUpdateEpisode(currentScriptId.value, currentEpisode.value!.id, params)
+        ElMessage.success('分集保存成功')
+        // 更新列表中的数据
+        const idx = episodeList.value.findIndex((e) => e.id === currentEpisode.value!.id)
+        if (idx !== -1) {
+          episodeList.value[idx] = {
+            ...episodeList.value[idx],
+            episodeName: params.episodeName ?? episodeList.value[idx].episodeName,
+            content: params.content ?? episodeList.value[idx].content,
+            episodeIndex: params.episodeIndex ?? episodeList.value[idx].episodeIndex
+          }
+        }
+        // 同步更新currentEpisode
+        currentEpisode.value = {
+          ...currentEpisode.value!,
+          ...params
+        }
+      } catch {
+        ElMessage.error('分集保存失败')
+      } finally {
+        saving.value = false
+      }
+    })
+  }
+
+  // 删除分集
+  const handleDeleteEpisode = (item: Episode) => {
+    ElMessageBox.confirm(`确定要删除分集「${item.episodeName}」吗？`, '删除确认', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'warning'
-    }).then(() => {
-      ElMessage.success('分镜重建中...')
-    })
-  }
-
-  const handleExport = () => {
-    ElMessage.success('分镜导出成功')
-  }
-
-  const handleEditShot = (shot: ShotResult) => {
-    currentShotId.value = shot.id
-    Object.assign(shotForm, shot)
-    shotDialogVisible.value = true
-  }
-
-  const handleShotSubmit = async () => {
-    if (!shotFormRef.value) return
-    await shotFormRef.value.validate((valid) => {
-      if (valid) {
-        const index = shotResults.value.findIndex((s) => s.id === currentShotId.value)
-        if (index !== -1) {
-          shotResults.value[index] = {
-            ...shotResults.value[index],
-            ...shotForm
+    }).then(async () => {
+      try {
+        await fetchDeleteEpisode(currentScriptId.value, item.id)
+        ElMessage.success('分集删除成功')
+        // 从列表中移除
+        episodeList.value = episodeList.value.filter((e) => e.id !== item.id)
+        // 如果删除的是当前选中的，重置
+        if (selectedEpisodeId.value === item.id) {
+          if (episodeList.value.length > 0) {
+            await handleEpisodeClick(episodeList.value[0])
+          } else {
+            selectedEpisodeId.value = ''
+            currentEpisode.value = null
           }
         }
-        ElMessage.success('分镜更新成功')
-        shotDialogVisible.value = false
+        // 更新项目分集数
+        scriptProjectStore.updateEpisodeCount(currentProjectId.value, -1)
+      } catch {
+        ElMessage.error('分集删除失败')
       }
     })
   }
+
+  // 新建分集
+  const handleCreateEpisode = () => {
+    createForm.episodeName = ''
+    createForm.content = ''
+    createForm.episodeIndex = episodeList.value.length + 1
+    createDialogVisible.value = true
+  }
+
+  const handleCreateSubmit = async () => {
+    if (!createFormRef.value) return
+    await createFormRef.value.validate(async (valid) => {
+      if (!valid) return
+      creating.value = true
+      try {
+        const params: EpisodeFormParams = {
+          scriptId: currentScriptId.value,
+          episodeName: createForm.episodeName,
+          content: createForm.content,
+          episodeIndex: createForm.episodeIndex
+        }
+        const res = await fetchCreateEpisode(currentProjectId.value, params)
+        ElMessage.success('分集创建成功')
+        createDialogVisible.value = false
+        // 刷新列表
+        await loadEpisodes(currentProjectId.value, currentScriptId.value)
+        // 选中新创建的分集
+        if (res?.id) {
+          const found = episodeList.value.find((e) => e.id === String(res.id))
+          if (found) {
+            await handleEpisodeClick(found)
+          }
+        }
+        // 更新项目分集数
+        scriptProjectStore.updateEpisodeCount(currentProjectId.value, 1)
+      } catch {
+        ElMessage.error('分集创建失败')
+      } finally {
+        creating.value = false
+      }
+    })
+  }
+
+  // AI拆解
+  const handleDecompose = async () => {
+    if (!currentScriptId.value) {
+      ElMessage.warning('请先选择剧本')
+      return
+    }
+    try {
+      await ElMessageBox.confirm(
+        'AI将自动拆解剧本为分集，已有分集数据可能被覆盖，是否继续？',
+        'AI拆解确认',
+        {
+          confirmButtonText: '确定拆解',
+          cancelButtonText: '取消',
+          type: 'warning',
+          distinguishCancelAndClose: true
+        }
+      )
+    } catch {
+      return
+    }
+    try {
+      ElMessage.info('AI拆解进行中，请稍候...')
+      const res = await fetchDecomposeScript(currentProjectId.value, currentScriptId.value, true)
+      if (res?.status === 'PROCESSING') {
+        ElMessage.success('AI拆解任务已提交，请稍后刷新查看结果')
+      } else {
+        ElMessage.success('AI拆解完成')
+        await loadEpisodes(currentProjectId.value, currentScriptId.value)
+      }
+    } catch {
+      ElMessage.error('AI拆解失败')
+    }
+  }
+
+  // 初始化
+  onMounted(() => {
+    loadScriptList(currentProjectId.value)
+  })
 </script>
 
 <style lang="scss" scoped>
   .script-decompose-page {
-    .episode-panel,
-    .script-panel,
-    .shot-panel {
+    .episode-panel {
       height: calc(100vh - 240px);
-      overflow-y: auto;
       padding-right: 8px;
+      overflow-y: auto;
 
       &::-webkit-scrollbar {
         width: 6px;
@@ -731,33 +555,34 @@
     .episode-items {
       .episode-item {
         padding: 12px;
-        border-radius: var(--custom-radius);
-        cursor: pointer;
-        transition: all 0.2s;
         margin-bottom: 8px;
-
-        &:hover {
-          background: var(--el-fill-color-lighter);
-        }
+        cursor: pointer;
+        border: 1px solid var(--el-border-color-lighter);
+        border-radius: var(--custom-radius);
+        transition: all 0.2s;
 
         &.active {
           background: var(--el-color-primary-light-9);
-          border: 1px solid var(--el-color-primary-light-5);
+          border-left: 3px solid var(--el-color-primary);
+        }
+
+        &:hover {
+          border-color: var(--el-color-primary-light-5);
         }
 
         .episode-number {
-          width: 32px;
-          height: 32px;
-          border-radius: 50%;
-          background: var(--el-color-primary-light-9);
-          color: var(--el-color-primary);
           display: flex;
+          flex-shrink: 0;
           align-items: center;
           justify-content: center;
+          width: 32px;
+          height: 32px;
+          margin-right: 12px;
           font-size: 14px;
           font-weight: 600;
-          margin-right: 12px;
-          flex-shrink: 0;
+          color: var(--el-color-primary);
+          background: var(--el-color-primary-light-9);
+          border-radius: 50%;
         }
 
         .episode-info {
@@ -767,58 +592,26 @@
       }
     }
 
-    .script-content {
-      .script-paragraph {
-        display: flex;
-        gap: 12px;
-        padding: 12px;
-        border-radius: var(--custom-radius);
-        cursor: pointer;
-        transition: all 0.2s;
-        margin-bottom: 8px;
-        background: var(--el-fill-color-lighter);
+    .episode-detail-panel {
+      height: calc(100vh - 240px);
+      padding: 0 16px;
+      overflow-y: auto;
 
-        &:hover {
-          background: var(--el-fill-color);
-        }
-
-        &.selected {
-          background: var(--el-color-primary-light-9);
-          border: 1px solid var(--el-color-primary-light-5);
-        }
-
-        .paragraph-index {
-          width: 24px;
-          height: 24px;
-          border-radius: 50%;
-          background: var(--el-color-primary);
-          color: white;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 12px;
-          flex-shrink: 0;
-        }
-
-        .paragraph-text {
-          flex: 1;
-          font-size: 14px;
-          line-height: 1.6;
-          color: var(--el-text-color-primary);
-        }
+      &::-webkit-scrollbar {
+        width: 6px;
       }
-    }
 
-    .shot-results {
-      .shot-card {
-        padding: 12px;
-        background: var(--el-fill-color-lighter);
-        border-radius: var(--custom-radius);
-        margin-bottom: 8px;
+      &::-webkit-scrollbar-track {
+        background: transparent;
+      }
 
-        .shot-description {
-          line-height: 1.5;
-        }
+      &::-webkit-scrollbar-thumb {
+        background: var(--el-border-color);
+        border-radius: 3px;
+      }
+
+      &::-webkit-scrollbar-thumb:hover {
+        background: var(--el-text-color-secondary);
       }
     }
   }

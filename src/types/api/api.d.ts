@@ -224,7 +224,8 @@ declare namespace Api {
       creatorName: string
       coverImage: string
       memberCount: number
-      userRole: string
+      /** 当前用户在该项目中的角色，后端可能不返回 */
+      userRole?: string
       createTime: string
     }
 
@@ -239,12 +240,10 @@ declare namespace Api {
     interface ProjectDetail extends ProjectListItem {
       adminCount: number
       storyboardCount: number
-      completedStoryboardCount: number
+      completedStoryboardCount?: number
       videoCount: number
       assetCount: number
       updateTime: string
-      ownerName?: string
-      name?: string
     }
 
     /** 创建项目参数 (ProjectCreateRequest) */
@@ -252,27 +251,33 @@ declare namespace Api {
       projectName: string
       description?: string
       coverImage?: string
-      type?: string
-      manager?: string
     }
 
     /** 更新项目参数 (ProjectUpdateRequest) */
     interface UpdateProjectParams {
       projectName?: string
       description?: string
-      name?: string
     }
 
-    /** 封面上传响应 */
+    /** 封面上传响应 (CoverUploadResponse) */
     interface CoverUploadResponse {
-      url: string
+      coverUrl: string
     }
 
     /** 成员搜索参数 */
     interface MemberSearchParams extends Api.Common.CommonSearchParams {
       keyword?: string
-      role?: string
     }
+
+    /** 项目成员角色枚举 (与 OpenAPI ProjectMemberAddRequest.role.pattern 对齐) */
+    type ProjectMemberRole =
+      | 'admin'
+      | 'director'
+      | 'storyboard'
+      | 'art'
+      | 'video'
+      | 'audio'
+      | 'edit'
 
     /** 项目成员VO */
     interface ProjectMemberVO {
@@ -280,23 +285,24 @@ declare namespace Api {
       userId: string
       userName: string
       avatar: string
-      role: string
+      role: ProjectMemberRole
       joinTime: string
+      /** 仅前端使用，后端未返回 */
+      email?: string
+      /** 仅前端使用，后端未返回 */
+      status?: 'active' | 'disabled'
     }
 
     /** 添加成员参数 */
     interface AddMemberParams {
-      userId?: string
-      role?: string
-      name?: string
-      email?: string
-      department?: string
+      userId: string
+      role: ProjectMemberRole
     }
 
     /** 更新成员角色参数 */
     interface UpdateMemberRoleParams {
-      userId: string
-      role: string
+      memberId: string
+      role: ProjectMemberRole
     }
 
     /** 项目配置VO */
@@ -305,21 +311,22 @@ declare namespace Api {
       configs: Record<string, string>
     }
 
-    /** 审核门禁配置VO */
+    /** 审核门禁配置VO (ProjectReviewConfigVO) */
     interface ReviewConfigVO {
       projectId: string
-      enabled: boolean
-      reviewType: string
-      autoApprove: boolean
-      steps: string[]
+      /** 分镜审核开关 */
+      storyboard: boolean
+      /** 首帧图审核开关 */
+      firstFrame: boolean
+      /** 视频审核开关 */
+      video: boolean
     }
 
-    /** 审核门禁配置参数 */
+    /** 审核门禁配置参数 (ProjectReviewConfigUpdateRequest) */
     interface ReviewConfigParams {
-      enabled?: boolean
-      reviewType?: string
-      autoApprove?: boolean
-      steps?: string[]
+      storyboard?: boolean
+      firstFrame?: boolean
+      video?: boolean
     }
   }
 
@@ -339,7 +346,7 @@ declare namespace Api {
       updateTime: string
     }
 
-    /** 剧本搜索参数 */
+    /** 剧本搜索参数 (ScriptQueryRequest) */
     interface ScriptSearchParams extends Api.Common.CommonSearchParams {
       keyword?: string
       status?: number
@@ -350,7 +357,7 @@ declare namespace Api {
       statusText: string
       episodeCount: number
       storyboardCount: number
-      reviewStatus: number
+      reviewStatus: number | null
       reviewStatusText: string
       reviewTaskId: string
       reviewerName: string
@@ -361,16 +368,13 @@ declare namespace Api {
 
     /** 创建剧本参数 (ScriptCreateRequest) */
     interface CreateScriptParams {
-      title?: string
+      title: string
       description?: string
       content?: string
       status?: number
-      name?: string
-      code?: string
-      author?: string
     }
 
-    /** 更新剧本参数 */
+    /** 更新剧本参数 (ScriptUpdateRequest) */
     interface UpdateScriptParams {
       title?: string
       description?: string
@@ -378,162 +382,368 @@ declare namespace Api {
       status?: number
     }
 
-    /** 审核状态VO */
-    type ReviewStatusVO = Api.Common.ReviewStatusVO
-
-    /** 分集 */
-    interface Episode {
-      id: string
+    /** 剧本审核状态 (ScriptReviewStatusVO) */
+    interface ScriptReviewStatusVO {
       scriptId: string
-      episodeNumber: number
-      title: string
-      synopsis: string
-      duration: number
-      status: string
+      scriptStatus: number
+      scriptStatusText: string
+      reviewStatus: number | null
+      reviewStatusText: string
+      reviewTaskId: string
+      reviewType: string
+      reviewerId: string
+      reviewerName: string
+      comment: string
+      submittedAt: string
+      reviewedAt: string
     }
 
-    /** 分集详情 */
-    interface EpisodeDetail extends Episode {
+    /** 审核状态VO (通用) */
+    type ReviewStatusVO = Api.Common.ReviewStatusVO
+
+    /** 分集 (EpisodeVO / ScriptEpisodeVO) */
+    interface Episode {
+      id: string
+      projectId: string
+      scriptId: string
+      episodeName: string
       content: string
-      scenes: string[]
-      characters: string[]
+      episodeIndex: number
       createTime: string
       updateTime: string
     }
 
-    /** 创建分集参数 */
-    interface CreateEpisodeParams {
-      title: string
-      synopsis?: string
+    /** 分集详情 (同 EpisodeVO) */
+    type EpisodeDetail = Episode
+
+    /** 创建/更新分集参数 (ScriptEpisodeUpdateRequest) */
+    interface EpisodeParams {
+      scriptId?: string
+      episodeName?: string
+      episodeIndex?: number
       content?: string
-      episodeNumber?: number
     }
 
-    /** 更新分集参数 */
-    interface UpdateEpisodeParams {
-      title?: string
-      synopsis?: string
-      content?: string
-      episodeNumber?: number
-    }
-
-    /** 拆解结果 */
+    /** 拆解结果 (ScriptDecomposeResultVO) */
     interface DecomposeResult {
       scriptId: string
       episodeCount: number
       episodes: Episode[]
+      workflowRunId: string
+      duration: number
     }
 
-    /** 人物小传 */
-    interface CharacterProfile {
-      id: string
-      name: string
-      role: string
-      description: string
-      appearance: string
-      personality: string
-      relationships: string
+    /** AI处理结果包装 */
+    interface AiProcessResult<T> {
+      status: 'PROCESSING' | 'COMPLETED' | 'FAILED'
+      message: string
+      recordId: string
+      version: number
+      result: T
     }
 
-    /** 提取资产结果 */
-    interface ExtractedAssets {
-      scriptId: string
-      assets: {
-        category: string
-        items: string[]
-      }[]
+    /** 违规条目 (ViolationItemVO) */
+    interface ViolationItem {
+      location: string
+      type: string
+      level: string
+      snippet: string
+      hitWord: string
+      status: string
     }
 
-    /** 风格配置参数 */
-    interface StyleConfigParams {
-      style?: string
-      colorPalette?: string[]
-      composition?: string
-      lighting?: string
-      referenceImages?: string[]
-    }
-
-    /** 风格配置 */
-    interface StyleConfig {
-      scriptId: string
-      style: string
-      colorPalette: string[]
-      composition: string
-      lighting: string
-      referenceImages: string[]
-    }
-
-    /** 参考图分析参数 */
-    interface RefAnalysisParams {
-      imageUrls: string[]
-    }
-
-    /** 参考图分析结果 */
-    interface RefAnalysisResult {
-      scriptId: string
-      style: string
-      prompt: string
-      colors: string[]
-      composition: string
-      lighting: string
-    }
-
-    /** 违规审核结果 */
+    /** 违规审核结果 (ScriptReviewResultVO) */
     interface ReviewResult {
       scriptId: string
-      violated: boolean
-      reasons: string[]
-      details: {
-        episodeId: string
-        violated: boolean
-        reasons: string[]
+      violations: ViolationItem[]
+      violationCount: number
+      workflowRunId: string
+      duration: number
+      tokenUsage: number
+      creditsDeducted: number
+      markedVersion: string
+      cleanVersion: string
+      globalWarning: string
+    }
+
+    /** 人物小传条目 (CharacterProfileItemVO) */
+    interface CharacterProfileItem {
+      name: string
+      identity: string
+      appearance: string
+      personality: string
+      background: string
+      voiceRef: string
+      appearanceSpan: string
+      verificationStatus: string
+      relations: {
+        target: string
+        relation: string
       }[]
     }
 
-    /** 音色提示词结果 */
+    /** 人物小传结果 (CharacterProfileResultVO) */
+    interface CharacterProfileResult {
+      scriptId: string
+      profiles: CharacterProfileItem[]
+      workflowRunId: string
+      duration: number
+      tokenUsage: number
+      creditsDeducted: number
+    }
+
+    /** 人物小传 (兼容旧类型) */
+    type CharacterProfile = CharacterProfileItem
+
+    /** 提取资产 - 人物 (AssetCharacterVO) */
+    interface AssetCharacter {
+      assetId: string
+      name: string
+      level: string
+      aliases: string[]
+      sourceEpisode: string
+    }
+
+    /** 提取资产 - 场景 (AssetSceneVO) */
+    interface AssetScene {
+      assetId: string
+      name: string
+      sceneType: string
+      sourceEpisode: string
+    }
+
+    /** 提取资产 - 道具 (AssetPropVO) */
+    interface AssetProp {
+      assetId: string
+      name: string
+      category: string
+      firstInteractedBy: string
+      interactions: number
+    }
+
+    /** 提取资产 - 服装 (AssetCostumeVO) */
+    interface AssetCostume {
+      assetId: string
+      name: string
+      character: string
+      scene: string
+      sourceEpisode: string
+    }
+
+    /** 提取资产结果 (AssetExtractResultVO) */
+    interface ExtractedAssets {
+      scriptId: string
+      characters: AssetCharacter[]
+      scenes: AssetScene[]
+      props: AssetProp[]
+      costumes: AssetCostume[]
+      workflowRunId: string
+      duration: number
+      tokenUsage: number
+      creditsDeducted: number
+    }
+
+    /** 风格配置参数 (StyleConfigRequest) */
+    interface StyleConfigParams {
+      keywords: string
+      refAnalysisId?: string
+      force?: boolean
+    }
+
+    /** 风格配置 (StyleConfigResultVO) */
+    interface StyleConfig {
+      id: string
+      projectId: string
+      artStyle: string
+      styleNarrative: string
+      materialPreference: string
+      colorScheme: string
+      lightingRecipe: string
+      avoidFeatures: string
+      status: string
+      workflowRunId: string
+      duration: number
+      tokenUsage: number
+      creditsDeducted: number
+    }
+
+    /** 参考图分析参数 (RefAnalysisRequest) */
+    interface RefAnalysisParams {
+      imageUrls: string[]
+      force?: boolean
+    }
+
+    /** 参考图分析结果 (RefAnalysisResultVO) */
+    interface RefAnalysisResult {
+      styleRef: string
+      styleRefAvoid: string
+      textureLighting: string
+      textureLightingAvoid: string
+      colorSystem: string
+      colorSystemAvoid: string
+      styleTagName: string
+      styleTagKeywords: string[]
+      imageCount: number
+      fusionMode: string
+      workflowRunId: string
+      duration: number
+      tokenUsage: number
+      creditsDeducted: number
+    }
+
+    /** 音色提示词条目 (VoicePromptItem) */
+    interface VoicePromptItem {
+      role: string
+      gender: string
+      age: string
+      tier: string
+      reviewStatus: string
+      finalPrompt: string
+    }
+
+    /** 音色提示词结果 (VoicePromptResultVO) */
     interface VoicePromptResult {
       scriptId: string
-      prompts: {
-        characterId: string
-        characterName: string
-        voicePrompt: string
-      }[]
+      voicePrompts: VoicePromptItem[]
+      distinctivenessCheck: Record<string, unknown>
+      workflowRunId: string
+      duration: number
+      tokenUsage: number
+      creditsDeducted: number
     }
 
-    /** 审核后状态 */
+    /** 审核后状态 (ScriptPostApprovalStatusVO) */
     interface PostApprovalStatus {
-      scriptId: string
-      assetGenerationStatus: string
-      assetGenerationProgress: number
+      status: number
+      statusText: string
+      styleConfigReady: boolean
+      assetsReady: boolean
+      assetCount: number
+      startedAt: string
+      estimatedSeconds: number
+      elapsedSeconds: number
     }
 
-    /** 资产提示词结果 */
+    /** 命名提示词 (NamedPrompt) */
+    interface NamedPrompt {
+      assetId: string
+      name: string
+      prompt: string
+    }
+
+    /** 资产提示词结果 (AssetPromptResultVO) */
     interface AssetPromptsResult {
       scriptId: string
-      prompts: {
-        assetId: string
-        assetName: string
-        assetType: string
-        prompt: string
-      }[]
+      characterPrompts: NamedPrompt[]
+      scenePrompts: NamedPrompt[]
+      propPrompts: NamedPrompt[]
+      workflowRunId: string
+      duration: number
+      tokenUsage: number
+      creditsDeducted: number
     }
 
-    /** 资产图片项 */
+    /** 生成图片 (GeneratedImage) */
+    interface GeneratedImage {
+      assetId: string
+      extractAssetId: string
+      assetName: string
+      imageUrl: string
+      status: string
+    }
+
+    /** 资产图片结果 (AssetImageResultVO) */
+    interface AssetImageResult {
+      scriptId: string
+      images: GeneratedImage[]
+      workflowRunId: string
+      duration: number
+      tokenUsage: number
+      creditsDeducted: number
+    }
+
+    /** 资产图片项 (AssetImageVO) */
     interface AssetImageItem {
       assetId: string
+      extractAssetId: string
       assetName: string
       assetType: string
+      promptText: string
       imageUrl: string
+      status: string
+      createTime: string
     }
 
-    /** 视频提示词结果 */
+    /** 视频提示词结果 (VideoPromptResultVO) */
     interface VideoPromptResult {
       episodeId: string
-      prompts: {
-        sceneId: string
-        sceneName: string
-        videoPrompt: string
-      }[]
+      episodeMeta: Record<string, unknown>
+      paragraphs: VideoPromptParagraph[]
+      workflowRunId: string
+      duration: number
+      tokenUsage: number
+      creditsDeducted: number
+    }
+
+    /** 视频提示词段落 (VideoPromptParagraphVO) */
+    interface VideoPromptParagraph {
+      index: number
+      duration: number
+      prompt: string
+      characterInfo: string
+      sceneElements: string
+      assetMap: Record<string, string>
+      shots: VideoPromptShot[]
+    }
+
+    /** 视频提示词镜头 */
+    interface VideoPromptShot {
+      shotIndex: number
+      prompt: string
+      duration: number
+      cameraMovement: string
+    }
+  }
+
+  /** AI处理记录 */
+  namespace AiProcess {
+    /** AI处理状态查询参数 */
+    interface StatusQueryParams {
+      type: string
+      businessId: string
+    }
+
+    /** AI处理记录 */
+    interface AiProcessRecord {
+      id: string
+      type: string
+      businessId: string
+      status: 'PROCESSING' | 'COMPLETED' | 'FAILED'
+      message: string
+      version: number
+      resultData: Record<string, unknown> | null
+      workflowRunId: string
+      duration: number
+      tokenUsage: number
+      creditsDeducted: number
+      createTime: string
+      updateTime: string
+    }
+
+    /** AI处理历史列表项(不含完整resultData) */
+    interface AiProcessHistoryItem {
+      id: string
+      type: string
+      businessId: string
+      status: 'PROCESSING' | 'COMPLETED' | 'FAILED'
+      message: string
+      version: number
+      workflowRunId: string
+      duration: number
+      tokenUsage: number
+      creditsDeducted: number
+      createTime: string
+      updateTime: string
     }
   }
 
@@ -670,12 +880,16 @@ declare namespace Api {
       name: string
       description: string
       sortOrder: number
+      episodeId?: string
+      angle?: string
     }
 
-    /** 创建镜头参数 */
+    /** 创建镜头参数 (SceneCreateRequest) */
     interface CreateSceneParams {
-      name: string
+      episodeId: string
+      name?: string
       description?: string
+      angle?: string
       sortOrder?: number
     }
 
@@ -896,7 +1110,7 @@ declare namespace Api {
       background?: string
     }
 
-    interface UpdateCharacterParams extends Partial<CreateCharacterParams> {}
+    type UpdateCharacterParams = Partial<CreateCharacterParams>
 
     type CharacterListResponse = Common.PaginatedResponse<CharacterListItem>
 
@@ -1306,61 +1520,131 @@ declare namespace Api {
 
   /** 视频生成类型 */
   namespace Video {
+    /** 视频任务状态 */
+    type VideoTaskStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'cancelled' | 'expired'
+
     /** 视频任务 */
     interface VideoTask {
       id: string
-      name: string
-      status: 'queued' | 'running' | 'completed' | 'failed'
+      projectId: string
+      scriptId?: string
+      storyboardId?: string
+      episodeId?: string
+      name?: string
+      status: VideoTaskStatus
       progress: number
-      style: string
+      model: string
+      prompt?: string
       resolution: string
-      shots: number
-      priority: 'high' | 'normal' | 'low'
+      ratio: string
+      duration: number
+      fps?: string
+      format?: string
+      style?: string
+      shots?: number
+      priority: number
       submitTime: string
-      estimatedTime: string
-      remark: string
+      estimatedTime?: string
+      completeTime?: string
+      videoUrl?: string
+      fileSize?: string
+      remark?: string
+      previewToken?: string
+      createdAt: string
+      updatedAt: string
     }
 
     /** 视频任务搜索参数 */
     interface VideoTaskSearchParams extends Api.Common.CommonSearchParams {
+      projectId?: string
       keyword?: string
       status?: string
     }
 
-    /** 视频生成参数 */
+    /** 视频生成参数 (SeedanceGenerateRequest) */
     interface VideoGenerateParams {
-      name: string
-      shots: number[]
-      style: string
-      resolution: string
-      fps: string
-      format: string
-      priority: 'high' | 'normal' | 'low'
-      remark: string
+      model?: string
+      prompt?: string
+      images?: string[]
+      videos?: string[]
+      audioUrls?: string[]
+      resolution?: string
+      ratio?: string
+      duration?: number
+      frames?: number
+      seed?: number
+      cameraFixed?: boolean
+      watermark?: boolean
+      generateAudio?: boolean
+      priority?: number
+      returnLastFrame?: boolean
+      serviceTier?: string
+      executionExpiresAfter?: number
+      callbackUrl?: string
+      safetyIdentifier?: string
+      projectId: string
+      scriptId?: string
+      storyboardId?: string
+      episodeId?: string
+      previewToken: string
     }
 
-    /** 视频预览参数 */
+    /** 视频预览参数 (同 SeedanceGenerateRequest，但 previewToken 由后端返回) */
     interface VideoPreviewParams {
-      style: string
-      resolution: string
-      fps: string
-      format: string
+      model?: string
+      prompt?: string
+      images?: string[]
+      videos?: string[]
+      audioUrls?: string[]
+      resolution?: string
+      ratio?: string
+      duration?: number
+      frames?: number
+      seed?: number
+      cameraFixed?: boolean
+      watermark?: boolean
+      generateAudio?: boolean
+      priority?: number
+      returnLastFrame?: boolean
+      serviceTier?: string
+      projectId: string
+      scriptId?: string
+      storyboardId?: string
+      episodeId?: string
     }
 
-    /** 视频预览结果 */
+    /** 视频预览结果 (SeedancePreviewVO) */
     interface VideoPreviewResult {
-      url: string
-      duration: number
-      size: number
+      previewToken: string
+      videoCount: number
+      totalDuration: number
+      resolution: string
+      model: string
+      estimatedCredits: number
+      storyboardDetails?: Array<{
+        storyboardId: string
+        storyboardNo: string
+        title: string
+        durationSeconds: number
+        prompt: string
+      }>
     }
 
-    /** 视频任务结果 */
+    /** 视频提交结果 (SeedanceSubmitVO) */
+    interface VideoSubmitResult {
+      taskId: string
+      status: string
+      message?: string
+    }
+
+    /** 视频任务结果 (SeedanceResultVO) */
     interface VideoTaskResult {
-      url: string
+      videoUrl: string
       duration: number
       size: number
       format: string
       resolution: string
+      creditsConsumed: number
     }
 
     /** 违规检测结果 */
@@ -1900,10 +2184,11 @@ declare namespace Api {
     }
 
     interface TrendParams {
-      startDate: string
-      endDate: string
-      granularity: 'day' | 'week' | 'month'
-      metrics: string[]
+      eventType: string
+      startDate?: string
+      endDate?: string
+      granularity?: 'day' | 'week' | 'month'
+      metrics?: string[]
     }
 
     interface TrendData {
@@ -2104,72 +2389,135 @@ declare namespace Api {
 
   /** 剧本资产类型 */
   namespace ScriptAsset {
+    /** 创意资产列表项 (CreativeAssetVO) */
     interface ScriptAssetListItem {
       id: string
-      name: string
-      type: string
-      category: string
-      description: string
-      prompt: string
-      imageUrl: string
-      scriptId: string
       projectId: string
+      scriptId: string
+      scriptTitle: string
+      episodeId: string
+      paragraphId: string
+      shotId: string
+      assetName: string
+      assetType: string
+      assetSubtype: string
+      description: string
+      referenceUrl: string
+      payload: string
+      extraMetadata: Record<string, unknown>
+      parentAssetId: string
+      rootExtractId: string
+      libraryAssetId: string
+      storyboardId: string
+      tags: string[]
+      reviewStatus: string
       status: string
+      source: string
+      version: number
       createTime: string
       updateTime: string
     }
 
-    interface ScriptAssetDetail extends ScriptAssetListItem {
-      referenceImages: string[]
-      metadata: Record<string, unknown>
-    }
+    /** 创意资产详情 (同 CreativeAssetVO) */
+    type ScriptAssetDetail = ScriptAssetListItem
 
+    /** 创建创意资产参数 (CreativeAssetCreateRequest) */
     interface CreateScriptAssetParams {
-      name: string
-      type: string
-      category?: string
+      scriptId?: string
+      assetName: string
+      assetType?: string
       description?: string
-      prompt?: string
+      referenceUrl?: string
+      extraData?: string
+      tags?: string[]
+      parentAssetId?: string
+      libraryAssetId?: string
+      sortOrder?: number
+      assetLevel?: string
+      assetAliases?: string[]
+      assetCategory?: string
+      assetOwner?: string
+      assetCharacterRef?: string
+      assetSceneRef?: string
+      assetSceneType?: string
     }
 
+    /** 更新创意资产参数 (CreativeAssetUpdateRequest) */
     interface UpdateScriptAssetParams {
-      name?: string
-      type?: string
-      category?: string
+      assetName?: string
+      assetType?: string
       description?: string
-      prompt?: string
+      referenceUrl?: string
+      extraData?: string
+      tags?: string[]
+      reviewStatus?: string
+      parentAssetId?: string
+      libraryAssetId?: string
+      sortOrder?: number
+      assetLevel?: string
+      assetAliases?: string[]
+      assetCategory?: string
+      assetOwner?: string
+      assetCharacterRef?: string
+      assetSceneRef?: string
+      assetSceneType?: string
     }
 
+    /** 创意资产搜索参数 (CreativeAssetQueryRequest) */
     interface ScriptAssetSearchParams extends Api.Common.CommonSearchParams {
+      scriptId?: string
+      assetType?: string
+      assetSubtype?: string
+      source?: string
+      reviewStatus?: string
       keyword?: string
-      type?: string
-      category?: string
-      status?: string
     }
 
+    /** 批量创建创意资产项 */
     interface BatchCreateScriptAssetItem {
-      name: string
-      type: string
-      category?: string
+      scriptId?: string
+      assetName: string
+      assetType?: string
       description?: string
+      referenceUrl?: string
+      extraData?: string
+      tags?: string[]
+      parentAssetId?: string
+      libraryAssetId?: string
+      sortOrder?: number
+      assetLevel?: string
+      assetAliases?: string[]
+      assetCategory?: string
+      assetOwner?: string
+      assetCharacterRef?: string
+      assetSceneRef?: string
+      assetSceneType?: string
     }
 
+    /** 生成资产提示词参数 (AssetPromptRequest) */
     interface GenerateAssetPromptsParams {
-      assetIds?: string[]
-      prompt?: string
+      assetExtractId?: string
+      force?: boolean
     }
 
+    /** 生成资产图片参数 (AssetImageGenRequest) */
     interface GenerateAssetImagesParams {
-      assetIds?: string[]
-      style?: string
+      assetPromptIds: string[]
+      referenceImageUrls?: string[]
+      force?: boolean
+      sync?: boolean
+      model?: string
+      size?: string
+      resolution?: string
     }
 
+    /** 审核资产图片参数 (ImageReviewRequest) */
     interface ReviewAssetImagesParams {
-      assetId: string
-      approved: boolean
-      comment?: string
+      assetImageIds: string[]
+      force?: boolean
     }
 
+    /** 上传图片结果 */
     interface UploadImageResult {
       url: string
     }

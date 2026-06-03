@@ -298,7 +298,7 @@
   const loadPendingList = async () => {
     try {
       const res = await fetchGetReviewList()
-      pendingList.value = (res.records || []) as PendingItem[]
+      pendingList.value = (res.records || []) as unknown as PendingItem[]
     } catch {
       pendingList.value = []
     }

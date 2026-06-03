@@ -382,6 +382,7 @@
   import { ElMessage, ElMessageBox } from 'element-plus'
   import type { FormInstance, FormRules } from 'element-plus'
   import { fetchGetProjectAssets, fetchDeleteAsset, fetchBatchDeleteAssets } from '@/api/asset'
+  import { useProjectDataStore } from '@/store/modules/project-data'
 
   defineOptions({ name: 'AssetLibrary' })
 
@@ -404,8 +405,11 @@
 
   const router = useRouter()
   const route = useRoute()
+  const projectStore = useProjectDataStore()
 
-  const projectId = computed(() => (route.params.projectId as string) || '1')
+  const projectId = computed(
+    () => (route.params.projectId as string) || projectStore.currentProjectId || ''
+  )
 
   const searchQuery = ref('')
   const filterType = ref<AssetType | ''>('')
@@ -791,9 +795,9 @@
   }
 
   .asset-card {
+    position: relative;
     cursor: pointer;
     transition: all 0.2s;
-    position: relative;
 
     &:hover {
       transform: translateY(-2px);
@@ -825,13 +829,13 @@
       background: var(--el-fill-color-lighter);
 
       &.video-placeholder {
-        background: var(--el-color-success-light-9);
         color: var(--el-color-success);
+        background: var(--el-color-success-light-9);
       }
 
       &.audio-placeholder {
-        background: var(--el-color-warning-light-9);
         color: var(--el-color-warning);
+        background: var(--el-color-warning-light-9);
       }
     }
 
@@ -845,13 +849,13 @@
       position: absolute;
       top: 8px;
       right: 8px;
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      background: var(--el-color-primary);
       display: flex;
       align-items: center;
       justify-content: center;
+      width: 24px;
+      height: 24px;
+      background: var(--el-color-primary);
+      border-radius: 50%;
     }
   }
 
@@ -859,24 +863,24 @@
     padding: 12px;
 
     .asset-name {
+      margin-bottom: 6px;
+      overflow: hidden;
       font-size: 14px;
       font-weight: 600;
-      margin-bottom: 6px;
       color: var(--el-text-color-primary);
-      white-space: nowrap;
-      overflow: hidden;
       text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .asset-desc {
-      font-size: 12px;
-      color: var(--el-text-color-secondary);
-      margin-bottom: 8px;
-      line-height: 1.5;
       display: -webkit-box;
+      margin-bottom: 8px;
+      overflow: hidden;
+      font-size: 12px;
+      line-height: 1.5;
+      color: var(--el-text-color-secondary);
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
-      overflow: hidden;
     }
 
     .asset-tags {
@@ -889,55 +893,55 @@
 
     .asset-actions {
       display: flex;
-      gap: 4px;
       flex-wrap: wrap;
+      gap: 4px;
     }
   }
 
   .asset-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 8px;
     display: flex;
+    flex-shrink: 0;
     align-items: center;
     justify-content: center;
+    width: 40px;
+    height: 40px;
     font-size: 20px;
-    flex-shrink: 0;
+    border-radius: 8px;
 
     &.image {
-      background: var(--el-color-primary-light-9);
       color: var(--el-color-primary);
+      background: var(--el-color-primary-light-9);
     }
 
     &.video {
-      background: var(--el-color-success-light-9);
       color: var(--el-color-success);
+      background: var(--el-color-success-light-9);
     }
 
     &.audio {
-      background: var(--el-color-warning-light-9);
       color: var(--el-color-warning);
+      background: var(--el-color-warning-light-9);
     }
 
     &.document {
-      background: var(--el-color-info-light-9);
       color: var(--el-color-info);
+      background: var(--el-color-info-light-9);
     }
 
     &.ai-generated {
-      background: var(--el-color-danger-light-9);
       color: var(--el-color-danger);
+      background: var(--el-color-danger-light-9);
     }
   }
 
   .preview-content {
-    min-height: 300px;
     display: flex;
     align-items: center;
     justify-content: center;
+    min-height: 300px;
+    overflow: hidden;
     background: var(--el-fill-color-lighter);
     border-radius: var(--custom-radius);
-    overflow: hidden;
 
     .preview-image {
       max-width: 100%;

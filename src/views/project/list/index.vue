@@ -23,14 +23,6 @@
                 :value="item.value"
               />
             </ElSelect>
-            <ElSelect v-model="filterType" placeholder="类型筛选" clearable style="width: 140px">
-              <ElOption
-                v-for="item in typeOptions"
-                :key="item.value"
-                :label="item.label"
-                :value="item.value"
-              />
-            </ElSelect>
             <ElButton type="primary" @click="handleCreate">
               <ArtSvgIcon icon="ri:add-line" class="mr-1" />
               创建项目
@@ -75,11 +67,11 @@
               class="ml-1"
             />
           </ElButton>
-          <ElButton link @click="handleSort('updateTime')">
-            更新时间
+          <ElButton link @click="handleSort('createTime')">
+            创建时间
             <ArtSvgIcon
               :icon="
-                sortField === 'updateTime' && sortOrder === 'asc'
+                sortField === 'createTime' && sortOrder === 'asc'
                   ? 'ri:arrow-up-line'
                   : 'ri:arrow-down-line'
               "
@@ -92,47 +84,45 @@
       <!-- 卡片视图 -->
       <div v-if="viewMode === 'card'" class="project-card-grid">
         <ElCard
-          v-for="item in pagedList"
+          v-for="item in projectList"
           :key="item.id"
           class="project-card"
           shadow="hover"
           @click="handleView(item)"
         >
           <div class="project-card-cover">
-            <ElImage :src="item.cover" fit="cover" class="cover-image">
+            <ElImage :src="item.coverImage" fit="cover" class="cover-image">
               <template #error>
                 <div class="cover-placeholder flex-cc">
                   <ArtSvgIcon icon="ri:image-line" class="text-3xl text-g-400" />
                 </div>
               </template>
             </ElImage>
-            <ElTag :type="statusTypeMap[item.status]" size="small" class="cover-status">
-              {{ statusLabelMap[item.status] }}
+            <ElTag
+              :type="statusTypeMap[item.status as ProjectStatus]"
+              size="small"
+              class="cover-status"
+            >
+              {{ statusLabelMap[item.status as ProjectStatus] }}
             </ElTag>
           </div>
           <div class="project-card-body">
-            <h4 class="project-name">{{ item.name }}</h4>
+            <h4 class="project-name">{{ item.projectName }}</h4>
             <p class="project-desc">{{ item.description }}</p>
             <div class="project-meta">
               <ElSpace>
                 <span class="meta-item">
                   <ArtSvgIcon icon="ri:user-line" class="text-g-400" />
-                  {{ item.manager }}
+                  {{ item.creatorName }}
                 </span>
                 <span class="meta-item">
-                  <ArtSvgIcon icon="ri:folder-line" class="text-g-400" />
-                  {{ item.type }}
+                  <ArtSvgIcon icon="ri:team-line" class="text-g-400" />
+                  {{ item.memberCount }} 人
                 </span>
               </ElSpace>
             </div>
-            <ElProgress
-              :percentage="item.progress"
-              :color="item.progressColor"
-              :stroke-width="4"
-              class="project-progress"
-            />
             <div class="project-footer flex-cb">
-              <span class="update-time">{{ item.updateTime }}</span>
+              <span class="update-time">{{ item.createTime }}</span>
               <ElSpace>
                 <ElButton type="primary" link size="small" @click.stop="handleEdit(item)">
                   编辑
@@ -141,7 +131,7 @@
                   复制
                 </ElButton>
                 <ElButton
-                  v-if="item.status !== 'archived'"
+                  v-if="item.status !== 3"
                   type="warning"
                   link
                   size="small"
@@ -164,7 +154,7 @@
       <!-- 列表视图 -->
       <ArtTable
         v-else
-        :data="pagedList"
+        :data="projectList"
         :columns="columns"
         :pagination="pagination"
         @selection-change="handleSelectionChange"
@@ -190,17 +180,8 @@
               </div>
             </template>
           </ElTableColumn>
-          <ElTableColumn prop="type" label="类型" width="120" />
-          <ElTableColumn prop="manager" label="负责人" width="120" />
-          <ElTableColumn label="进度" width="180">
-            <template #default="scope">
-              <ElProgress
-                :percentage="scope.row.progress"
-                :color="scope.row.progressColor"
-                :stroke-width="4"
-              />
-            </template>
-          </ElTableColumn>
+          <ElTableColumn prop="creatorName" label="负责人" width="120" />
+          <ElTableColumn prop="memberCount" label="成员数" width="100" />
           <ElTableColumn label="状态" width="100">
             <template #default="scope">
               <ElTag :type="statusTypeMap[scope.row.status as ProjectStatus]" size="small">
@@ -208,7 +189,7 @@
               </ElTag>
             </template>
           </ElTableColumn>
-          <ElTableColumn prop="updateTime" label="更新时间" width="160" sortable />
+          <ElTableColumn prop="createTime" label="创建时间" width="160" sortable />
           <ElTableColumn label="操作" width="180" fixed="right">
             <template #default="scope">
               <ElButton type="primary" link size="small" @click="handleView(scope.row)">
@@ -218,7 +199,7 @@
                 复制
               </ElButton>
               <ElButton
-                v-if="scope.row.status === 'archived'"
+                v-if="scope.row.status === 3"
                 type="success"
                 link
                 size="small"
@@ -227,7 +208,7 @@
                 恢复
               </ElButton>
               <ElButton
-                v-else-if="scope.row.status !== 'archived'"
+                v-else-if="scope.row.status !== 3"
                 type="warning"
                 link
                 size="small"
@@ -283,87 +264,51 @@
   import { ElMessage, ElMessageBox } from 'element-plus'
   import type { ColumnOption } from '@/types/component'
   import ProjectForm from '../components/ProjectForm.vue'
+  import { logger } from '@/utils/logger'
   import {
-    fetchGetProjectList,
-    fetchCreateProject,
-    fetchDeleteProject,
-    fetchArchiveProject,
-    fetchRestoreProject,
-    fetchCopyProject
-  } from '@/api/project'
+    useProjectList,
+    useCreateProject,
+    useDeleteProject,
+    useArchiveProject,
+    useRestoreProject,
+    useCopyProject
+  } from '@/api/queries/project'
 
   defineOptions({ name: 'ProjectList' })
 
-  type ProjectStatus = 'progress' | 'completed' | 'paused' | 'archived'
-  type ProjectType = 'animation' | 'video' | 'audio' | 'storyboard' | 'script'
-
-  interface ProjectItem {
-    id: string
-    name: string
-    description: string
-    type: string
-    typeValue: ProjectType
-    manager: string
-    status: ProjectStatus
-    progress: number
-    progressColor: string
-    cover: string
-    updateTime: string
-    createTime: string
-    memberCount: number
-    assetCount: number
-  }
+  type ProjectStatus = 0 | 1 | 2 | 3
 
   const router = useRouter()
 
   const statusOptions = [
-    { label: '进行中', value: 'progress' },
-    { label: '已完成', value: 'completed' },
-    { label: '已暂停', value: 'paused' },
-    { label: '已归档', value: 'archived' }
+    { label: '草稿', value: 0 },
+    { label: '进行中', value: 1 },
+    { label: '已完成', value: 2 },
+    { label: '已归档', value: 3 }
   ]
 
-  const typeOptions = [
-    { label: '动画制作', value: 'animation' },
-    { label: '视频制作', value: 'video' },
-    { label: '音频制作', value: 'audio' },
-    { label: '分镜管理', value: 'storyboard' },
-    { label: '剧本管理', value: 'script' }
-  ]
-
-  const statusTypeMap: Record<ProjectStatus, 'primary' | 'success' | 'warning' | 'info'> = {
-    progress: 'primary',
-    completed: 'success',
-    paused: 'warning',
-    archived: 'info'
+  const statusTypeMap: Record<ProjectStatus, 'info' | 'primary' | 'success' | 'warning'> = {
+    0: 'info',
+    1: 'primary',
+    2: 'success',
+    3: 'warning'
   }
 
   const statusLabelMap: Record<ProjectStatus, string> = {
-    progress: '进行中',
-    completed: '已完成',
-    paused: '已暂停',
-    archived: '已归档'
-  }
-
-  const typeLabelMap: Record<ProjectType, string> = {
-    animation: '动画制作',
-    video: '视频制作',
-    audio: '音频制作',
-    storyboard: '分镜管理',
-    script: '剧本管理'
+    0: '草稿',
+    1: '进行中',
+    2: '已完成',
+    3: '已归档'
   }
 
   const searchQuery = ref('')
   const filterStatus = ref<ProjectStatus | ''>('')
-  const filterType = ref<ProjectType | ''>('')
   const viewMode = ref<'card' | 'list'>('card')
-  const sortField = ref<'name' | 'updateTime'>('updateTime')
+  const sortField = ref<'name' | 'createTime'>('createTime')
   const sortOrder = ref<'asc' | 'desc'>('desc')
-  const selectedProjects = ref<ProjectItem[]>([])
+  const selectedProjects = ref<Api.Project.ProjectListItem[]>([])
   const createDialogVisible = ref(false)
   const createFormRef = ref<InstanceType<typeof ProjectForm>>()
-  const projectList = ref<ProjectItem[]>([])
-  const loading = ref(false)
 
   const pagination = reactive({
     current: 1,
@@ -371,125 +316,48 @@
     total: 0
   })
 
-  // 加载项目列表
-  const loadProjectList = async () => {
-    loading.value = true
-    try {
-      const res = await fetchGetProjectList({
-        current: pagination.current,
-        size: pagination.size,
-        keyword: searchQuery.value || undefined,
-        type: filterType.value || undefined
-      } as any)
-      if (res) {
-        projectList.value = (res.records || []).map((item: any) => ({
-          id: item.id,
-          name: item.projectName || item.name,
-          description: item.description || '',
-          type: typeLabelMap[item.type as ProjectType] || item.type || '动画制作',
-          typeValue: (item.type as ProjectType) || 'animation',
-          manager: item.manager || item.ownerName || '未知',
-          status: mapApiStatus(item.status),
-          progress: item.progress || 0,
-          progressColor: getProgressColor(item.progress || 0),
-          cover: item.coverImage || item.coverUrl || item.cover || '',
-          updateTime: item.updateTime || item.updatedAt || '',
-          createTime: item.createTime || item.createdAt || '',
-          memberCount: item.memberCount || 0,
-          assetCount: item.assetCount || 0
-        }))
-        pagination.total = res.total || 0
-      }
-    } catch (error) {
-      console.error('加载项目列表失败:', error)
-      ElMessage.error('加载项目列表失败')
-    } finally {
-      loading.value = false
-    }
-  }
+  // vue-query: 项目列表查询（完全由后端分页/过滤/排序）
+  const queryParams = computed<Api.Project.ProjectSearchParams>(() => ({
+    page: pagination.current,
+    pageSize: pagination.size,
+    keyword: searchQuery.value || undefined,
+    status: filterStatus.value !== '' ? (filterStatus.value as number) : undefined
+  }))
 
-  // 映射API状态到前端状态
-  const mapApiStatus = (status: any): ProjectStatus => {
-    const statusMap: Record<string, ProjectStatus> = {
-      '0': 'progress',
-      '1': 'completed',
-      '2': 'paused',
-      '3': 'archived',
-      progress: 'progress',
-      completed: 'completed',
-      paused: 'paused',
-      archived: 'archived'
-    }
-    return statusMap[String(status)] || 'progress'
-  }
+  const { data: listResult } = useProjectList(queryParams)
 
-  // 获取进度条颜色
-  const getProgressColor = (progress: number) => {
-    if (progress >= 100) return '#67c23a'
-    if (progress >= 60) return 'var(--art-primary)'
-    return '#e6a23c'
-  }
+  // 后端返回的分页数据
+  const projectList = computed(() => listResult.value?.records ?? [])
+  const totalFromApi = computed(() => listResult.value?.total ?? 0)
 
-  // 初始化加载
-  onMounted(() => {
-    loadProjectList()
+  // 同步后端 total 到本地 pagination
+  watch(totalFromApi, (val) => {
+    pagination.total = val
+  })
+
+  // 搜索/筛选变化时重置到第 1 页
+  watch([searchQuery, filterStatus], () => {
+    pagination.current = 1
   })
 
   const columns: ColumnOption[] = [
     { type: 'selection' },
-    { prop: 'name', label: '项目名称', minWidth: 200 },
-    { prop: 'type', label: '类型', width: 120 },
-    { prop: 'manager', label: '负责人', width: 120 },
-    { prop: 'progress', label: '进度', width: 180 },
+    { prop: 'projectName', label: '项目名称', minWidth: 200 },
+    { prop: 'creatorName', label: '负责人', width: 120 },
+    { prop: 'memberCount', label: '成员数', width: 100 },
     { prop: 'status', label: '状态', width: 100 },
-    { prop: 'updateTime', label: '更新时间', width: 160, sortable: true },
+    { prop: 'createTime', label: '创建时间', width: 160, sortable: true },
     { prop: 'operation', label: '操作', width: 180, fixed: 'right' }
   ]
 
-  const filteredList = computed(() => {
-    let result = projectList.value
+  // Mutations
+  const createMutation = useCreateProject()
+  const deleteMutation = useDeleteProject()
+  const archiveMutation = useArchiveProject()
+  const restoreMutation = useRestoreProject()
+  const copyMutation = useCopyProject()
 
-    if (searchQuery.value) {
-      const q = searchQuery.value.toLowerCase()
-      result = result.filter(
-        (item) => item.name.toLowerCase().includes(q) || item.description.toLowerCase().includes(q)
-      )
-    }
-
-    if (filterStatus.value) {
-      result = result.filter((item) => item.status === filterStatus.value)
-    }
-
-    if (filterType.value) {
-      result = result.filter((item) => item.typeValue === filterType.value)
-    }
-
-    result = [...result].sort((a, b) => {
-      if (sortField.value === 'name') {
-        return sortOrder.value === 'asc'
-          ? a.name.localeCompare(b.name)
-          : b.name.localeCompare(a.name)
-      }
-      return sortOrder.value === 'asc'
-        ? a.updateTime.localeCompare(b.updateTime)
-        : b.updateTime.localeCompare(a.updateTime)
-    })
-
-    return result
-  })
-
-  const pagedList = computed(() => {
-    const list = filteredList.value
-    const start = (pagination.current - 1) * pagination.size
-    const end = start + pagination.size
-    return list.slice(start, end)
-  })
-
-  watch(filteredList, (list) => {
-    pagination.total = list.length
-  })
-
-  const handleSort = (field: 'name' | 'updateTime') => {
+  const handleSort = (field: 'name' | 'createTime') => {
     if (sortField.value === field) {
       sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
     } else {
@@ -498,19 +366,17 @@
     }
   }
 
-  const handleSelectionChange = (selection: ProjectItem[]) => {
+  const handleSelectionChange = (selection: Api.Project.ProjectListItem[]) => {
     selectedProjects.value = selection
   }
 
   const handleSizeChange = (size: number) => {
     pagination.size = size
     pagination.current = 1
-    loadProjectList()
   }
 
   const handleCurrentChange = (current: number) => {
     pagination.current = current
-    loadProjectList()
   }
 
   const handleCreate = () => {
@@ -528,40 +394,37 @@
     if (!form) return
 
     try {
-      await fetchCreateProject({
+      await createMutation.mutateAsync({
         projectName: form.name,
         description: form.description,
-        type: form.type,
-        manager: form.manager
+        coverImage: form.coverPreview || undefined
       })
       ElMessage.success('项目创建成功')
       createDialogVisible.value = false
       createFormRef.value?.reset()
-      loadProjectList()
     } catch (error) {
-      console.error('创建项目失败:', error)
+      logger.apiError('project-list', 'createProject', error)
       ElMessage.error('创建项目失败')
     }
   }
 
-  const handleView = (row: ProjectItem) => {
+  const handleView = (row: Api.Project.ProjectListItem) => {
     router.push(`/project/edit?id=${row.id}`)
   }
 
-  const handleEdit = (row: ProjectItem) => {
+  const handleEdit = (row: Api.Project.ProjectListItem) => {
     router.push(`/project/edit?id=${row.id}`)
   }
 
-  const handleDelete = (row: ProjectItem) => {
-    ElMessageBox.confirm(`确定要删除项目「${row.name}」吗？`, '删除确认', {
+  const handleDelete = (row: Api.Project.ProjectListItem) => {
+    ElMessageBox.confirm(`确定要删除项目「${row.projectName}」吗？`, '删除确认', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'warning'
     }).then(async () => {
       try {
-        await fetchDeleteProject(row.id)
+        await deleteMutation.mutateAsync(row.id)
         ElMessage.success('删除成功')
-        loadProjectList()
       } catch {
         ElMessage.error('删除失败')
       }
@@ -573,7 +436,7 @@
       ElMessage.warning('请先选择项目')
       return
     }
-    const names = selectedProjects.value.map((p) => p.name).join('、')
+    const names = selectedProjects.value.map((p) => p.projectName).join('、')
     if (command === 'archive') {
       ElMessageBox.confirm(
         `确定要归档以下 ${selectedProjects.value.length} 个项目吗？\n${names}`,
@@ -586,10 +449,9 @@
       ).then(async () => {
         try {
           for (const p of selectedProjects.value) {
-            await fetchArchiveProject(p.id)
+            await archiveMutation.mutateAsync(p.id)
           }
           ElMessage.success('归档成功')
-          loadProjectList()
         } catch {
           ElMessage.error('归档失败')
         }
@@ -606,10 +468,9 @@
       ).then(async () => {
         try {
           for (const p of selectedProjects.value) {
-            await fetchRestoreProject(p.id)
+            await restoreMutation.mutateAsync(p.id)
           }
           ElMessage.success('恢复成功')
-          loadProjectList()
         } catch {
           ElMessage.error('恢复失败')
         }
@@ -626,10 +487,9 @@
       ).then(async () => {
         try {
           for (const p of selectedProjects.value) {
-            await fetchDeleteProject(p.id)
+            await deleteMutation.mutateAsync(p.id)
           }
           ElMessage.success('删除成功')
-          loadProjectList()
         } catch {
           ElMessage.error('删除失败')
         }
@@ -637,48 +497,48 @@
     }
   }
 
-  const handleCopy = (row: ProjectItem) => {
-    ElMessageBox.confirm(`确定要复制项目「${row.name}」吗？`, '复制确认', {
+  const handleCopy = (row: Api.Project.ProjectListItem) => {
+    ElMessageBox.confirm(`确定要复制项目「${row.projectName}」吗？`, '复制确认', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'info'
     }).then(async () => {
       try {
-        await fetchCopyProject(row.id, `${row.name} - 副本`)
+        await copyMutation.mutateAsync({
+          projectId: row.id,
+          projectName: `${row.projectName} - 副本`
+        })
         ElMessage.success('项目复制成功')
-        loadProjectList()
       } catch {
         ElMessage.error('复制失败')
       }
     })
   }
 
-  const handleArchive = (row: ProjectItem) => {
-    ElMessageBox.confirm(`确定要归档项目「${row.name}」吗？`, '归档确认', {
+  const handleArchive = (row: Api.Project.ProjectListItem) => {
+    ElMessageBox.confirm(`确定要归档项目「${row.projectName}」吗？`, '归档确认', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'warning'
     }).then(async () => {
       try {
-        await fetchArchiveProject(row.id)
+        await archiveMutation.mutateAsync(row.id)
         ElMessage.success('项目已归档')
-        loadProjectList()
       } catch {
         ElMessage.error('归档失败')
       }
     })
   }
 
-  const handleRestore = (row: ProjectItem) => {
-    ElMessageBox.confirm(`确定要恢复项目「${row.name}」吗？`, '恢复确认', {
+  const handleRestore = (row: Api.Project.ProjectListItem) => {
+    ElMessageBox.confirm(`确定要恢复项目「${row.projectName}」吗？`, '恢复确认', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'info'
     }).then(async () => {
       try {
-        await fetchRestoreProject(row.id)
+        await restoreMutation.mutateAsync(row.id)
         ElMessage.success('项目已恢复')
-        loadProjectList()
       } catch {
         ElMessage.error('恢复失败')
       }
@@ -735,37 +595,33 @@
     padding: 12px;
 
     .project-name {
+      margin-bottom: 6px;
       font-size: 15px;
       font-weight: 600;
-      margin-bottom: 6px;
       color: var(--el-text-color-primary);
     }
 
     .project-desc {
-      font-size: 12px;
-      color: var(--el-text-color-secondary);
-      margin-bottom: 10px;
-      line-height: 1.5;
       display: -webkit-box;
+      margin-bottom: 10px;
+      overflow: hidden;
+      font-size: 12px;
+      line-height: 1.5;
+      color: var(--el-text-color-secondary);
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
-      overflow: hidden;
     }
 
     .project-meta {
       margin-bottom: 10px;
 
       .meta-item {
+        display: inline-flex;
+        gap: 4px;
+        align-items: center;
         font-size: 12px;
         color: var(--el-text-color-secondary);
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
       }
-    }
-
-    .project-progress {
-      margin-bottom: 10px;
     }
 
     .project-footer {

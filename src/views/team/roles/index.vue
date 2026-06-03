@@ -164,6 +164,7 @@
   import { ElMessage, ElMessageBox } from 'element-plus'
   import type { FormInstance, FormRules } from 'element-plus'
   import type { ColumnOption } from '@/types/component'
+  import { useTeamStore } from '@/store/modules/team'
   import { useRoute } from 'vue-router'
   import {
     fetchGetTeamRoles,
@@ -190,8 +191,11 @@
     createTime: string
   }
 
+  const teamStore = useTeamStore()
   const route = useRoute()
-  const teamId = computed(() => String(route.query.id || ''))
+  const teamId = computed(() =>
+    String((route.query.id || route.query.teamId || teamStore.currentTeamId) as string)
+  )
   const loading = ref(false)
   const searchQuery = ref('')
   const dialogVisible = ref(false)
@@ -425,31 +429,31 @@
   .role-stats {
     .stat-card {
       display: flex;
-      align-items: center;
       gap: 12px;
+      align-items: center;
       padding: 16px;
       background: var(--el-fill-color-lighter);
       border-radius: var(--custom-radius);
 
       .stat-icon {
-        width: 44px;
-        height: 44px;
-        border-radius: 10px;
         display: flex;
+        flex-shrink: 0;
         align-items: center;
         justify-content: center;
+        width: 44px;
+        height: 44px;
         font-size: 22px;
-        flex-shrink: 0;
+        border-radius: 10px;
       }
 
       &.system .stat-icon {
-        background: var(--el-color-primary-light-9);
         color: var(--el-color-primary);
+        background: var(--el-color-primary-light-9);
       }
 
       &.custom .stat-icon {
-        background: var(--el-color-success-light-9);
         color: var(--el-color-success);
+        background: var(--el-color-success-light-9);
       }
 
       .stat-info {
@@ -460,32 +464,32 @@
         }
 
         .stat-label {
+          margin-top: 2px;
           font-size: 12px;
           color: var(--el-text-color-secondary);
-          margin-top: 2px;
         }
       }
     }
   }
 
   .role-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 8px;
     display: flex;
+    flex-shrink: 0;
     align-items: center;
     justify-content: center;
+    width: 40px;
+    height: 40px;
     font-size: 20px;
-    flex-shrink: 0;
+    border-radius: 8px;
 
     &.system {
-      background: var(--el-color-primary-light-9);
       color: var(--el-color-primary);
+      background: var(--el-color-primary-light-9);
     }
 
     &.custom {
-      background: var(--el-color-success-light-9);
       color: var(--el-color-success);
+      background: var(--el-color-success-light-9);
     }
   }
 </style>

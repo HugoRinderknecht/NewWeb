@@ -11,256 +11,301 @@
               @change="handleProjectChange"
               @refresh="handleProjectRefresh"
             />
-            <ElTag type="info" size="small">剧本AI违规检测</ElTag>
-          </div>
-          <ElSpace>
-            <ElInput
-              v-model="searchQuery"
-              placeholder="搜索剧本名称"
+            <ElSelect
+              v-model="currentScriptId"
+              placeholder="选择剧本"
               clearable
               style="width: 220px"
+              @change="handleScriptChange"
             >
-              <template #prefix>
-                <ArtSvgIcon icon="ri:search-line" class="text-g-400" />
-              </template>
-            </ElInput>
-            <ElSelect v-model="filterLevel" placeholder="风险等级" clearable style="width: 140px">
               <ElOption
-                v-for="item in levelOptions"
-                :key="item.value"
-                :label="item.label"
-                :value="item.value"
+                v-for="script in scriptOptions"
+                :key="script.id"
+                :label="script.title"
+                :value="script.id"
               />
             </ElSelect>
-            <ElSelect v-model="filterType" placeholder="违规类型" clearable style="width: 140px">
-              <ElOption
-                v-for="item in violationOptions"
-                :key="item.value"
-                :label="item.label"
-                :value="item.value"
-              />
-            </ElSelect>
-            <ScriptUpload
-              button-text="导入审核"
-              button-type="info"
-              dialog-title="导入剧本进行AI审核"
-              accept-types=".doc,.docx,.pdf,.txt,.fountain"
-              @success="handleImportForReview"
-            />
-          </ElSpace>
+          </div>
+          <ElButton type="primary" :loading="submitting" @click="handleStartReview">
+            <ArtSvgIcon icon="ri:shield-check-line" class="mr-1" />
+            发起审核
+          </ElButton>
         </div>
       </template>
 
-      <!-- 统计卡片 -->
-      <div class="review-stats mb-6">
-        <ElRow :gutter="16">
-          <ElCol :span="6" :xs="12">
-            <div class="stat-card total">
-              <div class="stat-icon">
-                <ArtSvgIcon icon="ri:file-list-line" />
-              </div>
-              <div class="stat-info">
-                <div class="stat-value">{{ reviewList.length }}</div>
-                <div class="stat-label">审核总数</div>
-              </div>
-            </div>
-          </ElCol>
-          <ElCol :span="6" :xs="12">
-            <div class="stat-card high">
-              <div class="stat-icon">
-                <ArtSvgIcon icon="ri:error-warning-line" />
-              </div>
-              <div class="stat-info">
-                <div class="stat-value">{{ highRiskCount }}</div>
-                <div class="stat-label">高风险</div>
-              </div>
-            </div>
-          </ElCol>
-          <ElCol :span="6" :xs="12">
-            <div class="stat-card medium">
-              <div class="stat-icon">
-                <ArtSvgIcon icon="ri:alert-line" />
-              </div>
-              <div class="stat-info">
-                <div class="stat-value">{{ mediumRiskCount }}</div>
-                <div class="stat-label">中风险</div>
-              </div>
-            </div>
-          </ElCol>
-          <ElCol :span="6" :xs="12">
-            <div class="stat-card low">
-              <div class="stat-icon">
-                <ArtSvgIcon icon="ri:shield-check-line" />
-              </div>
-              <div class="stat-info">
-                <div class="stat-value">{{ lowRiskCount }}</div>
-                <div class="stat-label">低风险/通过</div>
-              </div>
-            </div>
-          </ElCol>
-        </ElRow>
+      <!-- 处理中状态 -->
+      <div v-if="processStatus === 'PROCESSING'" class="processing-state">
+        <div class="flex flex-col items-center justify-center py-20">
+          <ElIcon class="is-loading" :size="48" color="var(--el-color-primary)">
+            <ArtSvgIcon icon="ri:loader-4-line" />
+          </ElIcon>
+          <p class="mt-4 text-base text-g-500">AI审核进行中，请稍候...</p>
+          <p class="mt-1 text-sm text-g-400">预计需要1-3分钟完成</p>
+        </div>
       </div>
 
-      <div class="scrollable-content">
-        <ArtTable
-          :data="pagedList"
-          :columns="columns"
-          :pagination="pagination"
-          v-loading="loading"
-          @pagination:size-change="handleSizeChange"
-          @pagination:current-change="handleCurrentChange"
+      <!-- 失败状态 -->
+      <div v-else-if="processStatus === 'FAILED'" class="failed-state">
+        <ElResult
+          icon="error"
+          title="审核失败"
+          :sub-title="processMessage || 'AI审核处理失败，请稍后重试'"
         >
-          <template #default>
-            <ElTableColumn label="剧本信息" min-width="240">
-              <template #default="scope">
-                <div class="flex items-center gap-3">
-                  <div class="script-icon">
-                    <ArtSvgIcon icon="ri:book-open-line" />
-                  </div>
-                  <div>
-                    <div class="font-medium">{{ scope.row.scriptName }}</div>
-                    <div class="text-xs text-g-400">{{ scope.row.projectName }}</div>
-                  </div>
-                </div>
-              </template>
-            </ElTableColumn>
-            <ElTableColumn label="风险等级" width="120">
-              <template #default="scope">
-                <ElTag :type="getLevelTag(scope.row.level)" size="small">
-                  <ArtSvgIcon :icon="getLevelIcon(scope.row.level)" class="mr-1" />
-                  {{ getLevelLabel(scope.row.level) }}
-                </ElTag>
-              </template>
-            </ElTableColumn>
-            <ElTableColumn label="违规类型" width="140">
-              <template #default="scope">
-                <ElSpace wrap>
-                  <ElTag
-                    v-for="(v, idx) in scope.row.violations.slice(0, 2)"
-                    :key="idx"
-                    :type="getViolationTag(v.type)"
-                    size="small"
-                  >
-                    {{ getViolationLabel(v.type) }}
-                  </ElTag>
-                  <ElTag v-if="scope.row.violations.length > 2" type="info" size="small">
-                    +{{ scope.row.violations.length - 2 }}
-                  </ElTag>
-                </ElSpace>
-              </template>
-            </ElTableColumn>
-            <ElTableColumn prop="violationCount" label="违规条数" width="100">
-              <template #default="scope">
-                <ElBadge :value="scope.row.violationCount" :type="getLevelTag(scope.row.level)" />
-              </template>
-            </ElTableColumn>
-            <ElTableColumn prop="reviewTime" label="审核时间" width="160" sortable />
-            <ElTableColumn label="状态" width="100">
-              <template #default="scope">
-                <ElTag :type="scope.row.isHandled ? 'success' : 'warning'" size="small">
-                  {{ scope.row.isHandled ? '已处理' : '待处理' }}
-                </ElTag>
-              </template>
-            </ElTableColumn>
-            <ElTableColumn label="操作" width="200" fixed="right">
-              <template #default="scope">
-                <ElButton type="primary" link size="small" @click="handleViewDetail(scope.row)">
-                  <ArtSvgIcon icon="ri:eye-line" class="mr-1" />
-                  查看详情
-                </ElButton>
-                <ElButton
-                  v-if="!scope.row.isHandled"
-                  type="success"
-                  link
-                  size="small"
-                  @click="handleMarkHandled(scope.row)"
-                >
-                  <ArtSvgIcon icon="ri:check-line" class="mr-1" />
-                  标记处理
-                </ElButton>
-              </template>
-            </ElTableColumn>
+          <template #extra>
+            <ElButton type="primary" @click="handleStartReview">重新审核</ElButton>
           </template>
-        </ArtTable>
+        </ElResult>
+      </div>
+
+      <!-- 完成状态 -->
+      <template v-else-if="processStatus === 'COMPLETED' || violations.length > 0">
+        <!-- 统计卡片 -->
+        <div class="review-stats mb-6">
+          <ElRow :gutter="16">
+            <ElCol :span="6" :xs="12">
+              <div class="stat-card total">
+                <div class="stat-icon">
+                  <ArtSvgIcon icon="ri:file-list-line" />
+                </div>
+                <div class="stat-info">
+                  <div class="stat-value">{{
+                    reviewResult?.violationCount ?? violations.length
+                  }}</div>
+                  <div class="stat-label">违规总数</div>
+                </div>
+              </div>
+            </ElCol>
+            <ElCol :span="6" :xs="12">
+              <div class="stat-card high">
+                <div class="stat-icon">
+                  <ArtSvgIcon icon="ri:error-warning-line" />
+                </div>
+                <div class="stat-info">
+                  <div class="stat-value">{{ highRiskCount }}</div>
+                  <div class="stat-label">高风险</div>
+                </div>
+              </div>
+            </ElCol>
+            <ElCol :span="6" :xs="12">
+              <div class="stat-card medium">
+                <div class="stat-icon">
+                  <ArtSvgIcon icon="ri:alert-line" />
+                </div>
+                <div class="stat-info">
+                  <div class="stat-value">{{ mediumRiskCount }}</div>
+                  <div class="stat-label">中风险</div>
+                </div>
+              </div>
+            </ElCol>
+            <ElCol :span="6" :xs="12">
+              <div class="stat-card low">
+                <div class="stat-icon">
+                  <ArtSvgIcon icon="ri:shield-check-line" />
+                </div>
+                <div class="stat-info">
+                  <div class="stat-value">{{ lowRiskCount }}</div>
+                  <div class="stat-label">低风险</div>
+                </div>
+              </div>
+            </ElCol>
+          </ElRow>
+        </div>
+
+        <!-- 全局警告 -->
+        <ElAlert v-if="reviewResult?.globalWarning" type="warning" :closable="false" class="mb-6">
+          <template #title>
+            <div class="flex items-center gap-2">
+              <ArtSvgIcon icon="ri:alarm-warning-line" />
+              <span>{{ reviewResult.globalWarning }}</span>
+            </div>
+          </template>
+        </ElAlert>
+
+        <!-- 违规列表 -->
+        <ElTable :data="violations" stripe v-loading="loading" class="violation-table">
+          <ElTableColumn prop="location" label="位置" min-width="160" show-overflow-tooltip />
+          <ElTableColumn label="违规类型" width="120">
+            <template #default="{ row }">
+              <ElTag :type="violationTagMap[row.type as ViolationType] ?? 'info'" size="small">
+                {{ violationLabelMap[row.type as ViolationType] ?? row.type }}
+              </ElTag>
+            </template>
+          </ElTableColumn>
+          <ElTableColumn label="风险等级" width="100">
+            <template #default="{ row }">
+              <ElTag :type="levelTagMap[row.level as RiskLevel] ?? 'info'" size="small">
+                {{ levelLabelMap[row.level as RiskLevel] ?? row.level }}
+              </ElTag>
+            </template>
+          </ElTableColumn>
+          <ElTableColumn label="原文片段" min-width="240" show-overflow-tooltip>
+            <template #default="{ row }">
+              <span class="snippet-text">{{ row.snippet }}</span>
+            </template>
+          </ElTableColumn>
+          <ElTableColumn prop="hitWord" label="命中词" width="120" show-overflow-tooltip>
+            <template #default="{ row }">
+              <span class="hit-word">{{ row.hitWord }}</span>
+            </template>
+          </ElTableColumn>
+          <ElTableColumn label="状态" width="100">
+            <template #default="{ row }">
+              <ElTag :type="statusTagMap[row.status as ViolationStatus] ?? 'info'" size="small">
+                {{ statusLabelMap[row.status as ViolationStatus] ?? row.status }}
+              </ElTag>
+            </template>
+          </ElTableColumn>
+          <ElTableColumn label="操作" width="100" fixed="right">
+            <template #default="{ row }">
+              <ElButton type="primary" link size="small" @click="handleViewDetail(row)">
+                查看详情
+              </ElButton>
+            </template>
+          </ElTableColumn>
+        </ElTable>
+      </template>
+
+      <!-- 空状态 -->
+      <div v-else class="empty-state">
+        <ElEmpty description="暂无审核结果，请选择剧本后发起审核">
+          <ElButton type="primary" @click="handleStartReview">
+            <ArtSvgIcon icon="ri:shield-check-line" class="mr-1" />
+            发起审核
+          </ElButton>
+        </ElEmpty>
       </div>
     </ElCard>
+
+    <!-- 发起审核弹窗 -->
+    <ElDialog
+      v-model="reviewDialogVisible"
+      title="发起AI审核"
+      width="480px"
+      align-center
+      destroy-on-close
+    >
+      <ElForm label-width="90px">
+        <ElFormItem label="选择剧本">
+          <ElSelect v-model="currentScriptId" placeholder="选择剧本" style="width: 100%" disabled>
+            <ElOption
+              v-for="script in scriptOptions"
+              :key="script.id"
+              :label="script.title"
+              :value="script.id"
+            />
+          </ElSelect>
+        </ElFormItem>
+        <ElFormItem label="指定分集">
+          <ElSelect
+            v-model="selectedEpisodeIds"
+            placeholder="不选则审核全部分集"
+            multiple
+            clearable
+            style="width: 100%"
+          >
+            <ElOption
+              v-for="ep in episodeOptions"
+              :key="ep.id"
+              :label="ep.episodeName"
+              :value="ep.id"
+            />
+          </ElSelect>
+        </ElFormItem>
+      </ElForm>
+      <template #footer>
+        <ElButton @click="reviewDialogVisible = false">取消</ElButton>
+        <ElButton type="primary" :loading="submitting" @click="handleSubmitReview"
+          >确认审核</ElButton
+        >
+      </template>
+    </ElDialog>
 
     <!-- 违规详情弹窗 -->
     <ElDialog
       v-model="detailDialogVisible"
       title="违规详情"
-      width="720px"
+      width="640px"
       align-center
       destroy-on-close
     >
-      <div v-if="currentReview" class="violation-detail">
+      <div v-if="currentViolation" class="violation-detail">
         <ElDescriptions :column="2" border class="mb-6">
-          <ElDescriptionsItem label="剧本名称">{{ currentReview.scriptName }}</ElDescriptionsItem>
-          <ElDescriptionsItem label="所属项目">{{ currentReview.projectName }}</ElDescriptionsItem>
-          <ElDescriptionsItem label="风险等级">
-            <ElTag :type="getLevelTag(currentReview.level)" size="small">
-              {{ getLevelLabel(currentReview.level) }}
+          <ElDescriptionsItem label="位置">{{ currentViolation.location }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="违规类型">
+            <ElTag
+              :type="violationTagMap[currentViolation.type as ViolationType] ?? 'info'"
+              size="small"
+            >
+              {{
+                violationLabelMap[currentViolation.type as ViolationType] ?? currentViolation.type
+              }}
             </ElTag>
           </ElDescriptionsItem>
-          <ElDescriptionsItem label="审核时间">{{ currentReview.reviewTime }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="风险等级">
+            <ElTag :type="levelTagMap[currentViolation.level as RiskLevel] ?? 'info'" size="small">
+              {{ levelLabelMap[currentViolation.level as RiskLevel] ?? currentViolation.level }}
+            </ElTag>
+          </ElDescriptionsItem>
+          <ElDescriptionsItem label="状态">
+            <ElTag
+              :type="statusTagMap[currentViolation.status as ViolationStatus] ?? 'info'"
+              size="small"
+            >
+              {{
+                statusLabelMap[currentViolation.status as ViolationStatus] ??
+                currentViolation.status
+              }}
+            </ElTag>
+          </ElDescriptionsItem>
+          <ElDescriptionsItem label="命中词" :span="2">
+            <span class="hit-word">{{ currentViolation.hitWord }}</span>
+          </ElDescriptionsItem>
         </ElDescriptions>
 
-        <h4 class="text-base font-medium mb-4">违规明细</h4>
-        <div class="violation-list">
-          <div
-            v-for="(item, idx) in currentReview.violations"
-            :key="idx"
-            class="violation-item"
-            :class="item.level"
-          >
-            <div class="violation-header flex items-center gap-2 mb-2">
-              <ArtSvgIcon :icon="getViolationIcon(item.type)" class="text-lg" />
-              <span class="font-medium">{{ getViolationLabel(item.type) }}</span>
-              <ElTag :type="getLevelTag(item.level)" size="small">{{
-                getLevelLabel(item.level)
-              }}</ElTag>
-            </div>
-            <div class="violation-content">
-              <div class="violation-position text-sm text-g-400 mb-1">
-                位置：第 {{ item.episode }} 集 / 第 {{ item.scene }} 场 / 第 {{ item.paragraph }} 段
-              </div>
-              <ElAlert :type="alertTypeMap[item.level]" :closable="false" class="mb-2">
-                <template #title>
-                  <div class="font-medium">原文内容</div>
-                </template>
-                <div class="text-sm">{{ item.originalText }}</div>
-              </ElAlert>
-              <div class="suggestion text-sm">
-                <span class="font-medium">修改建议：</span>{{ item.suggestion }}
-              </div>
-            </div>
+        <div class="detail-section mb-4">
+          <div class="section-label mb-2">
+            <ArtSvgIcon icon="ri:file-text-line" class="mr-1" />
+            原文片段
+          </div>
+          <div class="section-content snippet-block">
+            {{ currentViolation.snippet }}
+          </div>
+        </div>
+
+        <div v-if="currentViolation.suggestion" class="detail-section">
+          <div class="section-label mb-2">
+            <ArtSvgIcon icon="ri:lightbulb-line" class="mr-1" />
+            修改建议
+          </div>
+          <div class="section-content suggestion-block">
+            {{ currentViolation.suggestion }}
           </div>
         </div>
       </div>
       <template #footer>
         <ElButton @click="detailDialogVisible = false">关闭</ElButton>
-        <ElButton
-          v-if="currentReview && !currentReview.isHandled"
-          type="primary"
-          @click="handleMarkHandled(currentReview)"
-        >
-          标记为已处理
-        </ElButton>
       </template>
     </ElDialog>
   </div>
 </template>
 
 <script setup lang="ts">
-  import { ElMessage, ElMessageBox } from 'element-plus'
-  import type { ColumnOption } from '@/types/component'
+  import { ElMessage } from 'element-plus'
+  import { storeToRefs } from 'pinia'
   import { useScriptProjectStore } from '@/store/modules/script-project'
-  import { fetchGetScriptDetail, fetchReviewScriptContent } from '@/api/script'
-  import { fetchCreateReview, fetchReviewDecision } from '@/api/review'
+  import {
+    fetchGetScriptList,
+    fetchReviewScriptContent,
+    fetchGetScriptEpisodes,
+    fetchGetAiProcessStatus,
+    fetchGetAiProcessDetail
+  } from '@/api/script'
+  import ProjectSwitcher from '@/components/ProjectSwitcher/index.vue'
 
   defineOptions({ name: 'AiReview' })
 
-  type RiskLevel = 'high' | 'medium' | 'low' | 'pass'
+  // ==================== 类型定义 ====================
+  type RiskLevel = 'high' | 'medium' | 'low'
   type ViolationType =
     | 'sensitive'
     | 'political'
@@ -268,86 +313,58 @@
     | 'violence'
     | 'copyright'
     | 'other'
+  type ViolationStatus = 'pending' | 'confirmed' | 'dismissed' | 'fixed'
+  type ProcessStatus = 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'IDLE'
 
   interface ViolationItem {
-    type: ViolationType
-    level: RiskLevel
-    episode: number
-    scene: number
-    paragraph: number
-    originalText: string
-    suggestion: string
+    location: string
+    type: string
+    level: string
+    snippet: string
+    hitWord: string
+    status: string
+    suggestion?: string
   }
 
-  interface ReviewItem {
-    id: string
-    scriptName: string
-    projectName: string
-    level: RiskLevel
+  interface ReviewResult {
+    scriptId: string
     violations: ViolationItem[]
     violationCount: number
-    reviewTime: string
-    isHandled: boolean
+    workflowRunId: string
+    duration: number
+    tokenUsage: number
+    creditsDeducted: number
+    markedVersion: string
+    cleanVersion: string
+    globalWarning: string
   }
 
-  const searchQuery = ref('')
-  const filterLevel = ref<RiskLevel | ''>('')
-  const filterType = ref<ViolationType | ''>('')
-  const detailDialogVisible = ref(false)
-  const currentReview = ref<ReviewItem | null>(null)
-  const loading = ref(false)
+  // AiProcessResult 已迁移至 Api.Script.AiProcessResult 类型定义
 
-  const pagination = reactive({
-    current: 1,
-    size: 10,
-    total: 0
-  })
+  interface ScriptOption {
+    id: string
+    title: string
+  }
 
-  const levelOptions = [
-    { label: '高风险', value: 'high' },
-    { label: '中风险', value: 'medium' },
-    { label: '低风险', value: 'low' },
-    { label: '通过', value: 'pass' }
-  ]
+  interface EpisodeOption {
+    id: string
+    episodeName: string
+  }
 
-  const violationOptions = [
-    { label: '敏感信息', value: 'sensitive' },
-    { label: '政治违规', value: 'political' },
-    { label: '色情低俗', value: 'pornography' },
-    { label: '暴力恐怖', value: 'violence' },
-    { label: '版权风险', value: 'copyright' },
-    { label: '其他', value: 'other' }
-  ]
-
-  const levelTagMap: Record<RiskLevel, 'danger' | 'warning' | 'info' | 'success'> = {
+  // ==================== 映射常量 ====================
+  const levelTagMap: Record<RiskLevel, 'danger' | 'warning' | 'info'> = {
     high: 'danger',
     medium: 'warning',
-    low: 'info',
-    pass: 'success'
-  }
-
-  const alertTypeMap: Record<RiskLevel, 'error' | 'warning' | 'info' | 'success'> = {
-    high: 'error',
-    medium: 'warning',
-    low: 'info',
-    pass: 'success'
+    low: 'info'
   }
 
   const levelLabelMap: Record<RiskLevel, string> = {
     high: '高风险',
     medium: '中风险',
-    low: '低风险',
-    pass: '通过'
+    low: '低风险'
   }
 
-  const levelIconMap: Record<RiskLevel, string> = {
-    high: 'ri:error-warning-line',
-    medium: 'ri:alert-line',
-    low: 'ri:information-line',
-    pass: 'ri:shield-check-line'
-  }
-
-  const violationTagMap: Record<ViolationType, 'danger' | 'warning' | 'info' | 'success'> = {
+  const violationTagMap: Record<ViolationType, 'danger' | 'warning' | 'info'> = {
     sensitive: 'danger',
     political: 'danger',
     pornography: 'danger',
@@ -365,341 +382,405 @@
     other: '其他'
   }
 
-  const violationIconMap: Record<ViolationType, string> = {
-    sensitive: 'ri:lock-line',
-    political: 'ri:government-line',
-    pornography: 'ri:forbid-line',
-    violence: 'ri:sword-line',
-    copyright: 'ri:copyright-line',
-    other: 'ri:question-line'
+  const statusTagMap: Record<ViolationStatus, 'warning' | 'danger' | 'info' | 'success'> = {
+    pending: 'warning',
+    confirmed: 'danger',
+    dismissed: 'info',
+    fixed: 'success'
   }
 
-  const getLevelTag = (level: RiskLevel) => levelTagMap[level]
-  const getLevelLabel = (level: RiskLevel) => levelLabelMap[level]
-  const getLevelIcon = (level: RiskLevel) => levelIconMap[level]
-  const getViolationTag = (type: ViolationType) => violationTagMap[type]
-  const getViolationLabel = (type: ViolationType) => violationLabelMap[type]
-  const getViolationIcon = (type: ViolationType) => violationIconMap[type]
+  const statusLabelMap: Record<ViolationStatus, string> = {
+    pending: '待处理',
+    confirmed: '已确认',
+    dismissed: '已忽略',
+    fixed: '已修复'
+  }
 
-  const columns: ColumnOption[] = [
-    { prop: 'scriptName', label: '剧本信息', minWidth: 240 },
-    { prop: 'level', label: '风险等级', width: 120 },
-    { prop: 'violations', label: '违规类型', width: 140 },
-    { prop: 'violationCount', label: '违规条数', width: 100 },
-    { prop: 'reviewTime', label: '审核时间', width: 160, sortable: true },
-    { prop: 'status', label: '状态', width: 100 },
-    { prop: 'operation', label: '操作', width: 200, fixed: 'right' }
-  ]
+  // ==================== Store ====================
+  const scriptProjectStore = useScriptProjectStore()
+  const { currentProjectId, projectList } = storeToRefs(scriptProjectStore)
 
-  const highRiskCount = computed(() => reviewList.value.filter((i) => i.level === 'high').length)
+  // ==================== 响应式数据 ====================
+  const currentScriptId = ref('')
+  const scriptOptions = ref<ScriptOption[]>([])
+  const episodeOptions = ref<EpisodeOption[]>([])
+  const selectedEpisodeIds = ref<string[]>([])
+
+  const loading = ref(false)
+  const submitting = ref(false)
+  const processStatus = ref<ProcessStatus>('IDLE')
+  const processMessage = ref('')
+
+  const violations = ref<ViolationItem[]>([])
+  const reviewResult = ref<ReviewResult | null>(null)
+
+  // 弹窗
+  const reviewDialogVisible = ref(false)
+  const detailDialogVisible = ref(false)
+  const currentViolation = ref<ViolationItem | null>(null)
+
+  // 轮询定时器
+  let pollTimer: ReturnType<typeof setTimeout> | null = null
+
+  // ==================== 计算属性 ====================
+  const highRiskCount = computed(() => violations.value.filter((v) => v.level === 'high').length)
   const mediumRiskCount = computed(
-    () => reviewList.value.filter((i) => i.level === 'medium').length
+    () => violations.value.filter((v) => v.level === 'medium').length
   )
-  const lowRiskCount = computed(
-    () => reviewList.value.filter((i) => i.level === 'low' || i.level === 'pass').length
-  )
+  const lowRiskCount = computed(() => violations.value.filter((v) => v.level === 'low').length)
 
-  const filteredList = computed(() => {
-    let result = reviewList.value
-
-    if (searchQuery.value) {
-      const q = searchQuery.value.toLowerCase()
-      result = result.filter(
-        (item) =>
-          item.scriptName.toLowerCase().includes(q) || item.projectName.toLowerCase().includes(q)
-      )
+  // ==================== 加载剧本列表 ====================
+  const loadScriptList = async (projectId: string) => {
+    if (!projectId) {
+      scriptOptions.value = []
+      return
     }
-
-    if (filterLevel.value) {
-      result = result.filter((item) => item.level === filterLevel.value)
-    }
-
-    if (filterType.value) {
-      result = result.filter((item) => item.violations.some((v) => v.type === filterType.value))
-    }
-
-    return result
-  })
-
-  const pagedList = computed(() => {
-    const list = filteredList.value
-    const start = (pagination.current - 1) * pagination.size
-    const end = start + pagination.size
-    return list.slice(start, end)
-  })
-
-  watch(filteredList, (list) => {
-    pagination.total = list.length
-  })
-
-  const handleSizeChange = (size: number) => {
-    pagination.size = size
-    pagination.current = 1
-  }
-
-  const handleCurrentChange = (current: number) => {
-    pagination.current = current
-  }
-
-  const handleViewDetail = (row: ReviewItem) => {
-    currentReview.value = row
-    detailDialogVisible.value = true
-  }
-
-  const handleImportForReview = async (data: { file: File; name: string; content?: string }) => {
-    ElMessage.success(`剧本「${data.name}」导入成功，开始AI审核...`)
     try {
-      await fetchCreateReview({
-        scriptName: data.name.replace(/\.[^/.]+$/, ''),
-        projectName: '导入审核',
-        content: data.content || ''
-      } as any)
-      await loadReviewList(currentProjectId.value)
-      ElMessage.success('AI审核完成')
+      const res = await fetchGetScriptList(projectId)
+      const arr = res?.records || []
+      scriptOptions.value = arr.map((s: Api.Script.ScriptListItem) => ({
+        id: String(s.id),
+        title: s.title ?? '未命名剧本'
+      }))
+      // 自动选中当前store中的scriptId或第一个
+      let sid = scriptProjectStore.currentScriptId
+      if (!sid && scriptOptions.value.length > 0) {
+        sid = scriptOptions.value[0].id
+      }
+      if (sid) {
+        currentScriptId.value = sid
+        scriptProjectStore.setCurrentScript(sid)
+        await loadReviewResult(projectId, sid)
+      }
     } catch {
-      ElMessage.error('AI审核提交失败')
+      scriptOptions.value = []
     }
   }
 
-  const projectStore = useScriptProjectStore()
+  // ==================== 加载分集列表 ====================
+  const loadEpisodes = async (projectId: string, scriptId: string) => {
+    if (!projectId || !scriptId) {
+      episodeOptions.value = []
+      return
+    }
+    try {
+      const res = await fetchGetScriptEpisodes(projectId, scriptId)
+      const arr = res ?? []
+      episodeOptions.value = arr.map((ep: Api.Script.Episode) => ({
+        id: String(ep.id),
+        episodeName: ep.episodeName ?? `第${ep.episodeIndex ?? 1}集`
+      }))
+    } catch {
+      episodeOptions.value = []
+    }
+  }
 
-  const currentProjectId = computed(() => projectStore.currentProjectId)
-
-  const projectList = computed(() => projectStore.projectList)
-
-  const reviewList = ref<ReviewItem[]>([])
-
-  const loadReviewList = async (projectId: string) => {
+  // ==================== 加载审核结果 ====================
+  const loadReviewResult = async (projectId: string, scriptId: string) => {
+    if (!projectId || !scriptId) {
+      violations.value = []
+      reviewResult.value = null
+      processStatus.value = 'IDLE'
+      return
+    }
     loading.value = true
     try {
-      const res = await fetchReviewScriptContent(String(projectId), String(projectId))
-      const detail = res as any
-      if (detail?.violations && Array.isArray(detail.violations)) {
-        reviewList.value = detail.violations as ReviewItem[]
-      } else if (detail?.review && Array.isArray(detail.review)) {
-        reviewList.value = detail.review as ReviewItem[]
-      } else if (detail?.reviews && Array.isArray(detail.reviews)) {
-        reviewList.value = detail.reviews as ReviewItem[]
-      } else if (Array.isArray(detail)) {
-        reviewList.value = detail as ReviewItem[]
-      } else {
-        const scriptRes = await fetchGetScriptDetail(String(projectId))
-        const scriptDetail = scriptRes as any
-        if (scriptDetail?.review && Array.isArray(scriptDetail.review)) {
-          reviewList.value = scriptDetail.review as ReviewItem[]
-        } else if (scriptDetail?.reviews && Array.isArray(scriptDetail.reviews)) {
-          reviewList.value = scriptDetail.reviews as ReviewItem[]
-        } else {
-          reviewList.value = []
+      // 使用 GET /api/ai-process/status 查询已有的处理状态
+      const res = await fetchGetAiProcessStatus({
+        type: 'SCRIPT_REVIEW',
+        businessId: scriptId
+      })
+      const record = res as Api.AiProcess.AiProcessRecord | null
+
+      if (!record) {
+        processStatus.value = 'IDLE'
+        violations.value = []
+        reviewResult.value = null
+        return
+      }
+
+      if (record.status === 'PROCESSING') {
+        processStatus.value = 'PROCESSING'
+        processMessage.value = record.message || ''
+        violations.value = []
+        reviewResult.value = null
+        startPolling(projectId, scriptId)
+      } else if (record.status === 'FAILED') {
+        processStatus.value = 'FAILED'
+        processMessage.value = record.message || '审核处理失败'
+        violations.value = []
+        reviewResult.value = null
+      } else if (record.status === 'COMPLETED') {
+        // 获取完整结果数据
+        if (record.resultData) {
+          processStatus.value = 'COMPLETED'
+          const result = record.resultData as unknown as ReviewResult
+          reviewResult.value = result
+          violations.value = result.violations || []
+        } else if (record.id) {
+          // resultData 为空时，通过详情接口获取
+          try {
+            const detail = await fetchGetAiProcessDetail(record.id)
+            if (detail?.resultData) {
+              processStatus.value = 'COMPLETED'
+              const result = detail.resultData as unknown as ReviewResult
+              reviewResult.value = result
+              violations.value = result.violations || []
+            } else {
+              processStatus.value = 'COMPLETED'
+              violations.value = []
+              reviewResult.value = null
+            }
+          } catch {
+            processStatus.value = 'COMPLETED'
+            violations.value = []
+            reviewResult.value = null
+          }
         }
+        stopPolling()
+      } else {
+        processStatus.value = 'IDLE'
+        violations.value = []
+        reviewResult.value = null
       }
     } catch {
-      try {
-        const res = await fetchGetScriptDetail(String(projectId))
-        const detail = res as any
-        if (detail?.review && Array.isArray(detail.review)) {
-          reviewList.value = detail.review as ReviewItem[]
-        } else if (detail?.reviews && Array.isArray(detail.reviews)) {
-          reviewList.value = detail.reviews as ReviewItem[]
-        } else {
-          reviewList.value = []
-        }
-      } catch {
-        reviewList.value = []
-      }
+      processStatus.value = 'IDLE'
+      violations.value = []
+      reviewResult.value = null
     } finally {
-      pagination.current = 1
       loading.value = false
     }
   }
 
+  // ==================== 轮询 ====================
+  const startPolling = (projectId: string, scriptId: string) => {
+    stopPolling()
+    pollTimer = setTimeout(async () => {
+      await loadReviewResult(projectId, scriptId)
+    }, 5000)
+  }
+
+  const stopPolling = () => {
+    if (pollTimer) {
+      clearTimeout(pollTimer)
+      pollTimer = null
+    }
+  }
+
+  // ==================== 事件处理 ====================
   const handleProjectChange = (projectId: string) => {
-    projectStore.setCurrentProject(projectId)
-    loadReviewList(projectId)
+    scriptProjectStore.setCurrentProject(projectId)
+    currentScriptId.value = ''
+    violations.value = []
+    reviewResult.value = null
+    processStatus.value = 'IDLE'
+    stopPolling()
+    loadScriptList(projectId)
   }
 
   const handleProjectRefresh = () => {
-    loadReviewList(currentProjectId.value)
-    ElMessage.success('数据已刷新')
+    if (currentScriptId.value) {
+      loadReviewResult(currentProjectId.value, currentScriptId.value)
+    } else {
+      loadScriptList(currentProjectId.value)
+    }
   }
 
+  const handleScriptChange = (scriptId: string) => {
+    scriptProjectStore.setCurrentScript(scriptId)
+    violations.value = []
+    reviewResult.value = null
+    processStatus.value = 'IDLE'
+    stopPolling()
+    if (scriptId) {
+      loadReviewResult(currentProjectId.value, scriptId)
+      loadEpisodes(currentProjectId.value, scriptId)
+    }
+  }
+
+  // 发起审核
+  const handleStartReview = async () => {
+    if (!currentScriptId.value) {
+      ElMessage.warning('请先选择剧本')
+      return
+    }
+    // 加载分集列表供选择
+    await loadEpisodes(currentProjectId.value, currentScriptId.value)
+    selectedEpisodeIds.value = []
+    reviewDialogVisible.value = true
+  }
+
+  const handleSubmitReview = async () => {
+    if (!currentScriptId.value) {
+      ElMessage.warning('请先选择剧本')
+      return
+    }
+    submitting.value = true
+    try {
+      const episodeIds = selectedEpisodeIds.value.length > 0 ? selectedEpisodeIds.value : undefined
+      // POST 发起审核
+      const res = await fetchReviewScriptContent(
+        currentProjectId.value,
+        currentScriptId.value,
+        episodeIds,
+        true
+      )
+      const result = res as Api.Script.AiProcessResult<Api.Script.ReviewResult>
+      reviewDialogVisible.value = false
+
+      if (result?.status === 'PROCESSING') {
+        processStatus.value = 'PROCESSING'
+        processMessage.value = result.message || ''
+        ElMessage.success('AI审核任务已提交，请稍候...')
+        // 使用 GET 轮询，不再重复 POST
+        startPolling(currentProjectId.value, currentScriptId.value)
+      } else if (result?.status === 'COMPLETED' && result.result) {
+        processStatus.value = 'COMPLETED'
+        reviewResult.value = result.result as unknown as ReviewResult
+        violations.value = (result.result as unknown as ReviewResult).violations || []
+        ElMessage.success('AI审核完成')
+      } else if (result?.status === 'FAILED') {
+        processStatus.value = 'FAILED'
+        processMessage.value = result.message || '审核处理失败'
+        ElMessage.error('AI审核失败')
+      } else {
+        ElMessage.success('AI审核任务已提交')
+        startPolling(currentProjectId.value, currentScriptId.value)
+      }
+    } catch {
+      ElMessage.error('AI审核提交失败')
+    } finally {
+      submitting.value = false
+    }
+  }
+
+  // 查看详情
+  const handleViewDetail = (row: ViolationItem) => {
+    currentViolation.value = row
+    detailDialogVisible.value = true
+  }
+
+  // ==================== 生命周期 ====================
   onMounted(() => {
-    loadReviewList(currentProjectId.value)
+    loadScriptList(currentProjectId.value)
   })
 
-  const handleMarkHandled = (row: ReviewItem) => {
-    ElMessageBox.confirm(`确定要将「${row.scriptName}」标记为已处理吗？`, '确认', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'success'
-    }).then(async () => {
-      try {
-        await fetchReviewDecision({
-          reviewId: String(row.id),
-          decision: 'handled'
-        } as any)
-        const item = reviewList.value.find((i) => i.id === row.id)
-        if (item) item.isHandled = true
-        if (currentReview.value?.id === row.id) {
-          currentReview.value.isHandled = true
-        }
-        ElMessage.success('已标记为已处理')
-      } catch {
-        ElMessage.error('标记处理失败')
-      }
-    })
-  }
+  onUnmounted(() => {
+    stopPolling()
+  })
 </script>
 
 <style lang="scss" scoped>
-  .review-stats {
-    .stat-card {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 16px;
-      background: var(--el-fill-color-lighter);
-      border-radius: var(--custom-radius);
-
-      .stat-icon {
-        width: 44px;
-        height: 44px;
-        border-radius: 10px;
+  .ai-review-page {
+    .review-stats {
+      .stat-card {
         display: flex;
+        gap: 12px;
         align-items: center;
-        justify-content: center;
-        font-size: 22px;
-        flex-shrink: 0;
-      }
+        padding: 16px;
+        background: var(--el-fill-color-lighter);
+        border-radius: var(--custom-radius);
 
-      &.total .stat-icon {
-        background: var(--el-color-primary-light-9);
-        color: var(--el-color-primary);
-      }
-
-      &.high .stat-icon {
-        background: var(--el-color-danger-light-9);
-        color: var(--el-color-danger);
-      }
-
-      &.medium .stat-icon {
-        background: var(--el-color-warning-light-9);
-        color: var(--el-color-warning);
-      }
-
-      &.low .stat-icon {
-        background: var(--el-color-success-light-9);
-        color: var(--el-color-success);
-      }
-
-      .stat-info {
-        .stat-value {
+        .stat-icon {
+          display: flex;
+          flex-shrink: 0;
+          align-items: center;
+          justify-content: center;
+          width: 44px;
+          height: 44px;
           font-size: 22px;
-          font-weight: 600;
+          border-radius: 10px;
+        }
+
+        &.total .stat-icon {
+          color: var(--el-color-primary);
+          background: var(--el-color-primary-light-9);
+        }
+
+        &.high .stat-icon {
+          color: var(--el-color-danger);
+          background: var(--el-color-danger-light-9);
+        }
+
+        &.medium .stat-icon {
+          color: var(--el-color-warning);
+          background: var(--el-color-warning-light-9);
+        }
+
+        &.low .stat-icon {
+          color: var(--el-color-success);
+          background: var(--el-color-success-light-9);
+        }
+
+        .stat-info {
+          .stat-value {
+            font-size: 22px;
+            font-weight: 600;
+            color: var(--el-text-color-primary);
+          }
+
+          .stat-label {
+            margin-top: 2px;
+            font-size: 12px;
+            color: var(--el-text-color-secondary);
+          }
+        }
+      }
+    }
+
+    .snippet-text {
+      font-size: 13px;
+      color: var(--el-text-color-regular);
+    }
+
+    .hit-word {
+      font-weight: 500;
+      color: var(--el-color-danger);
+    }
+
+    .violation-detail {
+      .detail-section {
+        .section-label {
+          display: flex;
+          align-items: center;
+          font-size: 14px;
+          font-weight: 500;
           color: var(--el-text-color-primary);
         }
 
-        .stat-label {
-          font-size: 12px;
-          color: var(--el-text-color-secondary);
-          margin-top: 2px;
+        .section-content {
+          padding: 12px;
+          font-size: 14px;
+          line-height: 1.6;
+          border-radius: var(--custom-radius);
+        }
+
+        .snippet-block {
+          color: var(--el-text-color-regular);
+          background: var(--el-fill-color-lighter);
+          border-left: 3px solid var(--el-color-danger-light-5);
+        }
+
+        .suggestion-block {
+          color: var(--el-text-color-regular);
+          background: var(--el-color-success-light-9);
+          border-left: 3px solid var(--el-color-success-light-5);
         }
       }
     }
-  }
 
-  .script-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
-    background: var(--el-color-primary-light-9);
-    color: var(--el-color-primary);
-    flex-shrink: 0;
-  }
-
-  .scrollable-content {
-    max-height: calc(100vh - 360px);
-    overflow-y: auto;
-    padding-right: 8px;
-
-    &::-webkit-scrollbar {
-      width: 6px;
-    }
-
-    &::-webkit-scrollbar-track {
-      background: transparent;
-    }
-
-    &::-webkit-scrollbar-thumb {
-      background: var(--el-border-color);
-      border-radius: 3px;
-    }
-
-    &::-webkit-scrollbar-thumb:hover {
-      background: var(--el-text-color-secondary);
-    }
-  }
-
-  .violation-detail {
-    max-height: 60vh;
-    overflow-y: auto;
-    padding-right: 8px;
-
-    &::-webkit-scrollbar {
-      width: 6px;
-    }
-
-    &::-webkit-scrollbar-track {
-      background: transparent;
-    }
-
-    &::-webkit-scrollbar-thumb {
-      background: var(--el-border-color);
-      border-radius: 3px;
-    }
-
-    &::-webkit-scrollbar-thumb:hover {
-      background: var(--el-text-color-secondary);
-    }
-
-    .violation-list {
+    .processing-state {
       display: flex;
-      flex-direction: column;
-      gap: 16px;
+      align-items: center;
+      justify-content: center;
+      min-height: 300px;
     }
 
-    .violation-item {
-      padding: 16px;
-      background: var(--el-fill-color-lighter);
-      border-radius: var(--custom-radius);
-      border-left: 4px solid var(--el-color-info);
-
-      &.high {
-        border-left-color: var(--el-color-danger);
-      }
-
-      &.medium {
-        border-left-color: var(--el-color-warning);
-      }
-
-      &.low {
-        border-left-color: var(--el-color-info);
-      }
-
-      .violation-header {
-        color: var(--el-text-color-primary);
-      }
-
-      .suggestion {
-        color: var(--el-text-color-secondary);
-        padding: 8px;
-        background: var(--el-bg-color);
-        border-radius: var(--custom-radius);
-      }
+    .empty-state {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 300px;
     }
   }
 </style>

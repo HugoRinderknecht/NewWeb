@@ -67,7 +67,6 @@
             </ElSelect>
           </template>
         </ElTableColumn>
-        <ElTableColumn prop="department" label="部门" width="140" />
         <ElTableColumn prop="joinTime" label="加入时间" width="160" sortable />
         <ElTableColumn label="状态" width="100">
           <template #default="scope">
@@ -81,18 +80,20 @@
             <ElButton type="primary" link size="small" @click="handleEdit(scope.row)">
               编辑
             </ElButton>
-            <ElButton
-              v-if="scope.row.status === 'active'"
-              type="warning"
-              link
-              size="small"
-              @click="handleDisable(scope.row)"
-            >
-              停用
-            </ElButton>
-            <ElButton v-else type="success" link size="small" @click="handleEnable(scope.row)">
-              启用
-            </ElButton>
+            <ElTooltip content="该功能尚未与后端打通" placement="top">
+              <span>
+                <ElButton
+                  v-if="scope.row.status === 'active'"
+                  type="warning"
+                  link
+                  size="small"
+                  disabled
+                >
+                  停用
+                </ElButton>
+                <ElButton v-else type="success" link size="small" disabled> 启用 </ElButton>
+              </span>
+            </ElTooltip>
             <ElButton type="danger" link size="small" @click="handleRemove(scope.row)">
               移除
             </ElButton>
@@ -110,11 +111,8 @@
       destroy-on-close
     >
       <ElForm ref="inviteFormRef" :model="inviteForm" :rules="inviteRules" label-width="80px">
-        <ElFormItem label="邮箱" prop="email">
-          <ElInput v-model="inviteForm.email" placeholder="请输入成员邮箱" />
-        </ElFormItem>
-        <ElFormItem label="姓名" prop="name">
-          <ElInput v-model="inviteForm.name" placeholder="请输入成员姓名" />
+        <ElFormItem label="用户ID" prop="userId">
+          <ElInput v-model="inviteForm.userId" placeholder="请输入用户ID" />
         </ElFormItem>
         <ElFormItem label="角色" prop="role">
           <ElSelect v-model="inviteForm.role" placeholder="请选择角色" style="width: 100%">
@@ -125,17 +123,6 @@
               :value="item.value"
             />
           </ElSelect>
-        </ElFormItem>
-        <ElFormItem label="部门">
-          <ElInput v-model="inviteForm.department" placeholder="请输入部门名称" />
-        </ElFormItem>
-        <ElFormItem label="邀请语">
-          <ElInput
-            v-model="inviteForm.message"
-            type="textarea"
-            :rows="3"
-            placeholder="请输入邀请语（可选）"
-          />
         </ElFormItem>
       </ElForm>
       <template #footer>
@@ -155,11 +142,8 @@
       destroy-on-close
     >
       <ElForm ref="editFormRef" :model="editForm" :rules="editRules" label-width="80px">
-        <ElFormItem label="姓名" prop="name">
-          <ElInput v-model="editForm.name" placeholder="请输入成员姓名" />
-        </ElFormItem>
-        <ElFormItem label="邮箱" prop="email">
-          <ElInput v-model="editForm.email" placeholder="请输入成员邮箱" />
+        <ElFormItem label="成员">
+          <ElInput :model-value="editForm.name" disabled />
         </ElFormItem>
         <ElFormItem label="角色" prop="role">
           <ElSelect v-model="editForm.role" placeholder="请选择角色" style="width: 100%">
@@ -170,9 +154,6 @@
               :value="item.value"
             />
           </ElSelect>
-        </ElFormItem>
-        <ElFormItem label="部门">
-          <ElInput v-model="editForm.department" placeholder="请输入部门名称" />
         </ElFormItem>
       </ElForm>
       <template #footer>
@@ -190,25 +171,26 @@
   import type { FormInstance, FormRules } from 'element-plus'
   import type { ColumnOption } from '@/types/component'
   import {
-    fetchGetProjectMembers,
-    fetchAddProjectMember,
-    fetchRemoveProjectMember,
-    fetchUpdateProjectMemberRole
-  } from '@/api/project'
+    useProjectMembers,
+    useAddProjectMember,
+    useUpdateProjectMemberRole,
+    useRemoveProjectMember
+  } from '@/api/queries/project'
+  import { logger } from '@/utils/logger'
   import { useRoute } from 'vue-router'
 
   defineOptions({ name: 'ProjectMember' })
 
   const route = useRoute()
-  const projectId = computed(() => (route.params.id as string) || '1')
+  const projectId = computed(() => ((route.query.id || route.params.id) as string) || undefined)
 
   interface MemberItem {
-    id: number
+    id: string
+    userId: string
     name: string
     email: string
     avatar: string
     role: string
-    department: string
     joinTime: string
     status: 'active' | 'disabled'
   }
@@ -229,70 +211,74 @@
   })
 
   const roleOptions = [
-    { label: '项目经理', value: 'manager' },
+    { label: '管理员', value: 'admin' },
     { label: '导演', value: 'director' },
-    { label: '美术', value: 'artist' },
-    { label: '动画师', value: 'animator' },
-    { label: '剪辑师', value: 'editor' },
-    { label: '音效师', value: 'sound' },
-    { label: '实习生', value: 'intern' },
-    { label: '观察员', value: 'viewer' }
+    { label: '分镜师', value: 'storyboard' },
+    { label: '美术师', value: 'art' },
+    { label: '视频师', value: 'video' },
+    { label: '音频师', value: 'audio' },
+    { label: '剪辑师', value: 'edit' }
   ]
 
   const roleLabelMap: Record<string, string> = {
-    manager: '项目经理',
+    admin: '管理员',
     director: '导演',
-    artist: '美术',
-    animator: '动画师',
-    editor: '剪辑师',
-    sound: '音效师',
-    intern: '实习生',
-    viewer: '观察员'
+    storyboard: '分镜师',
+    art: '美术师',
+    video: '视频师',
+    audio: '音频师',
+    edit: '剪辑师'
   }
 
-  const memberList = ref<MemberItem[]>([])
+  // ==================== vue-query: 成员列表查询 ====================
+  const memberQueryParams = computed<Api.Project.MemberSearchParams>(() => ({
+    keyword: searchQuery.value || undefined,
+    page: pagination.current,
+    pageSize: pagination.size
+  }))
 
-  const loadMemberList = async () => {
-    try {
-      const res = await fetchGetProjectMembers(projectId.value)
-      const list = (res as any)?.records || (res as any)?.list || res || []
-      memberList.value = list as MemberItem[]
-    } catch {
-      ElMessage.error('获取成员列表失败')
+  const { data } = useProjectMembers(projectId, memberQueryParams)
+
+  const memberList = computed<MemberItem[]>(() => {
+    const records = data.value?.records ?? []
+    return records.map((item: Api.Project.ProjectMemberVO) => ({
+      id: String(item.id),
+      userId: String(item.userId),
+      name: item.userName || '',
+      email: item.email || '',
+      avatar: item.avatar || '',
+      role: item.role || 'storyboard',
+      joinTime: item.joinTime || '',
+      status: item.status || 'active'
+    }))
+  })
+
+  // 同步后端分页总数
+  watch(
+    () => data.value?.total,
+    (total) => {
+      if (total !== undefined) pagination.total = total
     }
-  }
+  )
+
+  // 搜索关键字变化时重置到第一页
+  watch(searchQuery, () => {
+    pagination.current = 1
+  })
 
   const columns: ColumnOption[] = [
     { type: 'selection' },
     { prop: 'name', label: '成员信息', minWidth: 240 },
     { prop: 'role', label: '角色', width: 160 },
-    { prop: 'department', label: '部门', width: 140 },
     { prop: 'joinTime', label: '加入时间', width: 160, sortable: true },
     { prop: 'status', label: '状态', width: 100 },
     { prop: 'operation', label: '操作', width: 180, fixed: 'right' }
   ]
 
+  // 仅保留角色本地过滤（后端不支持角色筛选），搜索已由后端 keyword 参数处理
   const filteredMembers = computed(() => {
-    let result = memberList.value
-
-    if (searchQuery.value) {
-      const q = searchQuery.value.toLowerCase()
-      result = result.filter(
-        (item) => item.name.toLowerCase().includes(q) || item.email.toLowerCase().includes(q)
-      )
-    }
-
-    if (filterRole.value) {
-      result = result.filter((item) => item.role === filterRole.value)
-    }
-
-    const start = (pagination.current - 1) * pagination.size
-    const end = start + pagination.size
-    return result.slice(start, end)
-  })
-
-  watch(filteredMembers, (list) => {
-    pagination.total = list.length
+    if (!filterRole.value) return memberList.value
+    return memberList.value.filter((item) => item.role === filterRole.value)
   })
 
   const handleSelectionChange = (selection: MemberItem[]) => {
@@ -308,84 +294,85 @@
     pagination.current = current
   }
 
+  // ==================== vue-query: Mutations ====================
+  const updateRoleMutation = useUpdateProjectMemberRole()
+  const addMutation = useAddProjectMember()
+  const removeMutation = useRemoveProjectMember()
+
   const handleRoleChange = async (row: MemberItem, val: string) => {
+    if (!projectId.value) return
     try {
-      await fetchUpdateProjectMemberRole(projectId.value, {
-        userId: String(row.id),
-        role: val
+      await updateRoleMutation.mutateAsync({
+        projectId: projectId.value,
+        params: {
+          memberId: String(row.id),
+          role: val as Api.Project.ProjectMemberRole
+        }
       })
       ElMessage.success(`已将 ${row.name} 的角色修改为 ${roleLabelMap[val] || val}`)
+      logger.info(
+        'ProjectMember',
+        'handleRoleChange',
+        `角色修改成功: ${row.name} → ${roleLabelMap[val]}`
+      )
     } catch {
       ElMessage.error('角色修改失败')
-      await loadMemberList()
+      logger.error('ProjectMember', 'handleRoleChange', '角色修改失败')
     }
   }
 
   // 邀请成员
   const inviteForm = reactive({
-    email: '',
-    name: '',
-    role: '',
-    department: '',
-    message: ''
+    userId: '',
+    role: 'storyboard' as Api.Project.ProjectMemberRole
   })
 
   const inviteRules: FormRules = {
-    email: [
-      { required: true, message: '请输入邮箱', trigger: 'blur' },
-      { type: 'email', message: '请输入正确的邮箱格式', trigger: 'blur' }
-    ],
-    name: [{ required: true, message: '请输入姓名', trigger: 'blur' }],
+    userId: [{ required: true, message: '请输入用户ID', trigger: 'blur' }],
     role: [{ required: true, message: '请选择角色', trigger: 'change' }]
   }
 
   const handleInvite = () => {
     inviteDialogVisible.value = true
     Object.assign(inviteForm, {
-      email: '',
-      name: '',
-      role: '',
-      department: '',
-      message: ''
+      userId: '',
+      role: 'storyboard' as Api.Project.ProjectMemberRole
     })
   }
 
   const handleInviteSubmit = async () => {
     if (!inviteFormRef.value) return
+    const currentProjectId = projectId.value
+    if (!currentProjectId) return
     await inviteFormRef.value.validate(async (valid) => {
       if (valid) {
         try {
-          await fetchAddProjectMember(projectId.value, {
-            name: inviteForm.name,
-            email: inviteForm.email,
-            role: inviteForm.role,
-            department: inviteForm.department || '未分配'
+          await addMutation.mutateAsync({
+            projectId: currentProjectId,
+            params: {
+              userId: inviteForm.userId,
+              role: inviteForm.role
+            }
           })
-          ElMessage.success('邀请已发送')
+          ElMessage.success('成员已添加')
           inviteDialogVisible.value = false
-          await loadMemberList()
+          logger.info('ProjectMember', 'handleInviteSubmit', `成员添加成功: ${inviteForm.userId}`)
         } catch {
-          ElMessage.error('邀请发送失败')
+          ElMessage.error('添加成员失败')
+          logger.error('ProjectMember', 'handleInviteSubmit', '添加成员失败')
         }
       }
     })
   }
 
-  // 编辑成员
+  // 编辑成员 - 仅支持角色变更
   const editForm = reactive({
-    id: 0,
+    id: '',
     name: '',
-    email: '',
-    role: '',
-    department: ''
+    role: '' as Api.Project.ProjectMemberRole
   })
 
   const editRules: FormRules = {
-    name: [{ required: true, message: '请输入姓名', trigger: 'blur' }],
-    email: [
-      { required: true, message: '请输入邮箱', trigger: 'blur' },
-      { type: 'email', message: '请输入正确的邮箱格式', trigger: 'blur' }
-    ],
     role: [{ required: true, message: '请选择角色', trigger: 'change' }]
   }
 
@@ -393,76 +380,54 @@
     Object.assign(editForm, {
       id: row.id,
       name: row.name,
-      email: row.email,
-      role: row.role,
-      department: row.department
+      role: row.role
     })
     editDialogVisible.value = true
   }
 
   const handleEditSubmit = async () => {
     if (!editFormRef.value) return
+    const currentProjectId = projectId.value
+    if (!currentProjectId) return
     await editFormRef.value.validate(async (valid) => {
       if (valid) {
         try {
-          const member = memberList.value.find((item) => item.id === editForm.id)
-          if (member) {
-            member.name = editForm.name
-            member.email = editForm.email
-            member.role = editForm.role
-            member.department = editForm.department
-          }
-          ElMessage.success('成员信息已更新')
+          await updateRoleMutation.mutateAsync({
+            projectId: currentProjectId,
+            params: {
+              memberId: editForm.id,
+              role: editForm.role
+            }
+          })
+          ElMessage.success('成员角色已更新')
           editDialogVisible.value = false
-          await loadMemberList()
+          logger.info('ProjectMember', 'handleEditSubmit', `成员角色更新成功: ${editForm.id}`)
         } catch {
-          ElMessage.error('更新成员信息失败')
+          ElMessage.error('更新成员角色失败')
+          logger.error('ProjectMember', 'handleEditSubmit', '更新成员角色失败')
         }
       }
     })
   }
 
-  const handleDisable = async (row: MemberItem) => {
-    try {
-      await ElMessageBox.confirm(`确定要停用成员 ${row.name} 吗？`, '停用确认', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      })
-      const member = memberList.value.find((item) => item.id === row.id)
-      if (member) member.status = 'disabled'
-      ElMessage.success('成员已停用')
-      await loadMemberList()
-    } catch {
-      // 用户取消
-    }
-  }
-
-  const handleEnable = async (row: MemberItem) => {
-    const member = memberList.value.find((item) => item.id === row.id)
-    if (member) member.status = 'active'
-    ElMessage.success('成员已启用')
-    await loadMemberList()
-  }
-
   const handleRemove = async (row: MemberItem) => {
+    if (!projectId.value) return
     try {
       await ElMessageBox.confirm(`确定要将 ${row.name} 从项目中移除吗？`, '移除确认', {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
         type: 'error'
       })
-      await fetchRemoveProjectMember(projectId.value, String(row.id))
+      await removeMutation.mutateAsync({
+        projectId: projectId.value,
+        memberId: String(row.id)
+      })
       ElMessage.success('成员已移除')
-      await loadMemberList()
+      logger.info('ProjectMember', 'handleRemove', `成员移除成功: ${row.name}`)
     } catch {
       // 用户取消或请求失败
     }
   }
-
-  onMounted(() => {
-    loadMemberList()
-  })
 </script>
 
 <style lang="scss" scoped>

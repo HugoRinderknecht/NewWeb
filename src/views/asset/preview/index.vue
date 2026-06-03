@@ -201,6 +201,7 @@
 <script setup lang="ts">
   import { ElMessage } from 'element-plus'
   import { fetchGetProjectAssets, fetchGetAssetDetail, fetchDownloadAsset } from '@/api/asset'
+  import { useProjectDataStore } from '@/store/modules/project-data'
 
   defineOptions({ name: 'AssetPreview' })
 
@@ -223,6 +224,10 @@
 
   const router = useRouter()
   const route = useRoute()
+  const projectStore = useProjectDataStore()
+  const projectId = computed(
+    () => (route.params.projectId as string) || projectStore.currentProjectId || ''
+  )
 
   const searchQuery = ref('')
   const filterType = ref<AssetType | ''>('')
@@ -283,9 +288,8 @@
   const assetList = ref<AssetItem[]>([])
 
   const loadAssetList = async () => {
-    const projectId = (route.params.projectId as string) || '1'
     try {
-      const data = await fetchGetProjectAssets(projectId)
+      const data = await fetchGetProjectAssets(projectId.value)
       if (data) {
         assetList.value = Array.isArray(data) ? data : (data as any).records || []
       }
@@ -350,9 +354,8 @@
   const handleOpenDetail = async (item: AssetItem) => {
     currentAsset.value = item
     detailVisible.value = true
-    const projectId = (route.params.projectId as string) || '1'
     try {
-      const res = await fetchGetAssetDetail(projectId, String(item.id))
+      const res = await fetchGetAssetDetail(projectId.value, String(item.id))
       if (res) {
         currentAsset.value = { ...item, ...(res as any) }
       }
@@ -362,9 +365,8 @@
   }
 
   const handleDownload = async (item: AssetItem) => {
-    const projectId = (route.params.projectId as string) || '1'
     try {
-      const blob = await fetchDownloadAsset(projectId, String(item.id))
+      const blob = await fetchDownloadAsset(projectId.value, String(item.id))
       if (blob) {
         const url = window.URL.createObjectURL(blob as any)
         const a = document.createElement('a')
@@ -406,16 +408,16 @@
   }
 
   .preview-item {
-    cursor: pointer;
-    border-radius: var(--custom-radius);
     overflow: hidden;
+    cursor: pointer;
     background: var(--el-bg-color);
     border: 1px solid var(--el-border-color-lighter);
+    border-radius: var(--custom-radius);
     transition: all 0.2s;
 
     &:hover {
+      box-shadow: 0 4px 12px rgb(0 0 0 / 10%);
       transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 
       .preview-overlay {
         opacity: 1;
@@ -439,13 +441,13 @@
       background: var(--el-fill-color-lighter);
 
       &.video-placeholder {
-        background: var(--el-color-success-light-9);
         color: var(--el-color-success);
+        background: var(--el-color-success-light-9);
       }
 
       &.audio-placeholder {
-        background: var(--el-color-warning-light-9);
         color: var(--el-color-warning);
+        background: var(--el-color-warning-light-9);
       }
     }
   }
@@ -453,10 +455,10 @@
   .preview-overlay {
     position: absolute;
     inset: 0;
-    background: rgba(0, 0, 0, 0.6);
     display: flex;
     align-items: flex-end;
     padding: 12px;
+    background: rgb(0 0 0 / 60%);
     opacity: 0;
     transition: opacity 0.2s;
 
@@ -464,12 +466,12 @@
       color: #fff;
 
       .preview-name {
+        margin-bottom: 6px;
+        overflow: hidden;
         font-size: 14px;
         font-weight: 600;
-        margin-bottom: 6px;
-        white-space: nowrap;
-        overflow: hidden;
         text-overflow: ellipsis;
+        white-space: nowrap;
       }
     }
   }
@@ -486,13 +488,13 @@
 
   .detail-content {
     .detail-preview {
-      height: 400px;
-      background: var(--el-fill-color-lighter);
-      border-radius: var(--custom-radius);
-      overflow: hidden;
       display: flex;
       align-items: center;
       justify-content: center;
+      height: 400px;
+      overflow: hidden;
+      background: var(--el-fill-color-lighter);
+      border-radius: var(--custom-radius);
 
       .detail-image {
         width: 100%;

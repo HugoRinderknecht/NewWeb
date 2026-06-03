@@ -1,0 +1,1027 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "OpenAPI definition - 工作流-管理",
+    "version": "v0",
+    "description": "模块: 工作流-管理"
+  },
+  "servers": [
+    {
+      "url": "http://server.bsuniversal.cn:10006",
+      "description": "Generated server url"
+    }
+  ],
+  "tags": [
+    {
+      "name": "工作流-管理",
+      "description": "Dify工作流配置CRUD、连接测试、API Key加密管理(平台管理员)"
+    }
+  ],
+  "paths": {
+    "/api/admin/dify-workflows/{id}": {
+      "get": {
+        "tags": ["工作流-管理"],
+        "summary": "查询工作流详情",
+        "description": "获取工作流完整配置,API Key 脱敏返回",
+        "operationId": "getDetail_3",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultDifyWorkflowDetailVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["工作流-管理"],
+        "summary": "更新工作流",
+        "description": "更新工作流配置,仅更新传入的非 null 字段",
+        "operationId": "update_2",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DifyWorkflowUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultDifyWorkflowVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["工作流-管理"],
+        "summary": "删除工作流",
+        "description": "软删除工作流,已删除的工作流不影响历史调用记录",
+        "operationId": "delete_3",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/dify-workflows": {
+      "get": {
+        "tags": ["工作流-管理"],
+        "summary": "查询工作流列表",
+        "description": "分页查询工作流列表,支持按分类/类型/启用状态筛选和关键词搜索",
+        "operationId": "list_4",
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/DifyWorkflowQueryRequest"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "页码",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            },
+            "example": 1
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "每页大小",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            },
+            "example": 20
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultPageResultDifyWorkflowVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["工作流-管理"],
+        "summary": "创建工作流",
+        "description": "创建新的 Dify 工作流配置,API Key 明文传入后加密存储",
+        "operationId": "create_2",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DifyWorkflowCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultDifyWorkflowVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/dify-workflows/test-connection": {
+      "post": {
+        "tags": ["工作流-管理"],
+        "summary": "测试工作流连通性",
+        "description": "检测指定工作流的 Dify API Key 是否有效、端点是否可达，不会触发实际工作流执行",
+        "operationId": "testConnection",
+        "parameters": [
+          {
+            "name": "workflowCode",
+            "in": "query",
+            "description": "工作流编码",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultDifyWorkflowTestConnectionResultVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/dify-workflows/test-all-connections": {
+      "post": {
+        "tags": ["工作流-管理"],
+        "summary": "批量测试连通性",
+        "description": "检测所有已启用工作流的 Dify API 连通性，逐个检测互不影响",
+        "operationId": "testAllConnections",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultDifyWorkflowTestAllResultVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/dify-workflows/{id}/status": {
+      "patch": {
+        "tags": ["工作流-管理"],
+        "summary": "启用/禁用工作流",
+        "description": "切换工作流的启用状态,禁用后执行接口将返回 9403 错误",
+        "operationId": "updateStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DifyWorkflowStatusRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ResultDifyWorkflowDetailVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/DifyWorkflowDetailVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "ResultObject": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "type": "object"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "DifyWorkflowUpdateRequest": {
+        "type": "object",
+        "properties": {
+          "workflowCode": {
+            "maxLength": 64,
+            "minLength": 0,
+            "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$",
+            "type": "string",
+            "description": "工作流唯一编码",
+            "example": "image_to_3d_generation_v2"
+          },
+          "workflowName": {
+            "maxLength": 128,
+            "minLength": 0,
+            "type": "string",
+            "description": "工作流显示名称",
+            "example": "图片转3D场景生成 v2"
+          },
+          "workflowType": {
+            "maxLength": 32,
+            "minLength": 0,
+            "type": "string",
+            "description": "工作流类型",
+            "example": "image/video",
+            "enum": [
+              "text/text",
+              "text/image",
+              "image/image",
+              "image/video",
+              "text/video",
+              "audio/text",
+              "text/audio",
+              "multi-modal"
+            ]
+          },
+          "difyApiKey": {
+            "maxLength": 256,
+            "minLength": 0,
+            "type": "string",
+            "description": "Dify API Key(明文传入,更新时重新加密存储)"
+          },
+          "difyBaseUrl": {
+            "maxLength": 256,
+            "minLength": 0,
+            "type": "string",
+            "description": "Dify API 基础地址",
+            "example": "https://api.dify.ai/v1"
+          },
+          "inputSchema": {
+            "type": "string",
+            "description": "输入参数 JSON Schema 字符串"
+          },
+          "outputSchema": {
+            "type": "string",
+            "description": "输出参数 JSON Schema 字符串"
+          },
+          "description": {
+            "maxLength": 2000,
+            "minLength": 0,
+            "type": "string",
+            "description": "工作流描述"
+          },
+          "icon": {
+            "maxLength": 256,
+            "minLength": 0,
+            "type": "string",
+            "description": "图标 URL 或标识"
+          },
+          "category": {
+            "maxLength": 64,
+            "minLength": 0,
+            "type": "string",
+            "description": "分类",
+            "example": "视频生成",
+            "enum": ["文案生成", "图像处理", "视频生成", "音频处理"]
+          },
+          "timeoutSeconds": {
+            "minimum": 1,
+            "type": "integer",
+            "description": "超时时间(秒)",
+            "format": "int32",
+            "example": 600
+          },
+          "maxRetries": {
+            "minimum": 0,
+            "type": "integer",
+            "description": "最大重试次数",
+            "format": "int32",
+            "example": 2
+          },
+          "extraConfig": {
+            "type": "string",
+            "description": "扩展配置 JSON 字符串"
+          }
+        },
+        "description": "更新工作流请求"
+      },
+      "ResultDifyWorkflowVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/DifyWorkflowVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "ResultVoid": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "type": "object"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "DifyWorkflowQueryRequest": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "description": "按分类筛选",
+            "example": "视频生成"
+          },
+          "workflowType": {
+            "type": "string",
+            "description": "按类型筛选",
+            "example": "image/video"
+          },
+          "isEnabled": {
+            "type": "integer",
+            "description": "是否启用: 0-禁用, 1-启用",
+            "format": "int32",
+            "example": 1
+          },
+          "keyword": {
+            "type": "string",
+            "description": "关键词搜索(匹配名称/编码/描述)",
+            "example": "3D"
+          }
+        },
+        "description": "工作流列表查询请求"
+      },
+      "ResultPageResultDifyWorkflowVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PageResultDifyWorkflowVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "DifyWorkflowCreateRequest": {
+        "required": [
+          "difyApiKey",
+          "inputSchema",
+          "outputSchema",
+          "workflowCode",
+          "workflowName",
+          "workflowType"
+        ],
+        "type": "object",
+        "properties": {
+          "workflowCode": {
+            "maxLength": 64,
+            "minLength": 0,
+            "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$",
+            "type": "string",
+            "description": "工作流唯一编码",
+            "example": "image_to_3d_generation"
+          },
+          "workflowName": {
+            "maxLength": 128,
+            "minLength": 0,
+            "type": "string",
+            "description": "工作流显示名称",
+            "example": "图片转3D场景生成"
+          },
+          "workflowType": {
+            "maxLength": 32,
+            "minLength": 0,
+            "type": "string",
+            "description": "工作流类型",
+            "example": "image/video",
+            "enum": [
+              "text/text",
+              "text/image",
+              "image/image",
+              "image/video",
+              "text/video",
+              "audio/text",
+              "text/audio",
+              "multi-modal"
+            ]
+          },
+          "difyApiKey": {
+            "maxLength": 256,
+            "minLength": 0,
+            "type": "string",
+            "description": "Dify 分配的 API Key(明文传入,后端加密存储)",
+            "example": "app-xxxxxxxxxxxxxxxxxxxxxxxx"
+          },
+          "difyBaseUrl": {
+            "maxLength": 256,
+            "minLength": 0,
+            "type": "string",
+            "description": "Dify API 基础地址,支持私有部署替换",
+            "example": "https://api.dify.ai/v1"
+          },
+          "inputSchema": {
+            "type": "string",
+            "description": "输入参数 JSON Schema 字符串,定义工作流需要的输入字段、类型、校验规则"
+          },
+          "outputSchema": {
+            "type": "string",
+            "description": "输出参数 JSON Schema 字符串"
+          },
+          "description": {
+            "maxLength": 2000,
+            "minLength": 0,
+            "type": "string",
+            "description": "工作流描述",
+            "example": "将参考图片转换为3D漫游视频"
+          },
+          "icon": {
+            "maxLength": 256,
+            "minLength": 0,
+            "type": "string",
+            "description": "图标 URL 或标识",
+            "example": "icon-video"
+          },
+          "category": {
+            "maxLength": 64,
+            "minLength": 0,
+            "type": "string",
+            "description": "分类",
+            "example": "视频生成",
+            "enum": ["文案生成", "图像处理", "视频生成", "音频处理"]
+          },
+          "timeoutSeconds": {
+            "minimum": 1,
+            "type": "integer",
+            "description": "超时时间(秒),默认300",
+            "format": "int32",
+            "example": 600
+          },
+          "maxRetries": {
+            "minimum": 0,
+            "type": "integer",
+            "description": "最大重试次数,默认3",
+            "format": "int32",
+            "example": 2
+          },
+          "extraConfig": {
+            "type": "string",
+            "description": "扩展配置 JSON 字符串(如 supported_models, price_per_run)"
+          }
+        },
+        "description": "创建工作流请求"
+      },
+      "ResultDifyWorkflowTestConnectionResultVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/DifyWorkflowTestConnectionResultVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "ResultDifyWorkflowTestAllResultVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/DifyWorkflowTestAllResultVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "DifyWorkflowStatusRequest": {
+        "required": ["isEnabled"],
+        "type": "object",
+        "properties": {
+          "isEnabled": {
+            "type": "boolean",
+            "description": "是否启用(true-启用 false-禁用)",
+            "example": true
+          }
+        },
+        "description": "工作流状态变更请求"
+      }
+    }
+  }
+}

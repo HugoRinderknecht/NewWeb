@@ -19,8 +19,10 @@
               </template>
             </ElInput>
             <ElSelect v-model="statusFilter" placeholder="状态筛选" clearable style="width: 140px">
-              <ElOption label="已完成" value="completed" />
-              <ElOption label="渲染中" value="rendering" />
+              <ElOption label="已完成" value="succeeded" />
+              <ElOption label="生成中" value="running" />
+              <ElOption label="排队中" value="queued" />
+              <ElOption label="失败" value="failed" />
             </ElSelect>
             <ElButton
               type="primary"
@@ -56,13 +58,16 @@
                   <ArtSvgIcon icon="ri:video-line" class="text-4xl" />
                 </div>
                 <div
-                  v-if="video.status === 'completed'"
+                  v-if="video.status === 'succeeded'"
                   class="cover-overlay flex-cc"
                   @click.stop="handlePlayVideo(video)"
                 >
                   <ArtSvgIcon icon="ri:play-circle-line" class="text-5xl text-white" />
                 </div>
-                <div v-if="video.status === 'rendering'" class="cover-overlay rendering flex-cc">
+                <div
+                  v-if="video.status === 'running' || video.status === 'queued'"
+                  class="cover-overlay rendering flex-cc"
+                >
                   <ElIcon class="is-loading">
                     <ArtSvgIcon icon="ri:loader-4-line" class="text-3xl text-white" />
                   </ElIcon>
@@ -70,40 +75,41 @@
                 <div class="cover-check" v-if="selectedIds.includes(video.id)">
                   <ArtSvgIcon icon="ri:check-fill" class="text-white" />
                 </div>
-                <div class="cover-duration">{{ video.duration }}</div>
+                <div class="cover-duration">{{ video.duration }}s</div>
               </div>
               <div class="video-info">
                 <div class="flex-cb mb-2">
-                  <span class="video-name font-medium">{{ video.name }}</span>
-                  <ElTag :type="video.status === 'completed' ? 'success' : 'warning'" size="small">
-                    {{ video.status === 'completed' ? '已完成' : '渲染中' }}
+                  <span class="video-name font-medium">{{ video.name || video.id }}</span>
+                  <ElTag
+                    :type="
+                      video.status === 'succeeded'
+                        ? 'success'
+                        : video.status === 'failed'
+                          ? 'danger'
+                          : 'warning'
+                    "
+                    size="small"
+                  >
+                    {{ statusLabelMap[video.status] || video.status }}
                   </ElTag>
                 </div>
                 <div class="video-meta mb-2">
                   <ElSpace wrap>
                     <span class="text-xs text-g-400">{{ video.resolution }}</span>
-                    <span class="text-xs text-g-400">{{ video.format }}</span>
-                    <span class="text-xs text-g-400">{{ video.size }}</span>
+                    <span class="text-xs text-g-400">{{ video.ratio }}</span>
+                    <span class="text-xs text-g-400" v-if="video.fileSize">{{
+                      video.fileSize
+                    }}</span>
                   </ElSpace>
                 </div>
-                <div class="video-source mb-2">
+                <div class="video-source mb-2" v-if="video.storyboardId">
                   <span class="text-xs text-g-400">来源分镜：</span>
-                  <ElTag
-                    v-for="shot in video.sourceShots.slice(0, 2)"
-                    :key="shot"
-                    size="small"
-                    class="mr-1"
-                  >
-                    {{ shot }}
-                  </ElTag>
-                  <ElTag v-if="video.sourceShots.length > 2" size="small" type="info">
-                    +{{ video.sourceShots.length - 2 }}
-                  </ElTag>
+                  <ElTag size="small">{{ video.storyboardId }}</ElTag>
                 </div>
                 <div class="video-actions flex-cb">
                   <ElSpace>
                     <ElButton
-                      v-if="video.status === 'completed'"
+                      v-if="video.status === 'succeeded'"
                       type="primary"
                       link
                       size="small"
@@ -113,7 +119,7 @@
                       播放
                     </ElButton>
                     <ElButton
-                      v-if="video.status === 'completed'"
+                      v-if="video.status === 'succeeded'"
                       type="primary"
                       link
                       size="small"
@@ -153,15 +159,18 @@
     <!-- 视频播放弹窗 -->
     <ElDialog
       v-model="playVisible"
-      :title="currentVideo?.name"
+      :title="currentVideo?.name || currentVideo?.id"
       width="900px"
       align-center
       destroy-on-close
     >
       <div v-if="currentVideo" class="video-player">
-        <div class="player-screen flex-cc">
+        <div v-if="currentVideo.videoUrl" class="player-screen">
+          <video :src="currentVideo.videoUrl" controls class="w-full" style="max-height: 480px" />
+        </div>
+        <div v-else class="player-screen flex-cc">
           <ArtSvgIcon icon="ri:video-line" class="text-6xl text-g-400" />
-          <p class="mt-4 text-g-400">视频播放组件占位</p>
+          <p class="mt-4 text-g-400">视频加载中...</p>
         </div>
         <div class="player-controls flex-cb mt-4">
           <ElSpace>
@@ -176,14 +185,9 @@
           </ElSpace>
           <ElSpace>
             <ElSelect v-model="downloadResolution" placeholder="分辨率" style="width: 140px">
+              <ElOption label="480p" value="480p" />
+              <ElOption label="720p" value="720p" />
               <ElOption label="1080p" value="1080p" />
-              <ElOption label="2K" value="2k" />
-              <ElOption label="4K" value="4k" />
-            </ElSelect>
-            <ElSelect v-model="downloadFormat" placeholder="格式" style="width: 100px">
-              <ElOption label="MP4" value="mp4" />
-              <ElOption label="MOV" value="mov" />
-              <ElOption label="AVI" value="avi" />
             </ElSelect>
           </ElSpace>
         </div>
@@ -209,13 +213,9 @@
                   <p class="mt-2 text-g-400">分镜预览占位</p>
                 </div>
               </div>
-              <div class="compare-shots">
-                <div class="text-sm font-medium mb-2">包含镜头</div>
-                <ElSpace wrap>
-                  <ElTag v-for="shot in currentVideo.sourceShots" :key="shot" size="small">
-                    {{ shot }}
-                  </ElTag>
-                </ElSpace>
+              <div class="compare-shots" v-if="currentVideo.storyboardId">
+                <div class="text-sm font-medium mb-2">分镜ID</div>
+                <ElTag size="small">{{ currentVideo.storyboardId }}</ElTag>
               </div>
             </div>
           </ElCol>
@@ -223,7 +223,15 @@
             <div class="compare-panel">
               <div class="compare-label">生成视频</div>
               <div class="compare-content flex-cc">
-                <div class="text-center">
+                <div v-if="currentVideo.videoUrl" class="text-center w-full">
+                  <video
+                    :src="currentVideo.videoUrl"
+                    controls
+                    class="w-full"
+                    style="max-height: 280px"
+                  />
+                </div>
+                <div v-else class="text-center">
                   <ArtSvgIcon icon="ri:video-line" class="text-5xl text-g-400" />
                   <p class="mt-2 text-g-400">视频预览占位</p>
                 </div>
@@ -231,12 +239,12 @@
               <div class="compare-params">
                 <div class="text-sm font-medium mb-2">生成参数</div>
                 <ElDescriptions :column="2" border size="small">
-                  <ElDescriptionsItem label="风格">{{ currentVideo.style }}</ElDescriptionsItem>
+                  <ElDescriptionsItem label="模型">{{ currentVideo.model }}</ElDescriptionsItem>
                   <ElDescriptionsItem label="分辨率">{{
                     currentVideo.resolution
                   }}</ElDescriptionsItem>
-                  <ElDescriptionsItem label="时长">{{ currentVideo.duration }}</ElDescriptionsItem>
-                  <ElDescriptionsItem label="格式">{{ currentVideo.format }}</ElDescriptionsItem>
+                  <ElDescriptionsItem label="时长">{{ currentVideo.duration }}s</ElDescriptionsItem>
+                  <ElDescriptionsItem label="宽高比">{{ currentVideo.ratio }}</ElDescriptionsItem>
                 </ElDescriptions>
               </div>
             </div>
@@ -255,42 +263,34 @@
     >
       <ElForm :model="regenerateForm" label-width="100px">
         <ElAlert type="info" :closable="false" class="mb-4">
-          基于任务「{{ currentVideo?.name }}」的参数重新生成，您可以调整以下参数
+          基于任务「{{ currentVideo?.name || currentVideo?.id }}」的参数重新生成，您可以调整以下参数
         </ElAlert>
-        <ElFormItem label="视频风格">
-          <ElSelect v-model="regenerateForm.style" placeholder="请选择风格" class="w-full">
-            <ElOption label="写实风格" value="写实风格" />
-            <ElOption label="卡通风格" value="卡通风格" />
-            <ElOption label="3D动画" value="3D动画" />
-            <ElOption label="水墨风格" value="水墨风格" />
+        <ElFormItem label="模型">
+          <ElSelect v-model="regenerateForm.model" placeholder="请选择模型" class="w-full">
+            <ElOption label="Seedance 2.0 (标准)" value="doubao-seedance-2-0-260128" />
+            <ElOption label="Seedance 2.0 Fast (快速)" value="doubao-seedance-2-0-fast-260128" />
           </ElSelect>
         </ElFormItem>
         <ElFormItem label="分辨率">
           <ElSelect v-model="regenerateForm.resolution" placeholder="请选择分辨率" class="w-full">
-            <ElOption label="1920x1080 (1080p)" value="1080p" />
-            <ElOption label="2560x1440 (2K)" value="2k" />
-            <ElOption label="3840x2160 (4K)" value="4k" />
+            <ElOption label="480p" value="480p" />
+            <ElOption label="720p" value="720p" />
+            <ElOption label="1080p" value="1080p" />
           </ElSelect>
         </ElFormItem>
-        <ElFormItem label="帧率">
-          <ElSelect v-model="regenerateForm.fps" placeholder="请选择帧率" class="w-full">
-            <ElOption label="24fps" value="24fps" />
-            <ElOption label="30fps" value="30fps" />
-            <ElOption label="60fps" value="60fps" />
+        <ElFormItem label="宽高比">
+          <ElSelect v-model="regenerateForm.ratio" placeholder="请选择宽高比" class="w-full">
+            <ElOption label="自适应" value="adaptive" />
+            <ElOption label="16:9" value="16:9" />
+            <ElOption label="4:3" value="4:3" />
+            <ElOption label="1:1" value="1:1" />
+            <ElOption label="3:4" value="3:4" />
+            <ElOption label="9:16" value="9:16" />
+            <ElOption label="21:9" value="21:9" />
           </ElSelect>
         </ElFormItem>
-        <ElFormItem label="视频格式">
-          <ElSelect v-model="regenerateForm.format" placeholder="请选择格式" class="w-full">
-            <ElOption label="MP4" value="MP4" />
-            <ElOption label="MOV" value="MOV" />
-            <ElOption label="AVI" value="AVI" />
-          </ElSelect>
-        </ElFormItem>
-        <ElFormItem label="画质等级">
-          <ElSlider v-model="regenerateForm.quality" :min="1" :max="5" :step="1" show-stops />
-          <div class="text-xs text-g-400 text-right">{{
-            qualityLabelMap[regenerateForm.quality]
-          }}</div>
+        <ElFormItem label="时长(秒)">
+          <ElInputNumber v-model="regenerateForm.duration" :min="4" :max="15" class="w-full" />
         </ElFormItem>
       </ElForm>
       <template #footer>
@@ -301,54 +301,6 @@
         </ElButton>
       </template>
     </ElDialog>
-
-    <!-- 历史生成记录弹窗 -->
-    <ElDialog
-      v-model="historyVisible"
-      title="历史生成记录"
-      width="800px"
-      align-center
-      destroy-on-close
-    >
-      <ElTable :data="historyList" style="width: 100%">
-        <ElTableColumn label="版本" width="80">
-          <template #default="{ row }">
-            <ElTag size="small" :type="row.isCurrent ? 'success' : 'info'">
-              {{ row.version }}
-            </ElTag>
-          </template>
-        </ElTableColumn>
-        <ElTableColumn label="生成时间" prop="time" width="160" />
-        <ElTableColumn label="参数" min-width="200">
-          <template #default="{ row }">
-            <ElSpace wrap>
-              <ElTag size="small" type="info">{{ row.style }}</ElTag>
-              <ElTag size="small" type="info">{{ row.resolution }}</ElTag>
-              <ElTag size="small" type="info">{{ row.fps }}</ElTag>
-            </ElSpace>
-          </template>
-        </ElTableColumn>
-        <ElTableColumn label="状态" width="100">
-          <template #default="{ row }">
-            <ElTag :type="row.status === 'completed' ? 'success' : 'danger'" size="small">
-              {{ row.status === 'completed' ? '成功' : '失败' }}
-            </ElTag>
-          </template>
-        </ElTableColumn>
-        <ElTableColumn label="操作" width="180" fixed="right">
-          <template #default="{ row }">
-            <ElSpace>
-              <ElButton type="primary" link size="small" @click="handleUseHistoryParams(row)">
-                复用参数
-              </ElButton>
-              <ElButton type="primary" link size="small" @click="handlePreviewHistory(row)">
-                预览
-              </ElButton>
-            </ElSpace>
-          </template>
-        </ElTableColumn>
-      </ElTable>
-    </ElDialog>
   </div>
 </template>
 
@@ -358,35 +310,21 @@
     fetchGetVideoTaskList,
     fetchGetVideoTaskDetail,
     fetchGetVideoTaskResult,
-    fetchSubmitVideoGeneration
+    fetchCancelVideoTask,
+    fetchSubmitVideoGeneration,
+    fetchPreviewVideoGeneration
   } from '@/api/video'
 
   defineOptions({ name: 'VideoGenPreview' })
 
-  type VideoStatus = 'completed' | 'rendering'
+  type VideoStatus = Api.Video.VideoTaskStatus
 
-  interface VideoItem {
-    id: string
-    name: string
-    status: VideoStatus
-    duration: string
-    resolution: string
-    format: string
-    size: string
-    style: string
-    sourceShots: string[]
-    fps: string
-  }
+  type VideoItem = Api.Video.VideoTask
 
-  interface HistoryItem {
-    version: string
-    time: string
-    style: string
-    resolution: string
-    fps: string
-    status: 'completed' | 'failed'
-    isCurrent?: boolean
-  }
+  const route = useRoute()
+  const projectId = computed(
+    () => (route.params.projectId as string) || (route.query.projectId as string) || ''
+  )
 
   const searchQuery = ref('')
   const statusFilter = ref<VideoStatus | ''>('')
@@ -394,11 +332,9 @@
   const playVisible = ref(false)
   const compareVisible = ref(false)
   const regenerateVisible = ref(false)
-  const historyVisible = ref(false)
   const regenerating = ref(false)
   const currentVideo = ref<VideoItem | null>(null)
-  const downloadResolution = ref('1080p')
-  const downloadFormat = ref('mp4')
+  const downloadResolution = ref('720p')
 
   const pagination = reactive({
     current: 1,
@@ -406,20 +342,20 @@
     total: 0
   })
 
-  const qualityLabelMap: Record<number, string> = {
-    1: '低画质',
-    2: '较低画质',
-    3: '标准画质',
-    4: '高画质',
-    5: '超高画质'
+  const statusLabelMap: Record<string, string> = {
+    queued: '排队中',
+    running: '生成中',
+    succeeded: '已完成',
+    failed: '失败',
+    cancelled: '已取消',
+    expired: '已过期'
   }
 
   const regenerateForm = reactive({
-    style: '写实风格',
-    resolution: '1080p',
-    fps: '24fps',
-    format: 'MP4',
-    quality: 3
+    model: 'doubao-seedance-2-0-260128',
+    resolution: '720p',
+    ratio: 'adaptive',
+    duration: 5
   })
 
   const videoList = ref<VideoItem[]>([])
@@ -432,21 +368,11 @@
         current: pagination.current,
         size: pagination.size,
         keyword: searchQuery.value || undefined,
-        status: statusFilter.value || undefined
+        status: statusFilter.value || undefined,
+        projectId: projectId.value || undefined
       })
       if (res) {
-        videoList.value = (res.records || []).map((item: any) => ({
-          id: item.id,
-          name: item.name,
-          status: item.status === 'completed' ? 'completed' : 'rendering',
-          duration: item.duration || '-',
-          resolution: item.resolution || '-',
-          format: item.format || '-',
-          size: item.size || '-',
-          style: item.style || '-',
-          sourceShots: item.sourceShots || [],
-          fps: item.fps || '-'
-        })) as VideoItem[]
+        videoList.value = (res.records || []) as VideoItem[]
         pagination.total = res.total || 0
       }
     } catch {
@@ -456,41 +382,15 @@
     }
   }
 
-  const historyList = ref<HistoryItem[]>([
-    {
-      version: 'V3',
-      time: '2024-06-19 14:20:00',
-      style: '水墨风格',
-      resolution: '2K',
-      fps: '24fps',
-      status: 'completed',
-      isCurrent: true
-    },
-    {
-      version: 'V2',
-      time: '2024-06-18 10:15:00',
-      style: '写实风格',
-      resolution: '1080p',
-      fps: '24fps',
-      status: 'completed'
-    },
-    {
-      version: 'V1',
-      time: '2024-06-17 16:30:00',
-      style: '卡通风格',
-      resolution: '1080p',
-      fps: '30fps',
-      status: 'failed'
-    }
-  ])
-
   const selectedIds = computed(() => selectedVideos.value.map((v) => v.id))
 
   const filteredVideos = computed(() => {
     let result = videoList.value
     if (searchQuery.value) {
       const q = searchQuery.value.toLowerCase()
-      result = result.filter((item) => item.name.toLowerCase().includes(q))
+      result = result.filter(
+        (item) => (item.name || '').toLowerCase().includes(q) || item.id.toLowerCase().includes(q)
+      )
     }
     if (statusFilter.value) {
       result = result.filter((item) => item.status === statusFilter.value)
@@ -522,9 +422,18 @@
     try {
       const detail = await fetchGetVideoTaskDetail(video.id)
       if (detail) {
-        currentVideo.value = { ...video, ...detail } as VideoItem
+        currentVideo.value = { ...video, ...detail }
       } else {
         currentVideo.value = video
+      }
+      // 获取视频URL
+      if (video.status === 'succeeded') {
+        const result = await fetchGetVideoTaskResult(video.id, {
+          resolution: downloadResolution.value
+        })
+        if (result?.videoUrl && currentVideo.value) {
+          currentVideo.value = { ...currentVideo.value, videoUrl: result.videoUrl }
+        }
       }
     } catch {
       currentVideo.value = video
@@ -532,16 +441,37 @@
     playVisible.value = true
   }
 
-  const handleDownload = (video: VideoItem) => {
-    ElMessage.success(
-      `开始下载「${video.name}」(${downloadResolution.value}.${downloadFormat.value})`
-    )
+  const handleDownload = async (video: VideoItem | null) => {
+    if (!video) return
+    try {
+      const result = await fetchGetVideoTaskResult(video.id, {
+        resolution: downloadResolution.value
+      })
+      if (result?.videoUrl) {
+        window.open(result.videoUrl, '_blank')
+        ElMessage.success(`开始下载「${video.name || video.id}」`)
+      } else {
+        ElMessage.warning('暂无可下载的视频文件')
+      }
+    } catch {
+      ElMessage.error('获取下载链接失败')
+    }
   }
 
-  const handleBatchDownload = () => {
+  const handleBatchDownload = async () => {
     if (selectedVideos.value.length === 0) {
       ElMessage.warning('请先选择视频')
       return
+    }
+    for (const video of selectedVideos.value) {
+      try {
+        const result = await fetchGetVideoTaskResult(video.id)
+        if (result?.videoUrl) {
+          window.open(result.videoUrl, '_blank')
+        }
+      } catch {
+        // 跳过失败的
+      }
     }
     ElMessage.success(`开始批量下载 ${selectedVideos.value.length} 个视频`)
     selectedVideos.value = []
@@ -551,8 +481,8 @@
     currentVideo.value = video
     try {
       const result = await fetchGetVideoTaskResult(video.id)
-      if (result) {
-        currentVideo.value = { ...video, ...(result as any) } as VideoItem
+      if (result?.videoUrl && currentVideo.value) {
+        currentVideo.value = { ...currentVideo.value, videoUrl: result.videoUrl }
       }
     } catch {
       // 使用本地数据
@@ -562,11 +492,10 @@
 
   const handleRegenerate = (video: VideoItem) => {
     currentVideo.value = video
-    regenerateForm.style = video.style
-    regenerateForm.resolution = video.resolution
-    regenerateForm.fps = video.fps
-    regenerateForm.format = video.format
-    regenerateForm.quality = 3
+    regenerateForm.model = video.model || 'doubao-seedance-2-0-260128'
+    regenerateForm.resolution = video.resolution || '720p'
+    regenerateForm.ratio = video.ratio || 'adaptive'
+    regenerateForm.duration = video.duration || 5
     regenerateVisible.value = true
   }
 
@@ -574,13 +503,27 @@
     if (!currentVideo.value) return
     regenerating.value = true
     try {
-      await fetchSubmitVideoGeneration({
-        name: currentVideo.value.name,
-        style: regenerateForm.style,
+      // 1. 先调用预览接口获取 previewToken
+      const previewParams: Api.Video.VideoPreviewParams = {
+        model: regenerateForm.model,
         resolution: regenerateForm.resolution,
-        fps: regenerateForm.fps,
-        format: regenerateForm.format
-      } as any)
+        ratio: regenerateForm.ratio,
+        duration: regenerateForm.duration,
+        projectId: currentVideo.value.projectId,
+        storyboardId: currentVideo.value.storyboardId
+      }
+      const previewResult = await fetchPreviewVideoGeneration(previewParams)
+      const previewToken = previewResult?.previewToken
+      if (!previewToken) {
+        ElMessage.error('预览确认失败，未获取到 previewToken')
+        return
+      }
+
+      // 2. 提交生成任务
+      await fetchSubmitVideoGeneration({
+        ...previewParams,
+        previewToken
+      })
       regenerateVisible.value = false
       ElMessage.success('重新生成任务已提交')
       await loadVideoList()
@@ -591,33 +534,25 @@
     }
   }
 
-  const handleDelete = (video: VideoItem) => {
-    ElMessageBox.confirm(`确定要删除视频「${video.name}」吗？`, '删除确认', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'error'
-    }).then(() => {
+  const handleDelete = async (video: VideoItem) => {
+    try {
+      await ElMessageBox.confirm(`确定要删除视频「${video.name || video.id}」吗？`, '删除确认', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'error'
+      })
+      await fetchCancelVideoTask(video.id)
       videoList.value = videoList.value.filter((v) => v.id !== video.id)
       selectedVideos.value = selectedVideos.value.filter((v) => v.id !== video.id)
       ElMessage.success('删除成功')
-    })
+    } catch {
+      // 用户取消
+    }
   }
 
   onMounted(() => {
     loadVideoList()
   })
-
-  const handleUseHistoryParams = (row: HistoryItem) => {
-    regenerateForm.style = row.style
-    regenerateForm.resolution = row.resolution
-    regenerateForm.fps = row.fps
-    ElMessage.success('已复用历史参数')
-    historyVisible.value = false
-  }
-
-  const handlePreviewHistory = (row: HistoryItem) => {
-    ElMessage.info(`预览历史版本 ${row.version}`)
-  }
 </script>
 
 <style lang="scss" scoped>
@@ -626,9 +561,9 @@
   }
 
   .video-card {
+    position: relative;
     cursor: pointer;
     transition: all 0.2s;
-    position: relative;
 
     &:hover {
       transform: translateY(-2px);
@@ -652,28 +587,25 @@
     .cover-placeholder {
       width: 100%;
       height: 100%;
-      background: var(--el-fill-color-lighter);
       color: var(--el-text-color-secondary);
+      background: var(--el-fill-color-lighter);
     }
 
     .cover-overlay {
       position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.4);
+      inset: 0;
+      cursor: pointer;
+      background: rgb(0 0 0 / 40%);
       opacity: 0;
       transition: opacity 0.2s;
-      cursor: pointer;
 
       &:hover {
         opacity: 1;
       }
 
       &.rendering {
+        background: rgb(0 0 0 / 30%);
         opacity: 1;
-        background: rgba(0, 0, 0, 0.3);
       }
     }
 
@@ -681,24 +613,24 @@
       position: absolute;
       top: 8px;
       right: 8px;
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      background: var(--el-color-primary);
       display: flex;
       align-items: center;
       justify-content: center;
+      width: 24px;
+      height: 24px;
+      background: var(--el-color-primary);
+      border-radius: 50%;
     }
 
     .cover-duration {
       position: absolute;
-      bottom: 8px;
       right: 8px;
+      bottom: 8px;
       padding: 2px 8px;
-      border-radius: 4px;
-      background: rgba(0, 0, 0, 0.6);
-      color: white;
       font-size: 12px;
+      color: white;
+      background: rgb(0 0 0 / 60%);
+      border-radius: 4px;
     }
   }
 
@@ -706,11 +638,11 @@
     padding: 12px;
 
     .video-name {
+      overflow: hidden;
       font-size: 14px;
       color: var(--el-text-color-primary);
-      white-space: nowrap;
-      overflow: hidden;
       text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .video-meta {
@@ -720,9 +652,9 @@
 
     .video-source {
       display: flex;
-      align-items: center;
       flex-wrap: wrap;
       gap: 4px;
+      align-items: center;
     }
 
     .video-actions {
@@ -734,10 +666,8 @@
   .video-player {
     .player-screen {
       width: 100%;
-      height: 480px;
       background: var(--el-fill-color-lighter);
       border-radius: var(--custom-radius);
-      flex-direction: column;
     }
 
     .player-controls {
@@ -748,19 +678,19 @@
   .compare-view {
     .compare-panel {
       .compare-label {
+        margin-bottom: 12px;
         font-size: 14px;
         font-weight: 500;
-        margin-bottom: 12px;
         color: var(--el-text-color-primary);
       }
 
       .compare-content {
+        flex-direction: column;
         width: 100%;
         height: 300px;
+        margin-bottom: 16px;
         background: var(--el-fill-color-lighter);
         border-radius: var(--custom-radius);
-        margin-bottom: 16px;
-        flex-direction: column;
       }
 
       .compare-shots,

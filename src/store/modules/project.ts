@@ -8,6 +8,7 @@ import {
 } from '@/api/project'
 import { fetchGetProjectEpisodes } from '@/api/script'
 import { fetchGetCharacterList } from '@/api/character'
+import { useProjectDataStore } from './project-data'
 
 export const useProjectStore = defineStore(
   'project',
@@ -21,7 +22,9 @@ export const useProjectStore = defineStore(
     const projectConfig = ref<Record<string, string>>({})
     const loading = ref(false)
 
-    const currentProjectName = computed(() => currentProject.value?.projectName || currentProject.value?.name || '')
+    const currentProjectName = computed(
+      () => currentProject.value?.projectName || currentProject.value?.name || ''
+    )
     const currentEpisodes = computed(() => episodes.value)
 
     const loadProjectList = async (params?: any) => {
@@ -96,6 +99,10 @@ export const useProjectStore = defineStore(
 
     const setCurrentProject = (projectId: string) => {
       currentProjectId.value = projectId
+      const projectDataStore = useProjectDataStore()
+      if (projectDataStore.currentProjectId !== projectId) {
+        projectDataStore.setCurrentProject(projectId)
+      }
     }
 
     const clearCurrentProject = () => {

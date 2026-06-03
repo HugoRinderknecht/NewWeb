@@ -21,8 +21,10 @@
             <ElSelect v-model="statusFilter" placeholder="状态筛选" clearable style="width: 140px">
               <ElOption label="排队中" value="queued" />
               <ElOption label="生成中" value="running" />
-              <ElOption label="已完成" value="completed" />
+              <ElOption label="已完成" value="succeeded" />
               <ElOption label="失败" value="failed" />
+              <ElOption label="已取消" value="cancelled" />
+              <ElOption label="已过期" value="expired" />
             </ElSelect>
             <ElButton type="primary" @click="handleCreateTask">
               <ArtSvgIcon icon="ri:add-line" class="mr-1" />
@@ -61,8 +63,8 @@
                 <ArtSvgIcon :icon="statusIconMap[(row as TaskItem).status]" />
               </div>
               <div>
-                <div class="font-medium">{{ row.name }}</div>
-                <div class="text-xs text-g-400">{{ row.id }}</div>
+                <div class="font-medium">{{ (row as TaskItem).name || (row as TaskItem).id }}</div>
+                <div class="text-xs text-g-400">{{ (row as TaskItem).id }}</div>
               </div>
             </div>
           </template>
@@ -79,42 +81,55 @@
           <template #default="{ row }">
             <div class="flex items-center gap-2">
               <ElProgress
-                :percentage="row.progress"
+                :percentage="(row as TaskItem).progress"
                 :status="
-                  row.status === 'failed'
+                  (row as TaskItem).status === 'failed'
                     ? 'exception'
-                    : row.status === 'completed'
+                    : (row as TaskItem).status === 'succeeded'
                       ? 'success'
                       : undefined
                 "
                 :stroke-width="6"
                 class="flex-1"
               />
-              <span class="text-xs text-g-400 w-10 text-right">{{ row.progress }}%</span>
+              <span class="text-xs text-g-400 w-10 text-right"
+                >{{ (row as TaskItem).progress }}%</span
+              >
             </div>
           </template>
         </ElTableColumn>
         <ElTableColumn label="参数摘要" min-width="200">
           <template #default="{ row }">
             <ElSpace wrap>
-              <ElTag size="small" type="info">{{ row.style }}</ElTag>
-              <ElTag size="small" type="info">{{ row.resolution }}</ElTag>
-              <ElTag size="small" type="info">{{ row.shots }}个镜头</ElTag>
+              <ElTag size="small" type="info">{{ (row as TaskItem).resolution }}</ElTag>
+              <ElTag size="small" type="info">{{ (row as TaskItem).ratio }}</ElTag>
+              <ElTag size="small" type="info">{{ (row as TaskItem).duration }}s</ElTag>
+              <ElTag size="small" type="info">{{
+                (row as TaskItem).model === 'doubao-seedance-2-0-fast-260128' ? 'Fast' : '标准'
+              }}</ElTag>
             </ElSpace>
           </template>
         </ElTableColumn>
         <ElTableColumn label="优先级" width="100">
           <template #default="{ row }">
-            <ElTag :type="priorityTagMap[(row as TaskItem).priority]" size="small">
-              {{ priorityLabelMap[(row as TaskItem).priority] }}
+            <ElTag
+              :type="
+                (row as TaskItem).priority >= 7
+                  ? 'danger'
+                  : (row as TaskItem).priority >= 4
+                    ? 'primary'
+                    : 'info'
+              "
+              size="small"
+            >
+              {{ (row as TaskItem).priority }}
             </ElTag>
           </template>
         </ElTableColumn>
         <ElTableColumn label="提交时间" width="160">
           <template #default="{ row }">
-            <div class="text-sm">{{ row.submitTime }}</div>
-            <div class="text-xs text-g-400">{{
-              row.estimatedTime ? `预计 ${row.estimatedTime}` : '-'
+            <div class="text-sm">{{
+              (row as TaskItem).submitTime || (row as TaskItem).createdAt
             }}</div>
           </template>
         </ElTableColumn>
@@ -122,33 +137,48 @@
           <template #default="{ row }">
             <ElSpace>
               <ElButton
-                v-if="row.status === 'running' || row.status === 'queued'"
+                v-if="
+                  (row as TaskItem).status === 'running' || (row as TaskItem).status === 'queued'
+                "
                 type="primary"
                 link
                 size="small"
-                @click="handleViewProgress(row)"
+                @click="handleViewProgress(row as TaskItem)"
               >
                 查看进度
               </ElButton>
               <ElButton
-                v-if="row.status === 'completed'"
+                v-if="(row as TaskItem).status === 'succeeded'"
                 type="primary"
                 link
                 size="small"
-                @click="handlePreview(row)"
+                @click="handlePreview(row as TaskItem)"
               >
                 预览
               </ElButton>
               <ElButton
-                v-if="row.status === 'failed'"
+                v-if="(row as TaskItem).status === 'failed'"
                 type="warning"
                 link
                 size="small"
-                @click="handleRetry(row)"
+                @click="handleRetry(row as TaskItem)"
               >
                 重试
               </ElButton>
-              <ElButton type="danger" link size="small" @click="handleDelete(row)">删除</ElButton>
+              <ElButton
+                v-if="
+                  (row as TaskItem).status === 'running' || (row as TaskItem).status === 'queued'
+                "
+                type="warning"
+                link
+                size="small"
+                @click="handleCancel(row as TaskItem)"
+              >
+                取消
+              </ElButton>
+              <ElButton type="danger" link size="small" @click="handleDelete(row as TaskItem)"
+                >删除</ElButton
+              >
             </ElSpace>
           </template>
         </ElTableColumn>
@@ -176,71 +206,69 @@
       destroy-on-close
     >
       <ElForm :model="createForm" label-width="100px" :rules="createRules" ref="createFormRef">
-        <ElFormItem label="任务名称" prop="name" required>
-          <ElInput v-model="createForm.name" placeholder="请输入任务名称" />
-        </ElFormItem>
         <ElFormItem label="选择分镜">
           <ElSelect
-            v-model="createForm.shots"
-            multiple
+            v-model="createForm.storyboardId"
             placeholder="请选择要生成的分镜"
             class="w-full"
           >
             <ElOption
               v-for="shot in shotOptions"
               :key="shot.id"
-              :label="shot.name"
+              :label="shot.title || shot.name"
               :value="shot.id"
             />
           </ElSelect>
         </ElFormItem>
         <ElRow :gutter="16">
           <ElCol :span="12">
-            <ElFormItem label="视频风格">
-              <ElSelect v-model="createForm.style" placeholder="请选择风格" class="w-full">
-                <ElOption label="写实风格" value="写实风格" />
-                <ElOption label="卡通风格" value="卡通风格" />
-                <ElOption label="3D动画" value="3D动画" />
-                <ElOption label="水墨风格" value="水墨风格" />
+            <ElFormItem label="模型">
+              <ElSelect v-model="createForm.model" placeholder="请选择模型" class="w-full">
+                <ElOption label="Seedance 2.0 (标准)" value="doubao-seedance-2-0-260128" />
+                <ElOption
+                  label="Seedance 2.0 Fast (快速)"
+                  value="doubao-seedance-2-0-fast-260128"
+                />
               </ElSelect>
             </ElFormItem>
           </ElCol>
           <ElCol :span="12">
             <ElFormItem label="分辨率">
               <ElSelect v-model="createForm.resolution" placeholder="请选择分辨率" class="w-full">
-                <ElOption label="1920x1080 (1080p)" value="1080p" />
-                <ElOption label="2560x1440 (2K)" value="2k" />
-                <ElOption label="3840x2160 (4K)" value="4k" />
+                <ElOption label="480p" value="480p" />
+                <ElOption label="720p" value="720p" />
+                <ElOption label="1080p" value="1080p" />
               </ElSelect>
             </ElFormItem>
           </ElCol>
         </ElRow>
         <ElRow :gutter="16">
           <ElCol :span="12">
-            <ElFormItem label="帧率">
-              <ElSelect v-model="createForm.fps" placeholder="请选择帧率" class="w-full">
-                <ElOption label="24fps" value="24fps" />
-                <ElOption label="30fps" value="30fps" />
-                <ElOption label="60fps" value="60fps" />
+            <ElFormItem label="宽高比">
+              <ElSelect v-model="createForm.ratio" placeholder="请选择宽高比" class="w-full">
+                <ElOption label="自适应" value="adaptive" />
+                <ElOption label="16:9" value="16:9" />
+                <ElOption label="4:3" value="4:3" />
+                <ElOption label="1:1" value="1:1" />
+                <ElOption label="3:4" value="3:4" />
+                <ElOption label="9:16" value="9:16" />
+                <ElOption label="21:9" value="21:9" />
               </ElSelect>
             </ElFormItem>
           </ElCol>
           <ElCol :span="12">
-            <ElFormItem label="视频格式">
-              <ElSelect v-model="createForm.format" placeholder="请选择格式" class="w-full">
-                <ElOption label="MP4" value="MP4" />
-                <ElOption label="MOV" value="MOV" />
-                <ElOption label="AVI" value="AVI" />
-              </ElSelect>
+            <ElFormItem label="时长(秒)">
+              <ElInputNumber v-model="createForm.duration" :min="4" :max="15" class="w-full" />
             </ElFormItem>
           </ElCol>
         </ElRow>
-        <ElFormItem label="优先级">
-          <ElRadioGroup v-model="createForm.priority">
-            <ElRadio value="high">高</ElRadio>
-            <ElRadio value="normal">普通</ElRadio>
-            <ElRadio value="low">低</ElRadio>
-          </ElRadioGroup>
+        <ElFormItem label="提示词">
+          <ElInput
+            v-model="createForm.prompt"
+            type="textarea"
+            :rows="3"
+            placeholder="视频描述文本"
+          />
         </ElFormItem>
         <ElFormItem label="备注">
           <ElInput
@@ -270,34 +298,28 @@
     fetchGetVideoTaskDetail,
     fetchGetVideoTaskResult,
     fetchCancelVideoTask,
-    fetchSubmitVideoGeneration
+    fetchSubmitVideoGeneration,
+    fetchPreviewVideoGeneration
   } from '@/api/video'
+  import { fetchGetStoryboardList } from '@/api/storyboard'
 
   defineOptions({ name: 'VideoGenTask' })
 
-  type TaskStatus = 'queued' | 'running' | 'completed' | 'failed'
-  type Priority = 'high' | 'normal' | 'low'
+  type TaskStatus = Api.Video.VideoTaskStatus
 
-  interface TaskItem {
-    id: string
-    name: string
-    status: TaskStatus
-    progress: number
-    style: string
-    resolution: string
-    shots: number
-    priority: Priority
-    submitTime: string
-    estimatedTime: string
-    remark: string
-  }
+  type TaskItem = Api.Video.VideoTask
 
   interface ShotOption {
-    id: number
+    id: string
     name: string
+    title: string
   }
 
   const router = useRouter()
+  const route = useRoute()
+  const projectId = computed(
+    () => (route.params.projectId as string) || (route.query.projectId as string) || ''
+  )
   const searchQuery = ref('')
   const statusFilter = ref<TaskStatus | ''>('')
   const loading = ref(false)
@@ -311,62 +333,62 @@
     total: 0
   })
 
-  const statusTagMap: Record<TaskStatus, 'primary' | 'success' | 'warning' | 'danger'> = {
+  const statusTagMap: Record<TaskStatus, 'primary' | 'success' | 'warning' | 'danger' | 'info'> = {
     queued: 'warning',
     running: 'primary',
-    completed: 'success',
-    failed: 'danger'
+    succeeded: 'success',
+    failed: 'danger',
+    cancelled: 'info',
+    expired: 'info'
   }
 
   const statusLabelMap: Record<TaskStatus, string> = {
     queued: '排队中',
     running: '生成中',
-    completed: '已完成',
-    failed: '失败'
+    succeeded: '已完成',
+    failed: '失败',
+    cancelled: '已取消',
+    expired: '已过期'
   }
 
   const statusIconMap: Record<TaskStatus, string> = {
     queued: 'ri:time-line',
     running: 'ri:loader-4-line',
-    completed: 'ri:check-line',
-    failed: 'ri:close-line'
-  }
-
-  const priorityTagMap: Record<Priority, 'danger' | 'primary' | 'info'> = {
-    high: 'danger',
-    normal: 'primary',
-    low: 'info'
-  }
-
-  const priorityLabelMap: Record<Priority, string> = {
-    high: '高',
-    normal: '普通',
-    low: '低'
+    succeeded: 'ri:check-line',
+    failed: 'ri:close-line',
+    cancelled: 'ri:close-circle-line',
+    expired: 'ri:timer-line'
   }
 
   const createForm = reactive({
-    name: '',
-    shots: [] as number[],
-    style: '写实风格',
-    resolution: '1080p',
-    fps: '24fps',
-    format: 'MP4',
-    priority: 'normal' as Priority,
+    storyboardId: '',
+    model: 'doubao-seedance-2-0-260128',
+    resolution: '720p',
+    ratio: 'adaptive',
+    duration: 5,
+    prompt: '',
     remark: ''
   })
 
   const createRules: FormRules = {
-    name: [{ required: true, message: '请输入任务名称', trigger: 'blur' }]
+    storyboardId: [{ required: true, message: '请选择分镜', trigger: 'change' }]
   }
 
-  const shotOptions: ShotOption[] = [
-    { id: 1, name: '山巅全景' },
-    { id: 2, name: '主角面部特写' },
-    { id: 3, name: '山腰近景' },
-    { id: 4, name: '九尾狐全景' },
-    { id: 5, name: '对话过肩' },
-    { id: 6, name: '大特写·眼睛' }
-  ]
+  const shotOptions = ref<ShotOption[]>([])
+
+  const loadShotOptions = async () => {
+    if (!projectId.value) return
+    try {
+      const res = await fetchGetStoryboardList(projectId.value)
+      shotOptions.value = (res.records || []).map((item: any) => ({
+        id: item.id,
+        name: item.title || item.name || '',
+        title: item.title || item.name || ''
+      }))
+    } catch {
+      shotOptions.value = []
+    }
+  }
 
   const taskList = ref<TaskItem[]>([])
 
@@ -377,7 +399,8 @@
         current: pagination.current,
         size: pagination.size,
         keyword: searchQuery.value || undefined,
-        status: statusFilter.value || undefined
+        status: statusFilter.value || undefined,
+        projectId: projectId.value || undefined
       })
       if (res) {
         taskList.value = (res.records || []) as TaskItem[]
@@ -407,7 +430,7 @@
         color: '#409eff'
       },
       {
-        status: 'completed' as TaskStatus,
+        status: 'succeeded' as TaskStatus,
         label: '已完成',
         icon: 'ri:check-line',
         bgColor: '#f0f9eb',
@@ -432,7 +455,7 @@
     if (searchQuery.value) {
       const q = searchQuery.value.toLowerCase()
       result = result.filter(
-        (item) => item.name.toLowerCase().includes(q) || item.id.toLowerCase().includes(q)
+        (item) => (item.name || '').toLowerCase().includes(q) || item.id.toLowerCase().includes(q)
       )
     }
     if (statusFilter.value) {
@@ -459,15 +482,15 @@
   }
 
   const handleCreateTask = () => {
-    createForm.name = ''
-    createForm.shots = []
-    createForm.style = '写实风格'
-    createForm.resolution = '1080p'
-    createForm.fps = '24fps'
-    createForm.format = 'MP4'
-    createForm.priority = 'normal'
+    createForm.storyboardId = ''
+    createForm.model = 'doubao-seedance-2-0-260128'
+    createForm.resolution = '720p'
+    createForm.ratio = 'adaptive'
+    createForm.duration = 5
+    createForm.prompt = ''
     createForm.remark = ''
     createVisible.value = true
+    loadShotOptions()
   }
 
   const handleSubmitCreate = async () => {
@@ -476,16 +499,29 @@
       if (valid) {
         submitting.value = true
         try {
-          await fetchSubmitVideoGeneration({
-            name: createForm.name,
-            shotIds: createForm.shots,
-            style: createForm.style,
+          // 1. 先调用预览接口获取 previewToken
+          const previewParams: Api.Video.VideoPreviewParams = {
+            model: createForm.model,
+            prompt: createForm.prompt || undefined,
             resolution: createForm.resolution,
-            fps: createForm.fps,
-            format: createForm.format,
-            priority: createForm.priority,
-            remark: createForm.remark
-          } as any)
+            ratio: createForm.ratio,
+            duration: createForm.duration,
+            projectId: projectId.value,
+            storyboardId: createForm.storyboardId
+          }
+          const previewResult = await fetchPreviewVideoGeneration(previewParams)
+          const previewToken = previewResult?.previewToken
+          if (!previewToken) {
+            ElMessage.error('预览确认失败，未获取到 previewToken')
+            return
+          }
+
+          // 2. 提交生成任务
+          const generateParams: Api.Video.VideoGenerateParams = {
+            ...previewParams,
+            previewToken
+          }
+          await fetchSubmitVideoGeneration(generateParams)
           await loadTaskList()
           createVisible.value = false
           ElMessage.success('任务创建成功')
@@ -507,8 +543,8 @@
     } catch {
       // 使用本地数据
     }
-    router.push('/video-gen/progress')
-    ElMessage.info(`正在查看任务 ${row.name} 的进度`)
+    router.push('/video-gen/preview')
+    ElMessage.info(`正在查看任务 ${row.name || row.id} 的进度`)
   }
 
   const handlePreview = async (row: TaskItem) => {
@@ -521,22 +557,52 @@
       // 使用本地数据
     }
     router.push('/video-gen/preview')
-    ElMessage.info(`正在预览任务 ${row.name} 的视频`)
+    ElMessage.info(`正在预览任务 ${row.name || row.id} 的视频`)
   }
 
   const handleRetry = async (row: TaskItem) => {
     try {
-      await ElMessageBox.confirm(`确定要重新执行任务「${row.name}」吗？`, '重试确认', {
+      await ElMessageBox.confirm(`确定要重新执行任务「${row.name || row.id}」吗？`, '重试确认', {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
         type: 'warning'
       })
-      await fetchSubmitVideoGeneration({
-        name: row.name,
-        retryTaskId: row.id
-      } as any)
+      // 重新提交需要先获取 previewToken
+      const previewParams: Api.Video.VideoPreviewParams = {
+        model: row.model,
+        prompt: row.prompt || undefined,
+        resolution: row.resolution,
+        ratio: row.ratio,
+        duration: row.duration,
+        projectId: row.projectId,
+        storyboardId: row.storyboardId
+      }
+      const previewResult = await fetchPreviewVideoGeneration(previewParams)
+      if (previewResult?.previewToken) {
+        await fetchSubmitVideoGeneration({
+          ...previewParams,
+          previewToken: previewResult.previewToken
+        })
+        await loadTaskList()
+        ElMessage.success('任务已重新提交')
+      } else {
+        ElMessage.error('预览确认失败')
+      }
+    } catch {
+      // 用户取消或请求失败
+    }
+  }
+
+  const handleCancel = async (row: TaskItem) => {
+    try {
+      await ElMessageBox.confirm(`确定要取消任务「${row.name || row.id}」吗？`, '取消确认', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      })
+      await fetchCancelVideoTask(row.id)
       await loadTaskList()
-      ElMessage.success('任务已重新提交')
+      ElMessage.success('任务已取消')
     } catch {
       // 用户取消
     }
@@ -544,7 +610,7 @@
 
   const handleDelete = async (row: TaskItem) => {
     try {
-      await ElMessageBox.confirm(`确定要删除任务「${row.name}」吗？`, '删除确认', {
+      await ElMessageBox.confirm(`确定要删除任务「${row.name || row.id}」吗？`, '删除确认', {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
         type: 'error'
@@ -570,80 +636,86 @@
 
     .stat-card {
       display: flex;
-      align-items: center;
       gap: 12px;
+      align-items: center;
       padding: 16px;
-      background: var(--el-fill-color-lighter);
-      border-radius: var(--custom-radius);
       cursor: pointer;
-      transition: all 0.2s;
+      background: var(--el-fill-color-lighter);
       border: 2px solid transparent;
+      border-radius: var(--custom-radius);
+      transition: all 0.2s;
 
       &:hover {
         border-color: var(--el-color-primary-light-7);
       }
 
       &.active {
-        border-color: var(--el-color-primary);
         background: var(--el-color-primary-light-9);
+        border-color: var(--el-color-primary);
       }
 
       .stat-icon {
-        width: 44px;
-        height: 44px;
-        border-radius: 10px;
         display: flex;
+        flex-shrink: 0;
         align-items: center;
         justify-content: center;
+        width: 44px;
+        height: 44px;
         font-size: 22px;
-        flex-shrink: 0;
+        border-radius: 10px;
       }
 
       .stat-info {
         .stat-value {
           font-size: 22px;
           font-weight: 600;
-          color: var(--el-text-color-primary);
           line-height: 1.2;
+          color: var(--el-text-color-primary);
         }
 
         .stat-label {
+          margin-top: 2px;
           font-size: 13px;
           color: var(--el-text-color-secondary);
-          margin-top: 2px;
         }
       }
     }
   }
 
   .task-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 8px;
     display: flex;
+    flex-shrink: 0;
     align-items: center;
     justify-content: center;
+    width: 40px;
+    height: 40px;
     font-size: 20px;
-    flex-shrink: 0;
+    border-radius: 8px;
 
     &.queued {
-      background: var(--el-color-warning-light-9);
       color: var(--el-color-warning);
+      background: var(--el-color-warning-light-9);
     }
 
     &.running {
-      background: var(--el-color-primary-light-9);
       color: var(--el-color-primary);
+      background: var(--el-color-primary-light-9);
     }
 
-    &.completed {
-      background: var(--el-color-success-light-9);
+    &.succeeded {
       color: var(--el-color-success);
+      background: var(--el-color-success-light-9);
     }
 
     &.failed {
-      background: var(--el-color-danger-light-9);
       color: var(--el-color-danger);
+      background: var(--el-color-danger-light-9);
+    }
+
+    &.cancelled,
+    &.expired {
+      color: var(--el-color-info);
+      background: var(--el-color-info-light-9);
     }
   }
 

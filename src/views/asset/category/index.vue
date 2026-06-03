@@ -148,6 +148,7 @@
   import { ElMessage, ElMessageBox } from 'element-plus'
   import type { FormInstance, FormRules } from 'element-plus'
   import { fetchGetProjectAssets, fetchBatchMoveCategory } from '@/api/asset'
+  import { useProjectDataStore } from '@/store/modules/project-data'
 
   defineOptions({ name: 'AssetCategory' })
 
@@ -196,13 +197,14 @@
     'ai-generated': 'AI生成'
   }
 
+  const projectStore = useProjectDataStore()
+  const projectId = computed(() => projectStore.currentProjectId || '')
   const categoryList = ref<CategoryItem[]>([])
 
   const loadCategoryList = async () => {
-    const projectId = '1'
     loading.value = true
     try {
-      const data = await fetchGetProjectAssets(projectId)
+      const data = await fetchGetProjectAssets(projectId.value)
       if (data) {
         const records = Array.isArray(data) ? data : (data as any).records || []
         const categoryMap = new Map<string, CategoryItem>()
@@ -291,7 +293,6 @@
     if (!formRef.value) return
     await formRef.value.validate(async (valid) => {
       if (valid) {
-        const projectId = '1'
         if (isEdit.value && currentId.value) {
           const index = categoryList.value.findIndex((i) => i.id === currentId.value)
           if (index !== -1) {
@@ -303,7 +304,7 @@
             } as CategoryItem
             if (oldCategory !== form.code) {
               try {
-                await fetchBatchMoveCategory(projectId, {
+                await fetchBatchMoveCategory(projectId.value, {
                   assetIds: [],
                   targetCategory: form.code || ''
                 } as any)
@@ -376,8 +377,7 @@
 
   const handleViewAssets = async (row: CategoryItem) => {
     try {
-      const projectId = '1'
-      const data = await fetchGetProjectAssets(projectId, { category: row.code } as any)
+      const data = await fetchGetProjectAssets(projectId.value, { category: row.code } as any)
       const records = data ? (Array.isArray(data) ? data : (data as any).records || []) : []
       ElMessage.info(`查看「${row.name}」下的 ${records.length || row.count} 个素材`)
     } catch {
@@ -390,46 +390,46 @@
   .category-stats {
     .stat-card {
       display: flex;
-      align-items: center;
       gap: 12px;
+      align-items: center;
       padding: 16px;
       background: var(--el-fill-color-lighter);
       border-radius: var(--custom-radius);
 
       .stat-icon {
-        width: 44px;
-        height: 44px;
-        border-radius: 10px;
         display: flex;
+        flex-shrink: 0;
         align-items: center;
         justify-content: center;
+        width: 44px;
+        height: 44px;
         font-size: 22px;
-        flex-shrink: 0;
+        border-radius: 10px;
       }
 
       &.image .stat-icon {
-        background: var(--el-color-primary-light-9);
         color: var(--el-color-primary);
+        background: var(--el-color-primary-light-9);
       }
 
       &.video .stat-icon {
-        background: var(--el-color-success-light-9);
         color: var(--el-color-success);
+        background: var(--el-color-success-light-9);
       }
 
       &.audio .stat-icon {
-        background: var(--el-color-warning-light-9);
         color: var(--el-color-warning);
+        background: var(--el-color-warning-light-9);
       }
 
       &.document .stat-icon {
-        background: var(--el-color-info-light-9);
         color: var(--el-color-info);
+        background: var(--el-color-info-light-9);
       }
 
       &.ai-generated .stat-icon {
-        background: var(--el-color-danger-light-9);
         color: var(--el-color-danger);
+        background: var(--el-color-danger-light-9);
       }
 
       .stat-info {
@@ -440,47 +440,47 @@
         }
 
         .stat-label {
+          margin-top: 2px;
           font-size: 12px;
           color: var(--el-text-color-secondary);
-          margin-top: 2px;
         }
       }
     }
   }
 
   .category-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 8px;
     display: flex;
+    flex-shrink: 0;
     align-items: center;
     justify-content: center;
+    width: 40px;
+    height: 40px;
     font-size: 20px;
-    flex-shrink: 0;
+    border-radius: 8px;
 
     &.image {
-      background: var(--el-color-primary-light-9);
       color: var(--el-color-primary);
+      background: var(--el-color-primary-light-9);
     }
 
     &.video {
-      background: var(--el-color-success-light-9);
       color: var(--el-color-success);
+      background: var(--el-color-success-light-9);
     }
 
     &.audio {
-      background: var(--el-color-warning-light-9);
       color: var(--el-color-warning);
+      background: var(--el-color-warning-light-9);
     }
 
     &.document {
-      background: var(--el-color-info-light-9);
       color: var(--el-color-info);
+      background: var(--el-color-info-light-9);
     }
 
     &.ai-generated {
-      background: var(--el-color-danger-light-9);
       color: var(--el-color-danger);
+      background: var(--el-color-danger-light-9);
     }
   }
 </style>

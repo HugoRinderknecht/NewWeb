@@ -255,7 +255,8 @@
   import {
     fetchGetStoryboardList,
     fetchBatchSubmitStoryboardReview,
-    fetchBatchDeleteStoryboards
+    fetchBatchDeleteStoryboards,
+    fetchUpdateStoryboard
   } from '@/api/storyboard'
 
   defineOptions({ name: 'StoryboardBatchEdit' })
@@ -293,7 +294,15 @@
     remark: ''
   })
 
-  const allTags = ['主角', '反派', '动作', '对话', '特效', '转场', '回忆', '战斗', '情感', '追逐']
+  const allTags = computed(() => {
+    const tagSet = new Set<string>()
+    storyboardList.value.forEach((item) => {
+      if (item.tags && Array.isArray(item.tags)) {
+        item.tags.forEach((tag) => tagSet.add(tag))
+      }
+    })
+    return Array.from(tagSet)
+  })
 
   const sceneTypeLabelMap: Record<SceneType, string> = {
     indoor: '室内',
@@ -318,25 +327,38 @@
 
   const storyboardList = ref<StoryboardItem[]>([])
 
+  const mapStatus = (status: number | string): StatusType => {
+    const map: Record<number, StatusType> = {
+      1: 'pending',
+      2: 'pending',
+      3: 'approved',
+      4: 'rejected'
+    }
+    if (typeof status === 'number') return map[status] || 'pending'
+    return (status as StatusType) || 'pending'
+  }
+
   const loadStoryboardList = async () => {
     try {
       const projectId = (route.params.projectId as string) || '1'
-      const data = await fetchGetStoryboardList(projectId)
+      const data = await fetchGetStoryboardList(projectId, {
+        page: 1,
+        pageSize: 100
+      })
       if (data) {
-        storyboardList.value = (
-          Array.isArray(data) ? data : (data as any).records || (data as any).list || []
-        ).map((item: any) => ({
+        const list = data.records || []
+        storyboardList.value = list.map((item: any) => ({
           id: item.id,
-          name: item.name || '',
-          thumbnail: item.thumbnail || '',
-          episode: item.episode || 1,
-          shotNumber: item.shotNumber || 1,
-          sceneType: item.sceneType || 'outdoor',
-          timeOfDay: item.timeOfDay || 'day',
-          cameraType: item.cameraType || 'wide',
-          tags: item.tags || [],
-          status: item.status || 'pending',
-          remark: item.remark || ''
+          name: item.title ?? item.name ?? '',
+          thumbnail: item.thumbnail ?? '',
+          episode: item.episodeIndex ?? item.episode ?? 1,
+          shotNumber: item.storyboardNo ?? item.shotNumber ?? 1,
+          sceneType: item.sceneType ?? 'outdoor',
+          timeOfDay: item.timeOfDay ?? 'day',
+          cameraType: item.cameraType ?? 'wide',
+          tags: item.tags ?? [],
+          status: mapStatus(item.status),
+          remark: item.remark ?? ''
         })) as StoryboardItem[]
       }
     } catch {
@@ -406,25 +428,40 @@
       }
     ).then(async () => {
       try {
+        const ids = selectedStoryboards.value.map((item) => String(item.id))
+
+        // 如果修改了审核状态为已通过，提交审核
         if (batchForm.status === 'approved') {
-          const ids = selectedStoryboards.value.map((item) => String(item.id))
           await fetchBatchSubmitStoryboardReview(ids)
         }
 
-        storyboardList.value.forEach((item) => {
-          if (batchForm.sceneType) item.sceneType = batchForm.sceneType as SceneType
-          if (batchForm.timeOfDay) item.timeOfDay = batchForm.timeOfDay as TimeOfDay
-          if (batchForm.cameraType) item.cameraType = batchForm.cameraType as CameraType
+        // 逐个更新分镜属性
+        const updatePromises = ids.map((id) => {
+          const item = storyboardList.value.find((s) => String(s.id) === id)
+          if (!item) return Promise.resolve()
+
+          const updateParams: any = {}
+          if (batchForm.sceneType) updateParams.title = item.name
+          if (batchForm.remark) updateParams.description = batchForm.remark
+
+          // 合并标签变化
+          let newTags = [...item.tags]
           if (batchForm.addTags.length > 0) {
-            item.tags = [...new Set([...item.tags, ...batchForm.addTags])]
+            newTags = [...new Set([...newTags, ...batchForm.addTags])]
           }
           if (batchForm.removeTags.length > 0) {
-            item.tags = item.tags.filter((t) => !batchForm.removeTags.includes(t))
+            newTags = newTags.filter((t) => !batchForm.removeTags.includes(t))
           }
-          if (batchForm.status) item.status = batchForm.status as StatusType
-          if (batchForm.remark) item.remark = batchForm.remark
+          updateParams.tags = newTags
+
+          if (Object.keys(updateParams).length > 0) {
+            return fetchUpdateStoryboard(id, updateParams)
+          }
+          return Promise.resolve()
         })
 
+        await Promise.all(updatePromises)
+        await loadStoryboardList()
         ElMessage.success('批量修改已应用')
 
         batchForm.sceneType = ''
@@ -510,13 +547,13 @@
 
       .selected-item {
         display: flex;
-        align-items: center;
         gap: 12px;
+        align-items: center;
         padding: 12px;
-        background: var(--el-fill-color-lighter);
-        border-radius: var(--custom-radius);
-        border: 2px solid transparent;
         cursor: pointer;
+        background: var(--el-fill-color-lighter);
+        border: 2px solid transparent;
+        border-radius: var(--custom-radius);
         transition: all 0.2s;
 
         &:hover {
@@ -524,17 +561,17 @@
         }
 
         &.active {
-          border-color: var(--el-color-primary);
           background: var(--el-color-primary-light-9);
+          border-color: var(--el-color-primary);
         }
 
         .item-preview {
+          flex-shrink: 0;
           width: 60px;
           height: 45px;
-          border-radius: 6px;
           overflow: hidden;
-          flex-shrink: 0;
           background: var(--el-fill-color-dark);
+          border-radius: 6px;
 
           .preview-img {
             width: 100%;
@@ -543,13 +580,13 @@
           }
 
           .preview-placeholder {
-            width: 100%;
-            height: 100%;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: var(--el-text-color-secondary);
+            width: 100%;
+            height: 100%;
             font-size: 20px;
+            color: var(--el-text-color-secondary);
           }
         }
 
@@ -558,8 +595,8 @@
           min-width: 0;
 
           .item-name {
-            font-weight: 500;
             font-size: 14px;
+            font-weight: 500;
             color: var(--el-text-color-primary);
           }
 

@@ -139,6 +139,7 @@
   import { ElMessage, ElMessageBox } from 'element-plus'
   import type { FormInstance, FormRules } from 'element-plus'
   import type { ColumnOption } from '@/types/component'
+  import { useTeamStore } from '@/store/modules/team'
   import { useRoute } from 'vue-router'
   import { fetchGetInviteCodes, fetchCreateInviteCode, fetchRevokeInviteCode } from '@/api/team'
 
@@ -155,8 +156,11 @@
     createTime: string
   }
 
+  const teamStore = useTeamStore()
   const route = useRoute()
-  const teamId = computed(() => String(route.query.id || ''))
+  const teamId = computed(() =>
+    String((route.query.id || route.query.teamId || teamStore.currentTeamId) as string)
+  )
   const loading = ref(false)
   const dialogVisible = ref(false)
   const formRef = ref<FormInstance>()
@@ -338,41 +342,41 @@
   .invite-stats {
     .stat-card {
       display: flex;
-      align-items: center;
       gap: 12px;
+      align-items: center;
       padding: 16px;
       background: var(--el-fill-color-lighter);
       border-radius: var(--custom-radius);
 
       .stat-icon {
-        width: 44px;
-        height: 44px;
-        border-radius: 10px;
         display: flex;
+        flex-shrink: 0;
         align-items: center;
         justify-content: center;
+        width: 44px;
+        height: 44px;
         font-size: 22px;
-        flex-shrink: 0;
+        border-radius: 10px;
       }
 
       &.total .stat-icon {
-        background: var(--el-color-primary-light-9);
         color: var(--el-color-primary);
+        background: var(--el-color-primary-light-9);
       }
 
       &.active .stat-icon {
-        background: var(--el-color-success-light-9);
         color: var(--el-color-success);
+        background: var(--el-color-success-light-9);
       }
 
       &.disabled .stat-icon {
-        background: var(--el-color-info-light-9);
         color: var(--el-color-info);
+        background: var(--el-color-info-light-9);
       }
 
       &.used .stat-icon {
-        background: var(--el-color-warning-light-9);
         color: var(--el-color-warning);
+        background: var(--el-color-warning-light-9);
       }
 
       .stat-info {
@@ -383,9 +387,9 @@
         }
 
         .stat-label {
+          margin-top: 2px;
           font-size: 12px;
           color: var(--el-text-color-secondary);
-          margin-top: 2px;
         }
       }
     }

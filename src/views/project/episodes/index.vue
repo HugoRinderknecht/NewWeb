@@ -5,7 +5,7 @@
         <div class="flex-cb">
           <div class="flex items-center gap-4">
             <span class="text-lg font-medium">集数管理</span>
-            <ElTag type="info" size="small">山海经·异兽录</ElTag>
+            <ElTag v-if="projectName" type="info" size="small">{{ projectName }}</ElTag>
           </div>
           <ElSpace>
             <ElInput
@@ -18,14 +18,6 @@
                 <ArtSvgIcon icon="ri:search-line" class="text-g-400" />
               </template>
             </ElInput>
-            <ElSelect v-model="filterStatus" placeholder="状态筛选" clearable style="width: 140px">
-              <ElOption
-                v-for="item in statusOptions"
-                :key="item.value"
-                :label="item.label"
-                :value="item.value"
-              />
-            </ElSelect>
             <ElButton type="primary" @click="handleCreateEpisode">
               <ArtSvgIcon icon="ri:add-line" class="mr-1" />
               新建集数
@@ -59,9 +51,6 @@
                 <div class="episode-info">
                   <ElTag size="small" type="primary">第{{ ep.number }}集</ElTag>
                   <span class="episode-name">{{ ep.name }}</span>
-                  <ElTag :type="statusTypeMap[ep.status as EpisodeStatus]" size="small">
-                    {{ statusLabelMap[ep.status as EpisodeStatus] }}
-                  </ElTag>
                 </div>
                 <div class="episode-actions">
                   <ElButton type="primary" link size="small" @click.stop="handleEditEpisode(ep)">
@@ -89,7 +78,7 @@
                   }}
                 </span>
                 <ElTag v-if="currentEpisode" type="info" size="small">
-                  {{ currentEpisode.shotCount }} 个镜头
+                  {{ currentEpisodeShots.length }} 个镜头
                 </ElTag>
               </div>
               <ElButton v-if="currentEpisode" type="primary" size="small" @click="handleCreateShot">
@@ -265,22 +254,22 @@
     fetchUpdateEpisode,
     fetchDeleteEpisode
   } from '@/api/script'
+  import { fetchGetProjectDetail } from '@/api/project'
+  import { logger } from '@/utils/logger'
 
   defineOptions({ name: 'ProjectEpisodes' })
 
   const router = useRouter()
   const route = useRoute()
 
-  type EpisodeStatus = 'pending' | 'progress' | 'completed'
   type ShotStatus = 'pending' | 'storyboard' | 'firstframe' | 'video' | 'completed'
 
   interface EpisodeItem {
     id: number
+    scriptId: string
     number: number
     name: string
     description: string
-    status: EpisodeStatus
-    shotCount: number
     updateTime: string
   }
 
@@ -295,7 +284,7 @@
   }
 
   const searchQuery = ref('')
-  const filterStatus = ref<EpisodeStatus | ''>('')
+  const projectName = ref('')
   const currentEpisode = ref<EpisodeItem | null>(null)
   const shotLoading = ref(false)
   const episodeDialogVisible = ref(false)
@@ -309,12 +298,6 @@
   const episodeFormRef = ref<FormInstance>()
   const shotFormRef = ref<FormInstance>()
 
-  const statusOptions = [
-    { label: '待开始', value: 'pending' },
-    { label: '进行中', value: 'progress' },
-    { label: '已完成', value: 'completed' }
-  ]
-
   const shotStatusOptions = [
     { label: '待开始', value: 'pending' },
     { label: '分镜中', value: 'storyboard' },
@@ -322,18 +305,6 @@
     { label: '视频中', value: 'video' },
     { label: '已完成', value: 'completed' }
   ]
-
-  const statusTypeMap: Record<EpisodeStatus, 'info' | 'primary' | 'success'> = {
-    pending: 'info',
-    progress: 'primary',
-    completed: 'success'
-  }
-
-  const statusLabelMap: Record<EpisodeStatus, string> = {
-    pending: '待开始',
-    progress: '进行中',
-    completed: '已完成'
-  }
 
   const shotStatusTypeMap: Record<ShotStatus, 'info' | 'warning' | 'primary' | 'success'> = {
     pending: 'info',
@@ -356,35 +327,31 @@
   const shotList = ref<ShotItem[]>([])
 
   const loadEpisodeList = async () => {
-    const projectId = (route.query.id as string) || (route.params.projectId as string) || '1'
+    const projectId = (route.query.id as string) || (route.params.projectId as string) || ''
+    if (!projectId) return
+    logger.apiRequest('Episodes', 'fetchGetProjectEpisodes', projectId)
     try {
       const data = await fetchGetProjectEpisodes(projectId)
       if (data) {
         const list = Array.isArray(data) ? data : (data as any).records || []
-        episodeList.value = list.map((item: any) => ({
+        episodeList.value = list.map((item: any, index: number) => ({
           id: Number(item.id) || 0,
-          number: item.episodeNumber || item.number || 0,
-          name: item.title || item.name || '',
-          description: item.synopsis || item.description || '',
-          status: mapEpisodeStatus(item.status),
-          shotCount: item.shotCount || 0,
+          scriptId: item.scriptId || '',
+          number: item.episodeIndex ?? index,
+          name: item.episodeName || '',
+          description: item.content || '',
           updateTime: item.updateTime || ''
         })) as EpisodeItem[]
+        logger.apiSuccess(
+          'Episodes',
+          'fetchGetProjectEpisodes',
+          `加载 ${episodeList.value.length} 条集数`
+        )
       }
-    } catch {
+    } catch (err) {
+      logger.apiError('Episodes', 'fetchGetProjectEpisodes', err)
       episodeList.value = []
     }
-  }
-
-  const mapEpisodeStatus = (status: string): EpisodeStatus => {
-    const map: Record<string, EpisodeStatus> = {
-      completed: 'completed',
-      writing: 'progress',
-      draft: 'pending',
-      progress: 'progress',
-      pending: 'pending'
-    }
-    return map[status] || 'pending'
   }
 
   const filteredEpisodes = computed(() => {
@@ -395,10 +362,6 @@
       result = result.filter(
         (item) => item.name.toLowerCase().includes(q) || item.description.toLowerCase().includes(q)
       )
-    }
-
-    if (filterStatus.value) {
-      result = result.filter((item) => item.status === filterStatus.value)
     }
 
     return result
@@ -420,6 +383,7 @@
 
   const handleEpisodeSelect = (row: EpisodeItem) => {
     if (!row) return
+    logger.info('Episodes', 'handleEpisodeSelect', `选中第${row.number}集：${row.name}`)
     shotLoading.value = true
     currentEpisode.value = row
     setTimeout(() => {
@@ -428,6 +392,7 @@
   }
 
   const handleEpisodeReorder = () => {
+    logger.info('Episodes', 'handleEpisodeReorder', '集数拖拽排序')
     // 重新分配集数序号
     episodeList.value = episodeList.value.map((item, index) => ({
       ...item,
@@ -437,6 +402,8 @@
   }
 
   const handleShotReorder = () => {
+    // TODO: 接入分镜模块 API 持久化镜头操作
+    logger.info('Episodes', 'handleShotReorder', '镜头拖拽排序')
     ElMessage.success('镜头顺序已更新')
   }
 
@@ -453,6 +420,7 @@
   }
 
   const handleCreateEpisode = () => {
+    logger.info('Episodes', 'handleCreateEpisode', '打开新建集数弹窗')
     isEditEpisode.value = false
     currentEditEpisodeId.value = null
     episodeForm.number = episodeList.value.length + 1
@@ -462,6 +430,7 @@
   }
 
   const handleEditEpisode = (row: EpisodeItem) => {
+    logger.info('Episodes', 'handleEditEpisode', `编辑第${row.number}集：${row.name}`)
     isEditEpisode.value = true
     currentEditEpisodeId.value = row.id
     episodeForm.number = row.number
@@ -471,20 +440,23 @@
   }
 
   const handleDeleteEpisode = (row: EpisodeItem) => {
+    logger.info('Episodes', 'handleDeleteEpisode', `请求删除第${row.number}集：${row.name}`)
     ElMessageBox.confirm(`确定要删除第${row.number}集「${row.name}」吗？`, '删除确认', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'warning'
     }).then(async () => {
       try {
-        const projectId = (route.query.id as string) || (route.params.projectId as string) || '1'
-        await fetchDeleteEpisode(projectId, String(row.id))
+        logger.apiRequest('Episodes', 'fetchDeleteEpisode', { scriptId: row.scriptId, id: row.id })
+        await fetchDeleteEpisode(row.scriptId, String(row.id))
+        logger.apiSuccess('Episodes', 'fetchDeleteEpisode', `第${row.number}集已删除`)
         if (currentEpisode.value?.id === row.id) {
           currentEpisode.value = null
         }
         ElMessage.success('删除成功')
         await loadEpisodeList()
-      } catch {
+      } catch (err) {
+        logger.apiError('Episodes', 'fetchDeleteEpisode', err)
         ElMessage.error('删除失败')
       }
     })
@@ -494,26 +466,40 @@
     if (!episodeFormRef.value) return
     await episodeFormRef.value.validate(async (valid) => {
       if (valid) {
-        const projectId = (route.query.id as string) || (route.params.projectId as string) || '1'
+        const projectId = (route.query.id as string) || (route.params.projectId as string) || ''
+        if (!projectId) return
         try {
           if (isEditEpisode.value && currentEditEpisodeId.value) {
-            await fetchUpdateEpisode(projectId, String(currentEditEpisodeId.value), {
-              title: episodeForm.name,
-              synopsis: episodeForm.description,
-              episodeNumber: episodeForm.number
+            const episode = episodeList.value.find((e) => e.id === currentEditEpisodeId.value)
+            logger.apiRequest('Episodes', 'fetchUpdateEpisode', { id: currentEditEpisodeId.value })
+            await fetchUpdateEpisode(episode?.scriptId || '', String(currentEditEpisodeId.value), {
+              episodeName: episodeForm.name,
+              content: episodeForm.description,
+              episodeIndex: episodeForm.number
             })
+            logger.apiSuccess('Episodes', 'fetchUpdateEpisode', `第${episodeForm.number}集编辑成功`)
             ElMessage.success('集数编辑成功')
           } else {
-            await fetchCreateEpisode(projectId, {
-              title: episodeForm.name,
-              synopsis: episodeForm.description,
-              episodeNumber: episodeForm.number
+            logger.apiRequest('Episodes', 'fetchCreateEpisode', {
+              projectId,
+              name: episodeForm.name
             })
+            await fetchCreateEpisode(projectId, {
+              episodeName: episodeForm.name,
+              content: episodeForm.description,
+              episodeIndex: episodeForm.number
+            })
+            logger.apiSuccess('Episodes', 'fetchCreateEpisode', `第${episodeForm.number}集创建成功`)
             ElMessage.success('集数创建成功')
           }
           episodeDialogVisible.value = false
           await loadEpisodeList()
-        } catch {
+        } catch (err) {
+          logger.apiError(
+            'Episodes',
+            isEditEpisode.value ? 'fetchUpdateEpisode' : 'fetchCreateEpisode',
+            err
+          )
           ElMessage.error(isEditEpisode.value ? '集数编辑失败' : '集数创建失败')
         }
       }
@@ -535,6 +521,7 @@
   }
 
   const handleCreateShot = () => {
+    logger.info('Episodes', 'handleCreateShot', '打开新建镜头弹窗')
     isEditShot.value = false
     currentShotId.value = null
     shotForm.code = `SC-${String(shotList.value.filter((s) => s.episodeId === currentEpisode.value?.id).length + 1).padStart(3, '0')}`
@@ -545,6 +532,7 @@
   }
 
   const handleEditShot = (row: ShotItem) => {
+    logger.info('Episodes', 'handleEditShot', `编辑镜头：${row.code}`)
     isEditShot.value = true
     currentShotId.value = row.id
     Object.assign(shotForm, row)
@@ -552,6 +540,7 @@
   }
 
   const handleShotSubmit = async () => {
+    // TODO: 接入分镜模块 API 持久化镜头操作
     if (!shotFormRef.value) return
     await shotFormRef.value.validate((valid) => {
       if (valid) {
@@ -564,6 +553,7 @@
               updateTime: new Date().toISOString().slice(0, 10)
             }
           }
+          logger.info('Episodes', 'handleShotSubmit', `镜头编辑成功：${shotForm.code}`)
           ElMessage.success('镜头编辑成功')
         } else {
           const newShot: ShotItem = {
@@ -576,8 +566,7 @@
             updateTime: new Date().toISOString().slice(0, 10)
           }
           shotList.value.push(newShot)
-          const episode = episodeList.value.find((e) => e.id === currentEpisode.value!.id)
-          if (episode) episode.shotCount++
+          logger.info('Episodes', 'handleShotSubmit', `镜头创建成功：${shotForm.code}`)
           ElMessage.success('镜头创建成功')
         }
         shotDialogVisible.value = false
@@ -586,6 +575,8 @@
   }
 
   const handleDeleteShot = (row: ShotItem) => {
+    // TODO: 接入分镜模块 API 持久化镜头操作
+    logger.info('Episodes', 'handleDeleteShot', `请求删除镜头：${row.code}`)
     ElMessageBox.confirm(`确定要删除镜头「${row.code}」吗？`, '删除确认', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
@@ -593,8 +584,7 @@
     }).then(() => {
       shotList.value = shotList.value.filter((item) => item.id !== row.id)
       selectedShotIds.value = selectedShotIds.value.filter((id) => id !== row.id)
-      const episode = episodeList.value.find((e) => e.id === row.episodeId)
-      if (episode) episode.shotCount--
+      logger.info('Episodes', 'handleDeleteShot', `镜头已删除：${row.code}`)
       ElMessage.success('删除成功')
     })
   }
@@ -615,6 +605,11 @@
 
   const handleDeleteShotAction = () => {
     if (selectedShotIds.value.length > 0) {
+      logger.info(
+        'Episodes',
+        'handleDeleteShotAction',
+        `批量删除 ${selectedShotIds.value.length} 个镜头`
+      )
       ElMessageBox.confirm(
         `确定删除选中的 ${selectedShotIds.value.length} 个镜头吗？`,
         '删除确认',
@@ -628,8 +623,6 @@
         const deletedCount = ids.length
         shotList.value = shotList.value.filter((item) => !ids.includes(item.id))
         selectedShotIds.value = []
-        const episode = episodeList.value.find((e) => e.id === currentEpisode.value?.id)
-        if (episode) episode.shotCount -= deletedCount
         ElMessage.success(`成功删除 ${deletedCount} 个镜头`)
       })
       return
@@ -639,13 +632,30 @@
 
   const handleGoToStoryboard = () => {
     if (!currentEpisode.value) return
+    logger.info('Episodes', 'handleGoToStoryboard', `跳转分镜：第${currentEpisode.value.number}集`)
     router.push({
       path: '/storyboard/design',
       query: { episodeId: currentEpisode.value.id }
     })
   }
 
+  const loadProjectName = async () => {
+    const projectId = (route.query.id as string) || (route.params.projectId as string) || ''
+    if (!projectId) return
+    try {
+      logger.apiRequest('Episodes', 'fetchGetProjectDetail', projectId)
+      const data = await fetchGetProjectDetail(projectId)
+      if (data) {
+        projectName.value = data.projectName || ''
+        logger.apiSuccess('Episodes', 'fetchGetProjectDetail', projectName.value)
+      }
+    } catch (err) {
+      logger.apiError('Episodes', 'fetchGetProjectDetail', err)
+    }
+  }
+
   onMounted(() => {
+    loadProjectName()
     loadEpisodeList()
   })
 </script>
@@ -664,17 +674,17 @@
     }
 
     .shot-icon {
-      width: 32px;
-      height: 32px;
-      border-radius: 6px;
       display: flex;
+      flex-shrink: 0;
       align-items: center;
       justify-content: center;
-      font-size: 16px;
-      flex-shrink: 0;
-      background: var(--el-color-success-light-9);
-      color: var(--el-color-success);
+      width: 32px;
+      height: 32px;
       margin-right: 8px;
+      font-size: 16px;
+      color: var(--el-color-success);
+      background: var(--el-color-success-light-9);
+      border-radius: 6px;
     }
 
     .episode-draggable-list {
@@ -688,43 +698,43 @@
       align-items: center;
       justify-content: space-between;
       padding: 12px;
+      cursor: pointer;
       background: var(--el-bg-color);
       border: 1px solid var(--el-border-color-lighter);
       border-radius: var(--custom-radius);
-      cursor: pointer;
       transition: all 0.2s;
 
       &:hover {
         border-color: var(--el-color-primary-light-5);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        box-shadow: 0 2px 8px rgb(0 0 0 / 6%);
       }
 
       &.active {
-        border-color: var(--el-color-primary);
         background: var(--el-color-primary-light-9);
+        border-color: var(--el-color-primary);
       }
 
       .episode-info {
         display: flex;
-        align-items: center;
-        gap: 8px;
         flex: 1;
+        gap: 8px;
+        align-items: center;
         min-width: 0;
 
         .episode-name {
+          overflow: hidden;
           font-size: 14px;
           font-weight: 500;
           color: var(--el-text-color-primary);
-          white-space: nowrap;
-          overflow: hidden;
           text-overflow: ellipsis;
+          white-space: nowrap;
         }
       }
 
       .episode-actions {
         display: flex;
-        align-items: center;
         gap: 4px;
+        align-items: center;
         opacity: 0;
         transition: opacity 0.2s;
       }
@@ -735,9 +745,9 @@
     }
 
     .episode-ghost {
-      opacity: 0.5;
       background: var(--el-color-primary-light-9);
       border: 2px dashed var(--el-color-primary);
+      opacity: 0.5;
     }
 
     .episode-chosen {
@@ -762,7 +772,7 @@
 
       &:hover {
         border-color: var(--el-color-primary-light-5);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        box-shadow: 0 2px 8px rgb(0 0 0 / 6%);
       }
 
       &.selected {
@@ -772,9 +782,9 @@
 
       .shot-main {
         display: flex;
-        align-items: center;
-        gap: 12px;
         flex: 1;
+        gap: 12px;
+        align-items: center;
         min-width: 0;
 
         .shot-content {
@@ -783,8 +793,8 @@
 
           .shot-header {
             display: flex;
-            align-items: center;
             gap: 8px;
+            align-items: center;
             margin-bottom: 4px;
 
             .shot-code {
@@ -795,26 +805,26 @@
           }
 
           .shot-desc {
-            font-size: 13px;
-            white-space: nowrap;
             overflow: hidden;
+            font-size: 13px;
             text-overflow: ellipsis;
+            white-space: nowrap;
           }
         }
       }
 
       .shot-meta {
         display: flex;
-        align-items: center;
         gap: 16px;
+        align-items: center;
         margin: 0 16px;
         font-size: 13px;
       }
 
       .shot-actions {
         display: flex;
-        align-items: center;
         gap: 4px;
+        align-items: center;
         opacity: 0;
         transition: opacity 0.2s;
       }
@@ -825,9 +835,9 @@
     }
 
     .shot-ghost {
-      opacity: 0.5;
       background: var(--el-color-success-light-9);
       border: 2px dashed var(--el-color-success);
+      opacity: 0.5;
     }
 
     .shot-chosen {

@@ -247,9 +247,19 @@
   import { ElMessage, ElMessageBox } from 'element-plus'
   import type { FormInstance, FormRules } from 'element-plus'
   import { VueDraggable } from 'vue-draggable-plus'
-  import { fetchGetSceneList, fetchCreateScene } from '@/api/storyboard'
+  import { useRoute } from 'vue-router'
+  import {
+    fetchGetSceneList,
+    fetchCreateScene,
+    fetchGetStoryboardList,
+    fetchDeleteScene,
+    fetchUpdateScene,
+    fetchReorderStoryboards
+  } from '@/api/storyboard'
 
   defineOptions({ name: 'StoryboardScene' })
+
+  const route = useRoute()
 
   type SceneType = 'interior' | 'exterior' | 'mixed' | 'studio'
 
@@ -283,13 +293,27 @@
   const currentEpisode = ref<number>(1)
   const formRef = ref<FormInstance>()
 
-  const storyboardOptions: StoryboardOption[] = [
-    { id: 1, code: 'SB-001', name: '开场·山巅俯瞰' },
-    { id: 2, code: 'SB-002', name: '九尾狐现身' },
-    { id: 3, code: 'SB-003', name: '对话·寻药之旅' },
-    { id: 4, code: 'SB-004', name: '昆仑仙境' },
-    { id: 5, code: 'SB-005', name: '白泽授业' }
-  ]
+  const storyboardOptions = ref<StoryboardOption[]>([])
+
+  const loadStoryboardOptions = async () => {
+    try {
+      const projectId = (route.params.projectId as string) || '1'
+      const res = await fetchGetStoryboardList(projectId)
+      if (res) {
+        const list = Array.isArray(res) ? res : (res as any).records || []
+        storyboardOptions.value = list.map((item: any) => ({
+          id: item.id,
+          code: item.code ?? '',
+          name: item.name ?? ''
+        })) as StoryboardOption[]
+        if (storyboardOptions.value.length > 0) {
+          currentStoryboard.value = storyboardOptions.value[0].id
+        }
+      }
+    } catch {
+      console.error('获取分镜选项失败')
+    }
+  }
 
   const sceneTypeOptions = [
     { label: '内景', value: 'interior' },
@@ -318,16 +342,25 @@
     return map[type]
   }
 
-  const shotOptions = [
-    '山巅全景',
-    '主角面部特写',
-    '山腰近景',
-    '九尾狐全景',
-    '对话过肩',
-    '竹林远景',
-    '战斗场面',
-    '日出特写'
-  ]
+  const shotOptions = ref<string[]>([])
+
+  const loadShotOptions = async () => {
+    try {
+      const episodeId = String(currentEpisode.value)
+      const res = await fetchGetSceneList(episodeId)
+      if (res && Array.isArray(res) && res.length > 0) {
+        const allShots = new Set<string>()
+        res.forEach((s: any) => {
+          if (Array.isArray(s.shots)) {
+            s.shots.forEach((shot: string) => allShots.add(shot))
+          }
+        })
+        shotOptions.value = Array.from(allShots)
+      }
+    } catch {
+      console.error('获取镜头选项失败')
+    }
+  }
 
   const form = reactive<Partial<SceneItem>>({
     name: '',
@@ -355,145 +388,23 @@
 
   const sceneListData = ref<SceneItem[]>([])
 
-  const mockSceneData: SceneItem[] = [
-    {
-      id: 1,
-      storyboardId: 1,
-      name: '青丘山·竹林',
-      type: 'exterior',
-      background: '竹林环绕的仙山',
-      time: '清晨',
-      mood: '神秘',
-      description: '青丘山竹林深处，晨雾缭绕，阳光透过竹叶洒下斑驳光影',
-      shots: ['山巅全景', '主角面部特写', '竹林远景'],
-      aperture: 'f/2.8',
-      iso: 400,
-      colorTemp: 5600
-    },
-    {
-      id: 2,
-      storyboardId: 1,
-      name: '昆仑墟·仙境',
-      type: 'mixed',
-      background: '云雾缭绕的仙境',
-      time: '上午',
-      mood: '神秘',
-      description: '昆仑墟仙境，仙鹤飞舞，琼楼玉宇若隐若现',
-      shots: ['山巅全景', '九尾狐全景'],
-      aperture: 'f/4',
-      iso: 200,
-      colorTemp: 6500
-    },
-    {
-      id: 3,
-      storyboardId: 2,
-      name: '幽都·城门',
-      type: 'exterior',
-      background: '阴森恐怖的城门',
-      time: '夜晚',
-      mood: '恐怖',
-      description: '幽都城门，鬼火闪烁，阴风阵阵，亡魂游荡',
-      shots: ['战斗场面', '主角面部特写'],
-      aperture: 'f/1.8',
-      iso: 3200,
-      colorTemp: 3200
-    },
-    {
-      id: 4,
-      storyboardId: 3,
-      name: '不周山·天柱',
-      type: 'exterior',
-      background: '断裂的天柱',
-      time: '黄昏',
-      mood: '紧张',
-      description: '不周山天柱断裂，天河水倾泻而下',
-      shots: ['山巅全景', '战斗场面'],
-      aperture: 'f/5.6',
-      iso: 800,
-      colorTemp: 4500
-    },
-    {
-      id: 5,
-      storyboardId: 3,
-      name: '东海·日出',
-      type: 'exterior',
-      background: '东海海面',
-      time: '清晨',
-      mood: '温馨',
-      description: '东海海面，太阳从海平线升起，金光万道',
-      shots: ['日出特写', '山巅全景'],
-      aperture: 'f/8',
-      iso: 200,
-      colorTemp: 6000
-    },
-    {
-      id: 1001,
-      storyboardId: 3,
-      name: '竹林夜话',
-      type: 'exterior',
-      background: '竹林深处',
-      time: '夜晚',
-      mood: '静谧',
-      description: '月光洒落竹林，主角与同伴商讨寻药路线',
-      shots: ['竹林远景', '对话过肩'],
-      aperture: 'f/2.8',
-      iso: 800,
-      colorTemp: 4200
-    },
-    {
-      id: 1002,
-      storyboardId: 4,
-      name: '仙池倒影',
-      type: 'mixed',
-      background: '昆仑仙池',
-      time: '黄昏',
-      mood: '空灵',
-      description: '仙池水面倒映出昆仑群山，云雾在水面缓缓流动',
-      shots: ['山巅全景', '九尾狐全景'],
-      aperture: 'f/5.6',
-      iso: 200,
-      colorTemp: 5000
-    },
-    {
-      id: 1003,
-      storyboardId: 5,
-      name: '古卷研读',
-      type: 'studio',
-      background: '白泽书房',
-      time: '夜晚',
-      mood: '庄重',
-      description: '白泽翻开上古卷轴，向主角讲解仙药的炼制之法',
-      shots: ['主角面部特写', '对话过肩'],
-      aperture: 'f/4',
-      iso: 800,
-      colorTemp: 3500
-    },
-    {
-      id: 1004,
-      storyboardId: 3,
-      name: '药庐秘方',
-      type: 'interior',
-      background: '山中药庐',
-      time: '下午',
-      mood: '温馨',
-      description: '药庐内主角翻阅古方，为寻药之旅做最后准备',
-      shots: ['主角面部特写', '竹林远景'],
-      aperture: 'f/5.6',
-      iso: 400,
-      colorTemp: 5200
-    }
-  ]
-
   const loadSceneList = async () => {
     try {
       const episodeId = String(currentEpisode.value)
-      const res = await fetchGetSceneList(episodeId)
+      if (!episodeId || episodeId === '1') {
+        // 如果没有选择剧集，尝试从路由获取
+        const routeEpisodeId = route.query.episodeId as string
+        if (routeEpisodeId) {
+          currentEpisode.value = Number(routeEpisodeId) || 1
+        }
+      }
+      const res = await fetchGetSceneList(String(currentEpisode.value))
       if (res && Array.isArray(res) && res.length > 0) {
         sceneListData.value = res.map((s: any) => ({
           id: s.id ?? Date.now() + Math.random(),
           storyboardId: currentStoryboard.value,
-          name: s.name ?? '',
-          type: (s.type ?? 'exterior') as SceneType,
+          name: s.name ?? s.description ?? '',
+          type: (s.angle ?? s.type ?? 'exterior') as SceneType,
           background: s.background ?? '',
           time: s.time ?? '清晨',
           mood: s.mood ?? '神秘',
@@ -503,12 +414,10 @@
           iso: s.iso ?? 400,
           colorTemp: s.colorTemp ?? 5600
         })) as SceneItem[]
-        return
       }
     } catch {
-      // fallback to mock data
+      console.error('获取场景列表失败')
     }
-    sceneListData.value = mockSceneData
   }
 
   const sceneList = computed({
@@ -554,10 +463,15 @@
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'error'
-    }).then(() => {
-      sceneListData.value = sceneListData.value.filter((item) => item.id !== scene.id)
-      selectedScenes.value = selectedScenes.value.filter((id) => id !== scene.id)
-      ElMessage.success('删除成功')
+    }).then(async () => {
+      try {
+        await fetchDeleteScene(String(scene.id))
+        await loadSceneList()
+        selectedScenes.value = selectedScenes.value.filter((id) => id !== scene.id)
+        ElMessage.success('删除成功')
+      } catch {
+        ElMessage.error('删除场景失败')
+      }
     })
   }
 
@@ -566,45 +480,29 @@
     await formRef.value.validate(async (valid) => {
       if (valid) {
         if (isEdit.value && currentScene.value) {
-          const index = sceneListData.value.findIndex((i) => i.id === currentScene.value!.id)
-          if (index !== -1) {
-            sceneListData.value[index] = {
-              ...sceneListData.value[index],
-              ...form
-            } as SceneItem
+          try {
+            await fetchUpdateScene(String(currentScene.value.id), {
+              name: form.name,
+              description: form.description || '',
+              angle: form.type as string
+            })
+            await loadSceneList()
+            ElMessage.success('编辑成功')
+          } catch {
+            ElMessage.error('编辑场景失败')
           }
-          ElMessage.success('编辑成功')
         } else {
           try {
             await fetchCreateScene({
+              episodeId: String(currentEpisode.value),
               name: form.name!,
-              type: form.type as SceneType,
-              background: form.background || '',
-              time: form.time || '清晨',
-              mood: form.mood || '神秘',
               description: form.description || '',
-              shots: form.shots || [],
-              storyboardId: currentStoryboard.value
-            } as any)
+              angle: form.type as string
+            })
             await loadSceneList()
             ElMessage.success('创建成功')
           } catch {
-            const newScene: SceneItem = {
-              id: Date.now(),
-              storyboardId: currentStoryboard.value,
-              name: form.name!,
-              type: form.type as SceneType,
-              background: form.background || '',
-              time: form.time || '清晨',
-              mood: form.mood || '神秘',
-              description: form.description || '',
-              shots: form.shots || [],
-              aperture: form.aperture || 'f/2.8',
-              iso: form.iso || 400,
-              colorTemp: form.colorTemp || 5600
-            }
-            sceneListData.value.push(newScene)
-            ElMessage.success('创建成功')
+            ElMessage.error('创建场景失败')
           }
         }
         dialogVisible.value = false
@@ -619,33 +517,69 @@
     batchDialogVisible.value = true
   }
 
-  const handleBatchSubmit = () => {
-    sceneListData.value = sceneListData.value.map((scene) => {
-      if (selectedScenes.value.includes(scene.id)) {
-        return {
-          ...scene,
-          ...(batchForm.type && { type: batchForm.type }),
-          ...(batchForm.time && { time: batchForm.time }),
-          ...(batchForm.mood && { mood: batchForm.mood })
+  const handleBatchSubmit = async () => {
+    try {
+      const updatePromises = selectedScenes.value.map(async (sceneId) => {
+        const scene = sceneListData.value.find((s) => s.id === sceneId)
+        if (scene) {
+          const params: any = {}
+          if (batchForm.type) params.angle = batchForm.type
+          if (batchForm.time || batchForm.mood) {
+            params.description = [batchForm.time, batchForm.mood, scene.description]
+              .filter(Boolean)
+              .join(' | ')
+          }
+          return fetchUpdateScene(String(sceneId), params)
         }
-      }
-      return scene
-    })
-    batchDialogVisible.value = false
-    selectedScenes.value = []
-    ElMessage.success('批量编辑成功')
+        return Promise.resolve()
+      })
+      await Promise.all(updatePromises)
+      await loadSceneList()
+      batchDialogVisible.value = false
+      selectedScenes.value = []
+      ElMessage.success('批量编辑成功')
+    } catch {
+      ElMessage.error('批量编辑失败')
+    }
   }
 
   onMounted(() => {
+    loadStoryboardOptions()
+    loadShotOptions()
     loadSceneList()
   })
 
-  const handleDragEnd = () => {
-    ElMessage.success('排序已更新')
+  const handleDragEnd = async () => {
+    try {
+      const firstScene = sceneList.value[0]
+      if (firstScene) {
+        const items = sceneList.value.map((scene, index) => ({
+          storyboardId: String(scene.id),
+          newOrder: index + 1
+        }))
+        await fetchReorderStoryboards(String(firstScene.id), items)
+      }
+      ElMessage.success('排序已更新')
+    } catch {
+      ElMessage.error('更新排序失败')
+    }
   }
 
-  const handleSave = () => {
-    ElMessage.success('场景编排保存成功')
+  const handleSave = async () => {
+    try {
+      // 保存当前场景编排顺序
+      const sceneId = sceneList.value[0]?.id
+      if (sceneId) {
+        const items = sceneList.value.map((scene, index) => ({
+          storyboardId: String(scene.id),
+          newOrder: index + 1
+        }))
+        await fetchReorderStoryboards(String(sceneId), items)
+      }
+      ElMessage.success('场景编排保存成功')
+    } catch {
+      ElMessage.error('保存编排失败')
+    }
   }
 </script>
 
@@ -659,13 +593,13 @@
 
     .scene-item {
       display: flex;
-      align-items: flex-start;
       gap: 12px;
+      align-items: flex-start;
       padding: 16px;
-      background: var(--el-fill-color-lighter);
-      border-radius: var(--custom-radius);
-      border: 2px solid transparent;
       cursor: pointer;
+      background: var(--el-fill-color-lighter);
+      border: 2px solid transparent;
+      border-radius: var(--custom-radius);
       transition: all 0.2s;
 
       &:hover {
@@ -673,19 +607,19 @@
       }
 
       &.active {
-        border-color: var(--el-color-primary);
         background: var(--el-color-primary-light-9);
+        border-color: var(--el-color-primary);
       }
 
       .drag-handle {
-        width: 32px;
-        height: 32px;
         display: flex;
+        flex-shrink: 0;
         align-items: center;
         justify-content: center;
+        width: 32px;
+        height: 32px;
         color: var(--el-text-color-secondary);
         cursor: grab;
-        flex-shrink: 0;
 
         &:active {
           cursor: grabbing;
@@ -693,17 +627,17 @@
       }
 
       .scene-number {
-        width: 28px;
-        height: 28px;
-        border-radius: 50%;
-        background: var(--el-color-primary);
-        color: white;
         display: flex;
+        flex-shrink: 0;
         align-items: center;
         justify-content: center;
+        width: 28px;
+        height: 28px;
         font-size: 12px;
         font-weight: 600;
-        flex-shrink: 0;
+        color: white;
+        background: var(--el-color-primary);
+        border-radius: 50%;
       }
 
       .scene-content {

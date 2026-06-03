@@ -256,12 +256,16 @@
     fetchTransferOwnership,
     fetchGetTeamMembers
   } from '@/api/team'
+  import { useTeamStore } from '@/store/modules/team'
   import { useRoute } from 'vue-router'
 
   defineOptions({ name: 'TeamSettings' })
 
+  const teamStore = useTeamStore()
   const route = useRoute()
-  const teamId = computed(() => String(route.query.id || ''))
+  const teamId = computed(() =>
+    String((route.query.id || route.query.teamId || teamStore.currentTeamId) as string)
+  )
   const loading = ref(false)
 
   const teamFormRef = ref<FormInstance>()
@@ -571,8 +575,8 @@
   .team-overview {
     .overview-item {
       display: flex;
-      justify-content: space-between;
       align-items: center;
+      justify-content: space-between;
       padding: 12px 0;
       border-bottom: 1px solid var(--el-border-color-lighter);
 
@@ -604,8 +608,8 @@
   .danger-content {
     .danger-item {
       display: flex;
-      justify-content: space-between;
       align-items: center;
+      justify-content: space-between;
       padding: 16px;
       background: var(--el-color-danger-light-9);
       border-radius: var(--custom-radius);

@@ -1,0 +1,2615 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "OpenAPI definition - 分镜-管理",
+    "version": "v0",
+    "description": "模块: 分镜-管理"
+  },
+  "servers": [
+    {
+      "url": "http://server.bsuniversal.cn:10006",
+      "description": "Generated server url"
+    }
+  ],
+  "tags": [
+    {
+      "name": "分镜-管理",
+      "description": "镜头(Scene)CRUD：镜头是分镜的容器，通常由后端自动创建，也可手动管理"
+    },
+    {
+      "name": "分镜-管理",
+      "description": "分镜CRUD、审核流程、版本管理、资产关联和配图管理"
+    },
+    {
+      "name": "分镜-管理",
+      "description": "AI分镜拆解与重建：将剧本分集拆解为段落和镜头，支持根据修改说明重建分镜"
+    }
+  ],
+  "paths": {
+    "/api/storyboards/{storyboardId}": {
+      "get": {
+        "tags": ["分镜-管理"],
+        "summary": "获取分镜详情",
+        "description": "获取分镜完整信息,包括关联资产列表、配图列表和最近版本历史(最多10条)",
+        "operationId": "getStoryboardDetail",
+        "parameters": [
+          {
+            "name": "storyboardId",
+            "in": "path",
+            "description": "分镜ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "uuid-001"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultStoryboardDetailVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["分镜-管理"],
+        "summary": "更新分镜",
+        "description": "部分更新分镜信息,仅更新传入的非空字段。更新前自动创建版本快照",
+        "operationId": "updateStoryboard",
+        "parameters": [
+          {
+            "name": "storyboardId",
+            "in": "path",
+            "description": "分镜ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "uuid-001"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StoryboardUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultStoryboardDetailVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["分镜-管理"],
+        "summary": "删除分镜",
+        "description": "软删除指定分镜,需要项目写入权限",
+        "operationId": "deleteStoryboard",
+        "parameters": [
+          {
+            "name": "storyboardId",
+            "in": "path",
+            "description": "分镜ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "uuid-001"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scenes/{sceneId}/storyboards/reorder": {
+      "put": {
+        "tags": ["分镜-管理"],
+        "summary": "分镜重排序",
+        "description": "对指定镜头下的分镜进行重新排序,修改每个分镜的序号",
+        "operationId": "reorderStoryboards",
+        "parameters": [
+          {
+            "name": "sceneId",
+            "in": "path",
+            "description": "镜头ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "scene-001"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StoryboardReorderRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/storyboards/{storyboardId}/withdraw-review": {
+      "post": {
+        "tags": ["分镜-管理"],
+        "summary": "撤回分镜审核",
+        "description": "将待审核(2)的分镜撤回到草稿(1)状态",
+        "operationId": "withdrawReview",
+        "parameters": [
+          {
+            "name": "storyboardId",
+            "in": "path",
+            "description": "分镜ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "uuid-001"
+          },
+          {
+            "name": "reason",
+            "in": "query",
+            "description": "撤回原因",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "脚本台词需要修改"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/storyboards/{storyboardId}/versions/{versionId}/rollback": {
+      "post": {
+        "tags": ["分镜-管理"],
+        "summary": "回滚版本",
+        "description": "将分镜回滚到指定版本,回滚前自动创建当前版本快照",
+        "operationId": "rollbackVersion",
+        "parameters": [
+          {
+            "name": "storyboardId",
+            "in": "path",
+            "description": "分镜ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "uuid-001"
+          },
+          {
+            "name": "versionId",
+            "in": "path",
+            "description": "目标版本ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "ver-001"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultStoryboardDetailVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/storyboards/{storyboardId}/submit-review": {
+      "post": {
+        "tags": ["分镜-管理"],
+        "summary": "提交分镜审核",
+        "description": "将分镜状态从草稿(1)或驳回(4)修改为待审核(2)",
+        "operationId": "submitForReview",
+        "parameters": [
+          {
+            "name": "storyboardId",
+            "in": "path",
+            "description": "分镜ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "uuid-001"
+          },
+          {
+            "name": "note",
+            "in": "query",
+            "description": "提交备注",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "请审核第一场戏的分镜"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/storyboards/{storyboardId}/images": {
+      "get": {
+        "tags": ["分镜-管理"],
+        "summary": "获取分镜配图列表",
+        "description": "获取指定分镜的所有配图,按创建时间降序",
+        "operationId": "getStoryboardImages",
+        "parameters": [
+          {
+            "name": "storyboardId",
+            "in": "path",
+            "description": "分镜ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "uuid-001"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultListStoryboardImageVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["分镜-管理"],
+        "summary": "添加分镜配图",
+        "description": "为分镜添加配图,支持main(主图)/reference(参考图)/thumbnail(缩略图)三种类型",
+        "operationId": "addStoryboardImage",
+        "parameters": [
+          {
+            "name": "storyboardId",
+            "in": "path",
+            "description": "分镜ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "uuid-001"
+          },
+          {
+            "name": "imageUrl",
+            "in": "query",
+            "description": "图片URL",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "https://cdn.example.com/image.jpg"
+          },
+          {
+            "name": "imageType",
+            "in": "query",
+            "description": "图片类型: main/reference/thumbnail",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "main"
+            },
+            "example": "main"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultStoryboardImageVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/storyboards/{storyboardId}/assets": {
+      "get": {
+        "tags": ["分镜-管理"],
+        "summary": "获取分镜关联资产",
+        "description": "获取指定分镜下所有关联的资产列表",
+        "operationId": "getStoryboardAssets",
+        "parameters": [
+          {
+            "name": "storyboardId",
+            "in": "path",
+            "description": "分镜ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "uuid-001"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultListStoryboardAssetVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["分镜-管理"],
+        "summary": "关联资产到分镜",
+        "description": "将资产库中的资产关联到指定分镜,同一分镜同一资产不可重复关联",
+        "operationId": "linkAsset",
+        "parameters": [
+          {
+            "name": "storyboardId",
+            "in": "path",
+            "description": "分镜ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "uuid-001"
+          },
+          {
+            "name": "assetId",
+            "in": "query",
+            "description": "资产ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "asset-001"
+          },
+          {
+            "name": "assetType",
+            "in": "query",
+            "description": "资产类型: character/scene/prop/clothes/audio",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "character"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/storyboards/batch-submit-review": {
+      "post": {
+        "tags": ["分镜-管理"],
+        "summary": "批量提交分镜审核",
+        "description": "批量提交多个分镜进入审核流程,单次最多100条",
+        "operationId": "batchSubmitForReview",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StoryboardBatchOperationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/storyboards/batch-delete": {
+      "post": {
+        "tags": ["分镜-管理"],
+        "summary": "批量删除分镜",
+        "description": "批量软删除多个分镜,单次最多100条",
+        "operationId": "batchDeleteStoryboards",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StoryboardBatchOperationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scenes": {
+      "post": {
+        "tags": ["分镜-管理"],
+        "summary": "创建镜头",
+        "description": "手动创建镜头。通常无需手动调用——创建分镜时如只传episodeId，后端会自动创建Scene。scene_number自动按剧集内递增。",
+        "operationId": "createScene",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SceneCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultSceneVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/storyboards": {
+      "get": {
+        "tags": ["分镜-管理"],
+        "summary": "查询分镜列表",
+        "description": "分页查询指定项目下的分镜列表,支持按镜头、剧本、状态和关键词筛选",
+        "operationId": "listStoryboards",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "项目ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "proj-001"
+          },
+          {
+            "name": "query",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/StoryboardQueryRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultPageResultStoryboardVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["分镜-管理"],
+        "summary": "创建分镜",
+        "description": "在指定项目下创建新的分镜,自动分配序号",
+        "operationId": "createStoryboard",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "项目ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "proj-001"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StoryboardCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultStoryboardDetailVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/scripts/{scriptId}/episodes/{episodeId}/storyboard/rebuild": {
+      "post": {
+        "tags": ["分镜-管理"],
+        "summary": "分镜重建",
+        "description": "根据用户修改说明重建分镜，支持段落顺序调整、镜头增删改、跨段落移动等操作。AI仅重建受影响的段落范围(超过30%改动时全量重建)。AI补写的镜头标注[AI补写]标记，P0修正自动记录。读取ai_storyboard_shots中的已有分镜数据作为重建输入。结果更新到ai_storyboard_shots表(version递增)，同时记录Token用量并从积分账户扣减。",
+        "operationId": "rebuildStoryboard",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "项目唯一标识符",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "proj-abc123"
+          },
+          {
+            "name": "scriptId",
+            "in": "path",
+            "description": "剧本唯一标识符",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "script-abc123"
+          },
+          {
+            "name": "episodeId",
+            "in": "path",
+            "description": "分集唯一标识符",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "ep-abc123"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StoryboardRebuildRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultAiProcessResultVOStoryboardRebuildResultVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/scripts/{scriptId}/episodes/{episodeId}/storyboard/decompose": {
+      "post": {
+        "tags": ["分镜-管理"],
+        "summary": "分镜拆解",
+        "description": "对指定分集的剧本内容进行AI分镜拆解，生成包含段落和镜头的完整分镜序列。每个镜头包含景别、运镜、镜头类型(narrative/breath/climax/transition)、画面描述、音频调度、绑定资产、出场角色等完整信息。每4个narrative镜头后自动插入1个breath镜头以保持节奏。可选传入styleConfigId注入风格配置的通用提示词。结果持久化到ai_storyboard_shots表，同时记录Token用量并从积分账户扣减。",
+        "operationId": "decomposeStoryboard",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "项目唯一标识符",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "proj-abc123"
+          },
+          {
+            "name": "scriptId",
+            "in": "path",
+            "description": "剧本唯一标识符",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "script-abc123"
+          },
+          {
+            "name": "episodeId",
+            "in": "path",
+            "description": "分集唯一标识符(来自剧本拆解步骤的输出)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "ep-abc123"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StoryboardDecomposeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultAiProcessResultVOStoryboardDecomposeResultVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/storyboards/{storyboardId}/versions": {
+      "get": {
+        "tags": ["分镜-管理"],
+        "summary": "获取版本历史",
+        "description": "获取分镜的版本历史列表(最多10条),按版本号降序",
+        "operationId": "getVersionHistory",
+        "parameters": [
+          {
+            "name": "storyboardId",
+            "in": "path",
+            "description": "分镜ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "uuid-001"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultListStoryboardVersionVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/storyboards/{storyboardId}/review-status": {
+      "get": {
+        "tags": ["分镜-管理"],
+        "summary": "获取分镜审核状态",
+        "description": "获取分镜当前的审核状态,包括审核任务ID、审核人、审核意见和审核时间",
+        "operationId": "getReviewStatus",
+        "parameters": [
+          {
+            "name": "storyboardId",
+            "in": "path",
+            "description": "分镜ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "uuid-001"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultStoryboardReviewStatusVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/scripts/{scriptId}/storyboards": {
+      "get": {
+        "tags": ["分镜-管理"],
+        "summary": "获取剧本分镜列表",
+        "description": "获取指定剧本下所有已拆解分集的分镜数据，按分集分组返回段落和镜头信息。",
+        "operationId": "getStoryboards",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "项目唯一标识符",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "scriptId",
+            "in": "path",
+            "description": "剧本唯一标识符",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultListScriptStoryboardVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/episodes/{episodeId}/scenes": {
+      "get": {
+        "tags": ["分镜-管理"],
+        "summary": "查询镜头列表",
+        "description": "获取指定剧集下的所有镜头，按scene_number升序排列",
+        "operationId": "listScenes",
+        "parameters": [
+          {
+            "name": "episodeId",
+            "in": "path",
+            "description": "剧集ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "ep-abc123"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultListSceneVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/storyboards/{storyboardId}/assets/{assetId}": {
+      "delete": {
+        "tags": ["分镜-管理"],
+        "summary": "解除资产关联",
+        "description": "取消分镜与资产的关联关系",
+        "operationId": "unlinkAsset",
+        "parameters": [
+          {
+            "name": "storyboardId",
+            "in": "path",
+            "description": "分镜ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "uuid-001"
+          },
+          {
+            "name": "assetId",
+            "in": "path",
+            "description": "资产ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "asset-001"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/storyboards/images/{imageId}": {
+      "delete": {
+        "tags": ["分镜-管理"],
+        "summary": "删除分镜配图",
+        "description": "软删除指定的分镜配图",
+        "operationId": "deleteStoryboardImage",
+        "parameters": [
+          {
+            "name": "imageId",
+            "in": "path",
+            "description": "配图ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "img-001"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ResultStoryboardDetailVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/StoryboardDetailVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "ResultObject": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "type": "object"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "StoryboardUpdateRequest": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "maxLength": 200,
+            "minLength": 0,
+            "type": "string",
+            "description": "分镜标题(可选)",
+            "example": "开场镜头"
+          },
+          "description": {
+            "type": "string",
+            "description": "分镜描述(可选)",
+            "example": "女主角走进咖啡厅的广角镜头"
+          },
+          "prompt": {
+            "type": "string",
+            "description": "AI提示词/视觉描述(可选)",
+            "example": "A young woman walking into a modern cafe, warm lighting"
+          },
+          "cameraAngle": {
+            "type": "string",
+            "description": "机位角度(可选)",
+            "example": "wide",
+            "enum": [
+              "wide",
+              "medium",
+              "close",
+              "extreme_close",
+              "over_shoulder",
+              "pov",
+              "birds_eye",
+              "dutch"
+            ]
+          },
+          "cameraMovement": {
+            "type": "string",
+            "description": "镜头运动(可选)",
+            "example": "tracking",
+            "enum": [
+              "fixed",
+              "pan",
+              "tilt",
+              "dolly",
+              "crane",
+              "tracking",
+              "steadicam",
+              "zoom",
+              "rack"
+            ]
+          },
+          "durationSeconds": {
+            "type": "number",
+            "description": "预计时长(秒,可选)",
+            "example": 5
+          },
+          "scriptText": {
+            "type": "string",
+            "description": "台词/旁白文本(可选)",
+            "example": "又是一个晴朗的早晨..."
+          },
+          "soundEffect": {
+            "type": "string",
+            "description": "音效提示(可选)",
+            "example": "咖啡机声、轻快的背景音乐"
+          },
+          "backgroundMusic": {
+            "type": "string",
+            "description": "背景音乐(可选)",
+            "example": "轻松爵士"
+          },
+          "storyboardNo": {
+            "type": "integer",
+            "description": "分镜序号(可选,用于重排序,从1开始)",
+            "format": "int32",
+            "example": 3
+          }
+        },
+        "description": "更新分镜请求(所有字段均为可选，仅更新传入的非空字段)"
+      },
+      "ResultVoid": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "type": "object"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "StoryboardReorderRequest": {
+        "required": ["items"],
+        "type": "object",
+        "properties": {
+          "items": {
+            "maxItems": 200,
+            "minItems": 0,
+            "type": "array",
+            "description": "排序项列表,每项包含分镜ID和新序号",
+            "example": [
+              {
+                "storyboardId": "uuid-001",
+                "newOrder": 1
+              },
+              {
+                "storyboardId": "uuid-002",
+                "newOrder": 2
+              }
+            ],
+            "items": {
+              "$ref": "#/components/schemas/ReorderItem"
+            }
+          }
+        },
+        "description": "分镜排序请求"
+      },
+      "ResultListStoryboardImageVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StoryboardImageVO"
+            }
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "ResultStoryboardImageVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/StoryboardImageVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "ResultListStoryboardAssetVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StoryboardAssetVO"
+            }
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "StoryboardBatchOperationRequest": {
+        "required": ["storyboardIds"],
+        "type": "object",
+        "properties": {
+          "storyboardIds": {
+            "maxItems": 100,
+            "minItems": 0,
+            "type": "array",
+            "description": "分镜ID列表",
+            "example": ["uuid-1", "uuid-2"],
+            "items": {
+              "type": "string",
+              "description": "分镜ID列表",
+              "example": "[\"uuid-1\",\"uuid-2\"]"
+            }
+          },
+          "note": {
+            "type": "string",
+            "description": "操作备注(批量提交审核时使用,批量删除时忽略)",
+            "example": "批量提交第一集分镜审核"
+          },
+          "hardDelete": {
+            "type": "boolean",
+            "description": "是否硬删除(批量删除时使用,默认false为软删除)",
+            "example": false,
+            "default": false
+          }
+        },
+        "description": "分镜批量操作请求"
+      },
+      "SceneCreateRequest": {
+        "required": ["episodeId"],
+        "type": "object",
+        "properties": {
+          "episodeId": {
+            "type": "string",
+            "description": "所属剧集(episode)ID",
+            "example": "ep-abc123"
+          },
+          "description": {
+            "type": "string",
+            "description": "镜头描述",
+            "example": "开场广角镜头，展示古镇全景"
+          },
+          "angle": {
+            "type": "string",
+            "description": "镜头角度: wide/medium/close/extreme_close/over_shoulder/pov/birds_eye/dutch",
+            "example": "wide"
+          }
+        },
+        "description": "创建镜头(Scene)请求"
+      },
+      "ResultSceneVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/SceneVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "StoryboardQueryRequest": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "minimum": 1,
+            "type": "integer",
+            "description": "当前页码, 从 1 开始",
+            "format": "int32",
+            "example": 1
+          },
+          "pageSize": {
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer",
+            "description": "每页大小, 最大 100",
+            "format": "int32",
+            "example": 10
+          },
+          "sortField": {
+            "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$",
+            "type": "string",
+            "description": "排序字段, 如 createTime",
+            "example": "createTime"
+          },
+          "sortOrder": {
+            "pattern": "^(asc|desc|ASC|DESC)$",
+            "type": "string",
+            "description": "排序方向: asc-升序, desc-降序",
+            "example": "desc"
+          },
+          "projectId": {
+            "type": "string",
+            "description": "项目ID筛选(可选,不传则查询所有项目)",
+            "example": "proj-001"
+          },
+          "sceneId": {
+            "type": "string",
+            "description": "镜头(Scene)ID筛选(可选,不传则查询所有镜头)",
+            "example": "scene-001"
+          },
+          "scriptId": {
+            "type": "string",
+            "description": "关联剧本ID筛选(可选,不传则查询所有剧本)",
+            "example": "script-001"
+          },
+          "status": {
+            "type": "integer",
+            "description": "分镜状态筛选(可选)",
+            "format": "int32",
+            "example": 1,
+            "enum": [1, 2, 3, 4]
+          },
+          "keyword": {
+            "type": "string",
+            "description": "关键词搜索,模糊匹配标题和描述(可选)",
+            "example": "开场"
+          },
+          "desc": {
+            "type": "boolean"
+          },
+          "asc": {
+            "type": "boolean"
+          },
+          "offset": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "description": "分镜查询请求(继承PageRequest,支持page/pageSize/sortField/sortOrder分页排序参数)"
+      },
+      "ResultPageResultStoryboardVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PageResultStoryboardVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "StoryboardCreateRequest": {
+        "required": ["episodeId", "projectId"],
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "description": "所属项目ID",
+            "example": "proj-001"
+          },
+          "episodeId": {
+            "type": "string",
+            "description": "所属剧集ID。后端据此自动查找或创建对应的镜头(Scene)，无需前端手动创建Scene",
+            "example": "ep-abc123"
+          },
+          "sceneId": {
+            "type": "string",
+            "description": "所属镜头ID(可选)。若提供则直接使用，否则根据episodeId自动查找/创建。兼容旧接口",
+            "example": "scene-001"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 0,
+            "type": "string",
+            "description": "分镜标题",
+            "example": "开场镜头"
+          },
+          "description": {
+            "type": "string",
+            "description": "分镜描述",
+            "example": "女主角走进咖啡厅的广角镜头"
+          },
+          "prompt": {
+            "type": "string",
+            "description": "AI提示词(视觉描述)",
+            "example": "A young woman walking into a modern cafe, warm lighting"
+          },
+          "cameraAngle": {
+            "type": "string",
+            "description": "机位角度: wide/medium/close/extreme_close/over_shoulder/pov/birds_eye/dutch",
+            "example": "wide"
+          },
+          "cameraMovement": {
+            "type": "string",
+            "description": "镜头运动: fixed/pan/tilt/dolly/crane/tracking/steadicam/zoom/rack",
+            "example": "tracking"
+          },
+          "durationSeconds": {
+            "type": "number",
+            "description": "预计时长(秒)",
+            "example": 5
+          },
+          "scriptText": {
+            "type": "string",
+            "description": "台词/旁白文本",
+            "example": "又是一个晴朗的早晨..."
+          },
+          "soundEffect": {
+            "type": "string",
+            "description": "音效提示",
+            "example": "咖啡机声、轻快的背景音乐"
+          },
+          "backgroundMusic": {
+            "type": "string",
+            "description": "背景音乐",
+            "example": "轻松爵士"
+          },
+          "scriptId": {
+            "type": "string",
+            "description": "关联剧本ID(可选)",
+            "example": "script-001"
+          }
+        },
+        "description": "创建分镜请求"
+      },
+      "StoryboardRebuildRequest": {
+        "required": ["modifyInstructions"],
+        "type": "object",
+        "properties": {
+          "modifyInstructions": {
+            "type": "string",
+            "description": "修改说明（要调整的内容描述）"
+          },
+          "force": {
+            "type": "boolean",
+            "description": "是否强制重处理，默认 false"
+          }
+        },
+        "description": "分镜重建请求"
+      },
+      "ResultAiProcessResultVOStoryboardRebuildResultVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AiProcessResultVOStoryboardRebuildResultVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "StoryboardDecomposeRequest": {
+        "type": "object",
+        "properties": {
+          "styleConfigId": {
+            "type": "string",
+            "description": "风格配置ID（可选，用于注入通用提示词）"
+          },
+          "force": {
+            "type": "boolean",
+            "description": "是否强制重处理，默认 false"
+          }
+        },
+        "description": "分镜拆解请求"
+      },
+      "ResultAiProcessResultVOStoryboardDecomposeResultVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AiProcessResultVOStoryboardDecomposeResultVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "ResultListStoryboardVersionVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StoryboardVersionVO"
+            }
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "ResultStoryboardReviewStatusVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/StoryboardReviewStatusVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "ResultListScriptStoryboardVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScriptStoryboardVO"
+            }
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "ResultListSceneVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SceneVO"
+            }
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      }
+    }
+  }
+}

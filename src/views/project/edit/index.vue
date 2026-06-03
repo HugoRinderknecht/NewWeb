@@ -68,7 +68,7 @@
                 添加剧本
               </ElButton>
             </div>
-            <ElTable :data="scriptList" style="width: 100%">
+            <ElTable v-loading="scriptLoading" :data="scriptList" style="width: 100%">
               <ElTableColumn prop="title" label="剧本标题" min-width="180" />
               <ElTableColumn prop="author" label="作者" width="120" />
               <ElTableColumn prop="version" label="版本" width="100" />
@@ -97,7 +97,7 @@
                 添加分镜
               </ElButton>
             </div>
-            <ElTable :data="storyboardList" style="width: 100%">
+            <ElTable v-loading="storyboardLoading" :data="storyboardList" style="width: 100%">
               <ElTableColumn prop="name" label="分镜名称" min-width="180" />
               <ElTableColumn prop="scene" label="场景" width="120" />
               <ElTableColumn prop="status" label="状态" width="100">
@@ -143,7 +143,7 @@
                 添加视频
               </ElButton>
             </div>
-            <ElTable :data="videoList" style="width: 100%">
+            <ElTable v-loading="videoLoading" :data="videoList" style="width: 100%">
               <ElTableColumn prop="name" label="视频名称" min-width="180" />
               <ElTableColumn prop="duration" label="时长" width="100" />
               <ElTableColumn prop="resolution" label="分辨率" width="120" />
@@ -182,7 +182,7 @@
                 添加资产
               </ElButton>
             </div>
-            <ElTable :data="assetList" style="width: 100%">
+            <ElTable v-loading="assetLoading" :data="assetList" style="width: 100%">
               <ElTableColumn prop="name" label="资产名称" min-width="180" />
               <ElTableColumn prop="type" label="类型" width="120" />
               <ElTableColumn prop="size" label="大小" width="100" />
@@ -306,62 +306,6 @@
 
               <ElDivider />
 
-              <!-- 小组配置 -->
-              <div class="settings-section">
-                <h3 class="section-title">
-                  <ArtSvgIcon icon="ri:team-line" class="mr-2" />
-                  小组配置
-                </h3>
-                <ElFormItem label="启用声音组">
-                  <ElSwitch
-                    v-model="settingsForm.enableSoundGroup"
-                    active-text="开启"
-                    inactive-text="关闭"
-                  />
-                  <span class="form-tip">开启后，项目将启用独立的声音处理小组</span>
-                </ElFormItem>
-                <ElFormItem label="声音组成员">
-                  <ElSelect
-                    v-model="settingsForm.soundMembers"
-                    multiple
-                    placeholder="请选择声音组成员"
-                    style="width: 400px"
-                    :disabled="!settingsForm.enableSoundGroup"
-                  >
-                    <ElOption
-                      v-for="item in memberOptions"
-                      :key="item.value"
-                      :label="item.label"
-                      :value="item.value"
-                    />
-                  </ElSelect>
-                </ElFormItem>
-              </div>
-
-              <ElDivider />
-
-              <!-- 通用设置 -->
-              <div class="settings-section">
-                <h3 class="section-title">
-                  <ArtSvgIcon icon="ri:toggle-line" class="mr-2" />
-                  通用设置
-                </h3>
-                <ElFormItem label="公开项目">
-                  <ElSwitch v-model="settingsForm.isPublic" />
-                  <span class="form-tip">开启后项目将对团队成员可见</span>
-                </ElFormItem>
-                <ElFormItem label="开启通知">
-                  <ElSwitch v-model="settingsForm.enableNotify" />
-                  <span class="form-tip">开启后将接收项目动态通知</span>
-                </ElFormItem>
-                <ElFormItem label="自动归档">
-                  <ElSwitch v-model="settingsForm.autoArchive" />
-                  <span class="form-tip">项目完成后自动归档</span>
-                </ElFormItem>
-              </div>
-
-              <ElDivider />
-
               <!-- JSON配置 -->
               <div class="settings-section">
                 <h3 class="section-title">
@@ -421,16 +365,25 @@
   import type { UploadFile } from 'element-plus'
   import ProjectMember from '../member/index.vue'
   import ProjectFormComponent from '../components/ProjectForm.vue'
+  import { fetchArchiveProject, fetchDeleteProject, fetchGetProjectMembers } from '@/api/project'
+  import { fetchGetScriptList, fetchDeleteScript } from '@/api/script'
+  import { fetchGetStoryboardList, fetchDeleteStoryboard } from '@/api/storyboard'
+  import { fetchGetVideoTaskList } from '@/api/video'
+  import { fetchGetProjectAssets, fetchDeleteAsset } from '@/api/asset'
   import {
-    fetchGetProjectDetail,
-    fetchUpdateProject,
-    fetchArchiveProject,
-    fetchDeleteProject
-  } from '@/api/project'
+    useProjectDetail,
+    useProjectConfig,
+    useReviewConfig,
+    useUpdateProject,
+    useUpdateProjectConfig,
+    useUpdateReviewConfig,
+    useUploadProjectCover
+  } from '@/api/queries/project'
+  import { logger } from '@/utils/logger'
 
   defineOptions({ name: 'ProjectEdit' })
 
-  type ProjectStatus = 'progress' | 'completed' | 'paused' | 'archived'
+  type ProjectStatus = 0 | 1 | 2 | 3
 
   interface ProjectForm {
     id: number
@@ -482,6 +435,21 @@
   const router = useRouter()
   const route = useRoute()
 
+  const projectId = ref(String(route.query.id || ''))
+
+  // Vue-query: 项目详情
+  const { data: projectDetail } = useProjectDetail(computed(() => projectId.value || undefined))
+  // Vue-query: 项目配置
+  const { data: projectConfig } = useProjectConfig(computed(() => projectId.value || undefined))
+  // Vue-query: 审核配置
+  const { data: reviewConfig } = useReviewConfig(computed(() => projectId.value || undefined))
+
+  // Mutations
+  const updateProjectMutation = useUpdateProject()
+  const updateProjectConfigMutation = useUpdateProjectConfig()
+  const updateReviewConfigMutation = useUpdateReviewConfig()
+  const uploadCoverMutation = useUploadProjectCover()
+
   const activeTab = ref('overview')
   const projectFormRef = ref<InstanceType<typeof ProjectFormComponent>>()
 
@@ -489,10 +457,6 @@
     if (projectFormRef.value) {
       projectFormRef.value.form.name = projectForm.name
       projectFormRef.value.form.description = projectForm.description
-      projectFormRef.value.form.type = projectForm.type
-      projectFormRef.value.form.manager = projectForm.manager
-      projectFormRef.value.form.status = projectForm.status
-      projectFormRef.value.form.progress = projectForm.progress
     }
   }
 
@@ -502,18 +466,23 @@
     }
   })
 
-  const statusTypeMap: Record<ProjectStatus, any> = {
-    progress: 'primary',
-    completed: 'success',
-    paused: 'warning',
-    archived: 'info'
+  const statusTypeMap: Record<ProjectStatus, 'info' | 'primary' | 'success' | 'warning'> = {
+    0: 'info',
+    1: 'primary',
+    2: 'success',
+    3: 'warning'
   }
 
   const statusLabelMap: Record<ProjectStatus, string> = {
-    progress: '进行中',
-    completed: '已完成',
-    paused: '已暂停',
-    archived: '已归档'
+    0: '草稿',
+    1: '进行中',
+    2: '已完成',
+    3: '已归档'
+  }
+
+  const mapApiStatus = (status: number): ProjectStatus => {
+    if ([0, 1, 2, 3].includes(status)) return status as ProjectStatus
+    return 0
   }
 
   const projectForm = reactive<ProjectForm>({
@@ -522,7 +491,7 @@
     description: '',
     type: '',
     manager: '',
-    status: 'progress',
+    status: 0,
     progress: 0,
     memberCount: 0,
     assetCount: 0,
@@ -530,134 +499,245 @@
     updateTime: ''
   })
 
-  const loadProjectDetail = async () => {
-    const projectId = String(route.query.id)
-    if (!projectId) return
-    try {
-      const res = await fetchGetProjectDetail(projectId)
-      if (res) {
-        projectForm.id = Number(res.id) || projectForm.id
-        projectForm.name = res.name || ''
-        projectForm.description = res.description || ''
-        projectForm.type = (res as any).type || ''
-        projectForm.manager = res.ownerName || ''
-        projectForm.status = mapApiStatus(res.status)
-        projectForm.progress = (res as any).progress || 0
-        projectForm.memberCount = res.memberCount || 0
-        projectForm.assetCount = (res as any).assetCount || (res as any).storyboardCount || 0
-        projectForm.createTime = res.createTime || ''
-        projectForm.updateTime = res.updateTime || ''
-        initProjectForm()
-      }
-    } catch (error) {
-      console.error('加载项目详情失败:', error)
-    }
-  }
-
-  const mapApiStatus = (status: any): ProjectStatus => {
-    const statusMap: Record<string, ProjectStatus> = {
-      '0': 'progress',
-      '1': 'completed',
-      '2': 'paused',
-      '3': 'archived',
-      progress: 'progress',
-      completed: 'completed',
-      paused: 'paused',
-      archived: 'archived'
-    }
-    return statusMap[String(status)] || 'progress'
-  }
-
-  onMounted(() => {
-    loadProjectDetail()
-  })
-
-  const scriptList = ref<ScriptItem[]>([
-    { id: 1, title: '第一集：神兽现世', author: '张三', version: 'v1.2', updateTime: '2024-06-10' },
-    { id: 2, title: '第二集：山海奇遇', author: '李四', version: 'v1.0', updateTime: '2024-06-12' },
-    { id: 3, title: '第三集：归途', author: '张三', version: 'v0.9', updateTime: '2024-06-14' }
-  ])
-
-  const storyboardList = ref<StoryboardItem[]>([
-    { id: 1, name: '开场分镜', scene: '神兽山', status: 'completed', updateTime: '2024-06-08' },
-    { id: 2, name: '战斗分镜', scene: '战场', status: 'progress', updateTime: '2024-06-12' },
-    { id: 3, name: '结尾分镜', scene: '村庄', status: 'progress', updateTime: '2024-06-14' }
-  ])
-
-  const videoList = ref<VideoItem[]>([
+  const defaultJson = JSON.stringify(
     {
-      id: 1,
-      name: '预告片',
-      duration: '01:30',
+      camera_types: 'default',
+      crane_modes: 'default',
+      ai_switches: 'on',
+      video_spec: '1080p',
+      fps: '24',
+      output_formats: 'mp4',
+      aspect_ratio: '16:9',
       resolution: '1920x1080',
-      status: 'completed',
-      updateTime: '2024-06-10'
+      template_id: ''
     },
-    {
-      id: 2,
-      name: '第一集成片',
-      duration: '15:20',
-      resolution: '1920x1080',
-      status: 'progress',
-      updateTime: '2024-06-14'
-    }
-  ])
-
-  const assetList = ref<AssetItem[]>([
-    { id: 1, name: '主角模型', type: '3D模型', size: '15MB', updateTime: '2024-06-10' },
-    { id: 2, name: '森林场景', type: '场景', size: '50MB', updateTime: '2024-06-12' },
-    { id: 3, name: '战斗音效', type: '音频', size: '5MB', updateTime: '2024-06-14' }
-  ])
-
-  const statusOptions = [
-    { label: '进行中', value: 'progress' },
-    { label: '已完成', value: 'completed' },
-    { label: '已暂停', value: 'paused' },
-    { label: '已归档', value: 'archived' }
-  ]
-
-  const memberOptions = [
-    { label: '张小明', value: 'zhangxm' },
-    { label: '李小红', value: 'lixh' },
-    { label: '王小刚', value: 'wangxg' },
-    { label: '赵小美', value: 'zhaoxm' },
-    { label: '周小芳', value: 'zhouxf' }
-  ]
-
-  const defaultJson = `{
-  "render": {
-    "resolution": "1920x1080",
-    "fps": 24,
-    "format": "mp4"
-  },
-  "ai": {
-    "model": "gpt-4",
-    "temperature": 0.7,
-    "maxTokens": 2000
-  },
-  "workflow": {
-    "autoAssign": true,
-    "notifyOnComplete": true,
-    "backupInterval": 3600
-  }
-}`
+    null,
+    2
+  )
 
   const settingsForm = reactive({
-    status: 'progress',
-    name: '山海经动画',
-    description: '基于山海经神话故事的动画短片项目，讲述少年阿禹的冒险旅程',
+    status: 0 as ProjectStatus,
+    name: '',
+    description: '',
     cover: '',
     coverPreview: '',
     reviewStoryboard: true,
     reviewFirstFrame: true,
     reviewVideo: false,
-    enableSoundGroup: true,
-    soundMembers: ['zhouxf', 'lixh'],
-    isPublic: true,
-    enableNotify: true,
-    autoArchive: false,
     jsonConfig: defaultJson
   })
+
+  // 监听项目详情数据，自动映射到表单
+  watch(
+    projectDetail,
+    (res) => {
+      if (res) {
+        logger.info('ProjectEdit', '项目详情加载完成')
+        projectForm.id = Number(res.id) || projectForm.id
+        projectForm.name = res.projectName || ''
+        projectForm.description = res.description || ''
+        projectForm.type = ''
+        projectForm.manager = res.creatorName || ''
+        projectForm.status = mapApiStatus(res.status)
+        projectForm.progress = 0
+        projectForm.memberCount = res.memberCount || 0
+        projectForm.assetCount = res.assetCount || res.storyboardCount || 0
+        projectForm.createTime = res.createTime || ''
+        projectForm.updateTime = res.updateTime || ''
+        // 同步设置表单
+        settingsForm.name = res.projectName || ''
+        settingsForm.description = res.description || ''
+        settingsForm.status = mapApiStatus(res.status)
+        settingsForm.coverPreview = res.coverImage || ''
+        initProjectForm()
+      }
+    },
+    { immediate: true }
+  )
+
+  // 监听项目配置数据
+  watch(
+    projectConfig,
+    (config) => {
+      if (config) {
+        logger.info('ProjectEdit', '项目配置加载完成')
+        const configs = config.configs || {}
+        if (typeof configs === 'object' && Object.keys(configs).length > 0) {
+          settingsForm.jsonConfig = JSON.stringify(configs, null, 2)
+        }
+      }
+    },
+    { immediate: true }
+  )
+
+  // 监听审核配置数据
+  watch(
+    reviewConfig,
+    (config) => {
+      if (config) {
+        logger.info('ProjectEdit', '审核配置加载完成')
+        settingsForm.reviewStoryboard = config.storyboard ?? true
+        settingsForm.reviewFirstFrame = config.firstFrame ?? true
+        settingsForm.reviewVideo = config.video ?? false
+      }
+    },
+    { immediate: true }
+  )
+
+  onMounted(() => {
+    loadScriptList()
+    loadStoryboardList()
+    loadVideoList()
+    loadAssetList()
+    loadMemberOptions()
+  })
+
+  const scriptList = ref<ScriptItem[]>([])
+  const storyboardList = ref<StoryboardItem[]>([])
+  const videoList = ref<VideoItem[]>([])
+  const assetList = ref<AssetItem[]>([])
+  const scriptLoading = ref(false)
+  const storyboardLoading = ref(false)
+  const videoLoading = ref(false)
+  const assetLoading = ref(false)
+
+  const loadScriptList = async () => {
+    const pid = String(route.query.id)
+    if (!pid) return
+    scriptLoading.value = true
+    try {
+      const res = await fetchGetScriptList(pid)
+      const list = (res as any)?.records || (Array.isArray(res) ? res : [])
+      scriptList.value = list.map((item: any) => ({
+        id: Number(item.id) || 0,
+        title: item.title || item.name || '',
+        author: item.author || '',
+        version: item.version || 'v1.0',
+        updateTime: item.updateTime || ''
+      }))
+    } catch {
+      ElMessage.error('加载剧本列表失败')
+    } finally {
+      scriptLoading.value = false
+    }
+  }
+
+  const loadStoryboardList = async () => {
+    const pid = String(route.query.id)
+    if (!pid) return
+    storyboardLoading.value = true
+    try {
+      const res = await fetchGetStoryboardList(pid)
+      const list = (res as any)?.records || (Array.isArray(res) ? res : [])
+      storyboardList.value = list.map((item: any) => ({
+        id: Number(item.id) || 0,
+        name: item.name || item.title || '',
+        scene: item.sceneName || item.scene || '',
+        status: mapStoryboardStatus(item.status),
+        updateTime: item.updateTime || ''
+      }))
+    } catch {
+      ElMessage.error('加载分镜列表失败')
+    } finally {
+      storyboardLoading.value = false
+    }
+  }
+
+  const mapStoryboardStatus = (status: any): string => {
+    const map: Record<string, string> = {
+      completed: 'completed',
+      approved: 'completed',
+      progress: 'progress',
+      drawing: 'progress',
+      draft: 'progress'
+    }
+    return map[String(status)] || 'progress'
+  }
+
+  const loadVideoList = async () => {
+    const pid = String(route.query.id)
+    if (!pid) return
+    videoLoading.value = true
+    try {
+      const res = await fetchGetVideoTaskList({ projectId: pid } as any)
+      const list = (res as any)?.records || (Array.isArray(res) ? res : [])
+      videoList.value = list.map((item: any) => ({
+        id: Number(item.id) || 0,
+        name: item.name || item.taskName || '',
+        duration: item.duration || '00:00',
+        resolution: item.resolution || '1920x1080',
+        status: mapVideoStatus(item.status),
+        updateTime: item.updateTime || item.createdAt || ''
+      }))
+    } catch {
+      ElMessage.error('加载视频列表失败')
+    } finally {
+      videoLoading.value = false
+    }
+  }
+
+  const mapVideoStatus = (status: any): string => {
+    const map: Record<string, string> = {
+      completed: 'completed',
+      success: 'completed',
+      processing: 'progress',
+      pending: 'progress',
+      progress: 'progress',
+      failed: 'progress'
+    }
+    return map[String(status)] || 'progress'
+  }
+
+  const loadAssetList = async () => {
+    const pid = String(route.query.id)
+    if (!pid) return
+    assetLoading.value = true
+    try {
+      const res = await fetchGetProjectAssets(pid)
+      const list = (res as any)?.records || (Array.isArray(res) ? res : [])
+      assetList.value = list.map((item: any) => ({
+        id: Number(item.id) || 0,
+        name: item.assetName || item.name || '',
+        type: item.assetType || item.type || '',
+        size: item.fileSize ? formatFileSize(item.fileSize) : item.size || '',
+        updateTime: item.updateTime || ''
+      }))
+    } catch {
+      ElMessage.error('加载资产列表失败')
+    } finally {
+      assetLoading.value = false
+    }
+  }
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return bytes + 'B'
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + 'KB'
+    return (bytes / (1024 * 1024)).toFixed(1) + 'MB'
+  }
+
+  const statusOptions = [
+    { label: '草稿', value: 0 },
+    { label: '进行中', value: 1 },
+    { label: '已完成', value: 2 },
+    { label: '已归档', value: 3 }
+  ]
+
+  const memberOptions = ref<{ label: string; value: string }[]>([])
+
+  const loadMemberOptions = async () => {
+    const pid = String(route.query.id)
+    if (!pid) return
+    try {
+      const res = await fetchGetProjectMembers(pid)
+      const list = (res as any)?.records || (Array.isArray(res) ? res : [])
+      memberOptions.value = list.map((item: any) => ({
+        label: item.userName || item.name || item.nickname || '',
+        value: String(item.userId || item.id || '')
+      }))
+    } catch {
+      // 静默失败，不影响页面加载
+    }
+  }
 
   const handleFormatJson = () => {
     try {
@@ -686,32 +766,83 @@
     if (form) {
       projectForm.name = form.name
       projectForm.description = form.description
-      projectForm.type = form.type
-      projectForm.manager = form.manager
-      projectForm.status = form.status as ProjectStatus
-      projectForm.progress = form.progress
     }
+    const pid = String(projectForm.id)
     try {
-      await fetchUpdateProject(String(projectForm.id), {
-        name: projectForm.name,
-        description: projectForm.description
+      await updateProjectMutation.mutateAsync({
+        projectId: pid,
+        params: {
+          projectName: projectForm.name,
+          description: projectForm.description
+        }
       })
+      logger.info('ProjectEdit', '项目信息保存成功')
+      // 保存项目配置（Map<String,String> 全量替换）
+      try {
+        let configData: Record<string, string> = {}
+        try {
+          configData = JSON.parse(settingsForm.jsonConfig)
+        } catch {
+          // JSON格式无效，使用空配置
+        }
+        await updateProjectConfigMutation.mutateAsync({
+          projectId: pid,
+          configs: configData
+        })
+        logger.info('ProjectEdit', '项目配置保存成功')
+      } catch {
+        logger.warn('ProjectEdit', '项目配置保存失败')
+        // 配置保存失败不阻断主流程
+      }
+      // 保存审核配置
+      try {
+        await updateReviewConfigMutation.mutateAsync({
+          projectId: pid,
+          params: {
+            storyboard: settingsForm.reviewStoryboard,
+            firstFrame: settingsForm.reviewFirstFrame,
+            video: settingsForm.reviewVideo
+          }
+        })
+        logger.info('ProjectEdit', '审核配置保存成功')
+      } catch {
+        logger.warn('ProjectEdit', '审核配置保存失败')
+        // 审核配置保存失败不阻断主流程
+      }
       projectForm.updateTime = new Date().toISOString().slice(0, 10)
       ElMessage.success('保存成功')
     } catch {
+      logger.error('ProjectEdit', '项目保存失败')
       ElMessage.error('保存失败')
     }
   }
 
-  const handleCoverChange = (uploadFile: UploadFile) => {
+  const handleCoverChange = async (uploadFile: UploadFile) => {
     const raw = uploadFile.raw
-    if (raw) {
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        settingsForm.coverPreview = (e.target?.result as string) || ''
-        settingsForm.cover = settingsForm.coverPreview
+    if (!raw) return
+    // 先显示本地预览
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      settingsForm.coverPreview = (e.target?.result as string) || ''
+    }
+    reader.readAsDataURL(raw)
+    // 上传到服务器
+    const pid = String(projectForm.id)
+    if (pid) {
+      try {
+        const res = await uploadCoverMutation.mutateAsync({
+          projectId: pid,
+          file: raw
+        })
+        if (res && res.coverUrl) {
+          settingsForm.coverPreview = res.coverUrl
+        }
+        logger.info('ProjectEdit', '封面上传成功')
+        ElMessage.success('封面上传成功')
+      } catch {
+        logger.error('ProjectEdit', '封面上传失败')
+        ElMessage.error('封面上传失败')
       }
-      reader.readAsDataURL(raw)
     }
   }
 
@@ -723,7 +854,8 @@
     }).then(async () => {
       try {
         await fetchArchiveProject(String(projectForm.id))
-        projectForm.status = 'archived'
+        projectForm.status = 3
+        settingsForm.status = 3
         ElMessage.success('项目已归档')
       } catch {
         ElMessage.error('归档失败')
@@ -749,94 +881,85 @@
 
   // 剧本操作
   const handleAddScript = () => {
-    scriptList.value.push({
-      id: Date.now(),
-      title: '新剧本',
-      author: '当前用户',
-      version: 'v1.0',
-      updateTime: new Date().toISOString().slice(0, 10)
-    })
-    ElMessage.success('剧本添加成功')
+    router.push(`/script/manage?projectId=${route.query.id}&action=create`)
   }
   const handleViewScript = (row: ScriptItem) => {
-    ElMessage.info(`查看剧本: ${row.title}`)
+    router.push(`/script/library?id=${row.id}`)
   }
   const handleDeleteScript = (row: ScriptItem) => {
     ElMessageBox.confirm(`确定要删除剧本「${row.title}」吗？`, '删除确认', {
       type: 'warning'
-    }).then(() => {
-      scriptList.value = scriptList.value.filter((item) => item.id !== row.id)
-      ElMessage.success('删除成功')
+    }).then(async () => {
+      try {
+        await fetchDeleteScript(String(row.id))
+        ElMessage.success('删除成功')
+        await loadScriptList()
+      } catch {
+        ElMessage.error('删除失败')
+      }
     })
   }
 
   // 分镜操作
   const handleAddStoryboard = () => {
-    storyboardList.value.push({
-      id: Date.now(),
-      name: '新分镜',
-      scene: '未命名场景',
-      status: 'progress',
-      updateTime: new Date().toISOString().slice(0, 10)
-    })
-    ElMessage.success('分镜添加成功')
+    router.push(`/storyboard/design?projectId=${route.query.id}&action=create`)
   }
   const handleViewStoryboard = (row: StoryboardItem) => {
-    ElMessage.info(`查看分镜: ${row.name}`)
+    router.push(`/storyboard/design?id=${row.id}`)
   }
   const handleDeleteStoryboard = (row: StoryboardItem) => {
     ElMessageBox.confirm(`确定要删除分镜「${row.name}」吗？`, '删除确认', {
       type: 'warning'
-    }).then(() => {
-      storyboardList.value = storyboardList.value.filter((item) => item.id !== row.id)
-      ElMessage.success('删除成功')
+    }).then(async () => {
+      try {
+        await fetchDeleteStoryboard(String(row.id))
+        ElMessage.success('删除成功')
+        await loadStoryboardList()
+      } catch {
+        ElMessage.error('删除失败')
+      }
     })
   }
 
   // 视频操作
   const handleAddVideo = () => {
-    videoList.value.push({
-      id: Date.now(),
-      name: '新视频',
-      duration: '00:00',
-      resolution: '1920x1080',
-      status: 'progress',
-      updateTime: new Date().toISOString().slice(0, 10)
-    })
-    ElMessage.success('视频添加成功')
+    router.push(`/video/generate?projectId=${route.query.id}`)
   }
   const handleViewVideo = (row: VideoItem) => {
-    ElMessage.info(`查看视频: ${row.name}`)
+    router.push(`/video/task?id=${row.id}`)
   }
   const handleDeleteVideo = (row: VideoItem) => {
     ElMessageBox.confirm(`确定要删除视频「${row.name}」吗？`, '删除确认', {
       type: 'warning'
-    }).then(() => {
-      videoList.value = videoList.value.filter((item) => item.id !== row.id)
-      ElMessage.success('删除成功')
+    }).then(async () => {
+      try {
+        await fetchDeleteAsset(String(projectForm.id), String(row.id))
+        ElMessage.success('删除成功')
+        await loadVideoList()
+      } catch {
+        ElMessage.error('删除失败')
+      }
     })
   }
 
   // 资产操作
   const handleAddAsset = () => {
-    assetList.value.push({
-      id: Date.now(),
-      name: '新资产',
-      type: '未分类',
-      size: '0KB',
-      updateTime: new Date().toISOString().slice(0, 10)
-    })
-    ElMessage.success('资产添加成功')
+    router.push(`/asset/manage?projectId=${route.query.id}&action=upload`)
   }
   const handleViewAsset = (row: AssetItem) => {
-    ElMessage.info(`查看资产: ${row.name}`)
+    router.push(`/asset/detail?id=${row.id}&projectId=${route.query.id}`)
   }
   const handleDeleteAsset = (row: AssetItem) => {
     ElMessageBox.confirm(`确定要删除资产「${row.name}」吗？`, '删除确认', {
       type: 'warning'
-    }).then(() => {
-      assetList.value = assetList.value.filter((item) => item.id !== row.id)
-      ElMessage.success('删除成功')
+    }).then(async () => {
+      try {
+        await fetchDeleteAsset(String(projectForm.id), String(row.id))
+        ElMessage.success('删除成功')
+        await loadAssetList()
+      } catch {
+        ElMessage.error('删除失败')
+      }
     })
   }
 </script>
@@ -861,14 +984,14 @@
 
   .cover-uploader {
     :deep(.el-upload) {
-      border: 1px dashed var(--el-border-color);
-      border-radius: calc(var(--custom-radius) / 2 + 2px);
-      cursor: pointer;
       position: relative;
-      overflow: hidden;
-      transition: var(--el-transition-duration-fast);
       width: 200px;
       height: 120px;
+      overflow: hidden;
+      cursor: pointer;
+      border: 1px dashed var(--el-border-color);
+      border-radius: calc(var(--custom-radius) / 2 + 2px);
+      transition: var(--el-transition-duration-fast);
 
       &:hover {
         border-color: var(--el-color-primary);
@@ -877,16 +1000,16 @@
   }
 
   .cover-preview {
+    display: block;
     width: 200px;
     height: 120px;
-    display: block;
     object-fit: cover;
   }
 
   .cover-upload-trigger {
+    flex-direction: column;
     width: 200px;
     height: 120px;
-    flex-direction: column;
   }
 
   .settings-form {
@@ -896,10 +1019,10 @@
       .section-title {
         display: flex;
         align-items: center;
+        margin-bottom: 20px;
         font-size: 16px;
         font-weight: 600;
         color: var(--el-text-color-primary);
-        margin-bottom: 20px;
       }
     }
 

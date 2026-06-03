@@ -1,0 +1,1658 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "OpenAPI definition - 剧本-管理",
+    "version": "v0",
+    "description": "模块: 剧本-管理"
+  },
+  "servers": [
+    {
+      "url": "http://server.bsuniversal.cn:10006",
+      "description": "Generated server url"
+    }
+  ],
+  "tags": [
+    {
+      "name": "剧本-管理",
+      "description": "剧本CRUD：创建、查询、更新、删除，剧本审核状态查询"
+    }
+  ],
+  "paths": {
+    "/api/scripts/{scriptId}": {
+      "get": {
+        "tags": ["剧本-管理"],
+        "summary": "获取剧本详情(含审核状态)",
+        "description": "获取剧本完整信息,包含正文内容、关联集数/分镜数、审核状态。审核状态字段说明: reviewStatus为null表示未提交审核,1=待审核,2=已通过,3=已驳回,4=已撤回; status字段: 1=草稿,2=待审核,3=已通过,4=已驳回",
+        "operationId": "getScriptDetail",
+        "parameters": [
+          {
+            "name": "scriptId",
+            "in": "path",
+            "description": "剧本ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "uuid-xxx"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultScriptDetailVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["剧本-管理"],
+        "summary": "更新剧本",
+        "description": "更新剧本的标题、描述、正文内容或状态",
+        "operationId": "updateScript",
+        "parameters": [
+          {
+            "name": "scriptId",
+            "in": "path",
+            "description": "剧本ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "uuid-xxx"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScriptUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["剧本-管理"],
+        "summary": "删除剧本",
+        "description": "软删除指定剧本,需要项目写入权限",
+        "operationId": "deleteScript",
+        "parameters": [
+          {
+            "name": "scriptId",
+            "in": "path",
+            "description": "剧本ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "uuid-xxx"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scripts/{scriptId}/withdraw-review": {
+      "post": {
+        "tags": ["剧本-管理"],
+        "summary": "撤回剧本审核",
+        "description": "将待审核(2)的剧本撤回到草稿(1)状态",
+        "operationId": "withdrawReview_1",
+        "parameters": [
+          {
+            "name": "scriptId",
+            "in": "path",
+            "description": "剧本ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "uuid-xxx"
+          },
+          {
+            "name": "reason",
+            "in": "query",
+            "description": "撤回原因",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "剧本内容需要修改"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scripts/{scriptId}/submit-review": {
+      "post": {
+        "tags": ["剧本-管理"],
+        "summary": "提交剧本审核",
+        "description": "将剧本状态从草稿(1)或驳回(4)修改为待审核(2)",
+        "operationId": "submitForReview_1",
+        "parameters": [
+          {
+            "name": "scriptId",
+            "in": "path",
+            "description": "剧本ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "uuid-xxx"
+          },
+          {
+            "name": "note",
+            "in": "query",
+            "description": "提交备注",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "请审核第一季剧本内容"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/scripts": {
+      "get": {
+        "tags": ["剧本-管理"],
+        "summary": "查询剧本列表",
+        "description": "分页查询指定项目下的剧本列表,支持按关键词(模糊匹配标题和描述)和状态筛选",
+        "operationId": "listScripts",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "项目ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "proj-001"
+          },
+          {
+            "name": "query",
+            "in": "query",
+            "description": "查询条件",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ScriptQueryRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultPageResultScriptVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["剧本-管理"],
+        "summary": "创建剧本",
+        "description": "在指定项目下创建一个新的剧本,默认状态为草稿(1)",
+        "operationId": "createScript",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "项目ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "proj-001"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScriptCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultScriptVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scripts/{scriptId}/voice-prompts": {
+      "get": {
+        "tags": ["剧本-管理"],
+        "summary": "获取音色提示词结果",
+        "description": "查询最新一次生成的音色提示词。返回JSON对象，包含音色提示词列表和区分度检查结果。",
+        "operationId": "getVoicePrompts",
+        "parameters": [
+          {
+            "name": "scriptId",
+            "in": "path",
+            "description": "剧本ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "uuid-xxx"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scripts/{scriptId}/style-config": {
+      "get": {
+        "tags": ["剧本-管理"],
+        "summary": "获取风格配置结果",
+        "description": "查询剧本审核通过后AI生成的风格配置(含整体风格/光影/色彩/材质等)",
+        "operationId": "getStyleConfig",
+        "parameters": [
+          {
+            "name": "scriptId",
+            "in": "path",
+            "description": "剧本ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "uuid-xxx"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultStyleConfigResultVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scripts/{scriptId}/review-status": {
+      "get": {
+        "tags": ["剧本-管理"],
+        "summary": "获取剧本审核状态",
+        "description": "获取剧本当前的审核状态。scriptStatus字段: 1=草稿,2=待审核,3=已通过,4=已驳回; reviewStatus字段: null=未提交审核,1=待审核,2=已通过,3=已驳回,4=已撤回",
+        "operationId": "getReviewStatus_1",
+        "parameters": [
+          {
+            "name": "scriptId",
+            "in": "path",
+            "description": "剧本ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "uuid-xxx"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultScriptReviewStatusVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scripts/{scriptId}/ref-analysis": {
+      "get": {
+        "tags": ["剧本-管理"],
+        "summary": "获取参考图分析结果",
+        "description": "查询剧本审核通过后AI生成的参考图风格分析",
+        "operationId": "getRefAnalysis",
+        "parameters": [
+          {
+            "name": "scriptId",
+            "in": "path",
+            "description": "剧本ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "uuid-xxx"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultRefAnalysisResultVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scripts/{scriptId}/post-approval-status": {
+      "get": {
+        "tags": ["剧本-管理"],
+        "summary": "获取资产生成进度",
+        "description": "查询剧本审核通过后资产生成的实时进度。status: 0=空闲,1=处理中,2=已完成,3=失败。前端应轮询此接口(建议间隔3-5秒)直到status变为2或3。",
+        "operationId": "getPostApprovalStatus",
+        "parameters": [
+          {
+            "name": "scriptId",
+            "in": "path",
+            "description": "剧本ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "uuid-xxx"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultScriptPostApprovalStatusVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scripts/{scriptId}/extracted-assets": {
+      "get": {
+        "tags": ["剧本-管理"],
+        "summary": "获取资产提取结果",
+        "description": "查询最新一次AI提取的资产表数据。按类型分组返回: characters(含name/level/aliases)、scenes(含name/sceneType)、props(含name/category/owner)、costumes(含name/character/scene)。每项含assetId(source=extract为AI生成, source=manual为手动)。",
+        "operationId": "getExtractedAssets",
+        "parameters": [
+          {
+            "name": "scriptId",
+            "in": "path",
+            "description": "剧本ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "uuid-xxx"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scripts/{scriptId}/character-profiles": {
+      "get": {
+        "tags": ["剧本-管理"],
+        "summary": "获取人物小传结果",
+        "description": "查询最新一次生成的人物小传列表。返回JSON数组，每项包含姓名、身份、外貌、性格、背景、音色参考、出场跨度、人物关系等字段。",
+        "operationId": "getCharacterProfiles",
+        "parameters": [
+          {
+            "name": "scriptId",
+            "in": "path",
+            "description": "剧本ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "uuid-xxx"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scripts/{scriptId}/asset-prompts": {
+      "get": {
+        "tags": ["剧本-管理"],
+        "summary": "获取资产提示词结果",
+        "description": "查询最新一次生成的资产图片提示词。返回JSON对象，包含characterPrompts/scenePrompts/propPrompts/costumePrompts四类提示词列表。每项含: assetId(统一资产ID)、name(资产名称)、prompt(提示词文本)。",
+        "operationId": "getAssetPrompts",
+        "parameters": [
+          {
+            "name": "scriptId",
+            "in": "path",
+            "description": "剧本ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "uuid-xxx"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scripts/{scriptId}/asset-images": {
+      "get": {
+        "tags": ["剧本-管理"],
+        "summary": "获取资产图片结果",
+        "description": "查询已生成的资产图片列表(按生成时间降序)。每项包含: assetId(统一资产ID)、extractAssetId(与assetId相同)、assetName(资产名称)、assetType(资产分类: character/costume/scene/prop/other)、promptText(生成提示词)、imageUrl(图片URL)、status(completed/processing/failed)、createTime(生成时间)。v2: 统一ID模型, assetId=extractAssetId 为同一资产跨所有阶段唯一ID。",
+        "operationId": "getAssetImages",
+        "parameters": [
+          {
+            "name": "scriptId",
+            "in": "path",
+            "description": "剧本ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "uuid-xxx"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultListAssetImageVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/episodes/{episodeId}/video-prompts": {
+      "get": {
+        "tags": ["剧本-管理"],
+        "summary": "获取视频提示词结果",
+        "description": "查询最新一次生成的视频提示词。返回JSON对象，包含集元信息、段落/镜头提示词等字段。",
+        "operationId": "getVideoPrompts",
+        "parameters": [
+          {
+            "name": "episodeId",
+            "in": "path",
+            "description": "分集ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "ep-abc123"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ResultScriptDetailVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ScriptDetailVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "ResultObject": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "type": "object"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "ScriptUpdateRequest": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "maxLength": 200,
+            "minLength": 0,
+            "type": "string",
+            "description": "剧本标题",
+            "example": "第一季完整剧本(修订版)"
+          },
+          "description": {
+            "maxLength": 2000,
+            "minLength": 0,
+            "type": "string",
+            "description": "剧本描述",
+            "example": "第一季12集的完整剧本修订版,新增第13集"
+          },
+          "content": {
+            "type": "string",
+            "description": "剧本正文内容",
+            "example": "第一集：清晨的阳光洒在...(更新)"
+          },
+          "status": {
+            "type": "integer",
+            "description": "状态: 1-草稿, 2-待审核, 3-已通过, 4-已驳回",
+            "format": "int32",
+            "example": 2
+          }
+        },
+        "description": "更新剧本请求"
+      },
+      "ResultVoid": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "type": "object"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "ScriptQueryRequest": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "minimum": 1,
+            "type": "integer",
+            "description": "当前页码, 从 1 开始",
+            "format": "int32",
+            "example": 1
+          },
+          "pageSize": {
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer",
+            "description": "每页大小, 最大 100",
+            "format": "int32",
+            "example": 10
+          },
+          "sortField": {
+            "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$",
+            "type": "string",
+            "description": "排序字段, 如 createTime",
+            "example": "createTime"
+          },
+          "sortOrder": {
+            "pattern": "^(asc|desc|ASC|DESC)$",
+            "type": "string",
+            "description": "排序方向: asc-升序, desc-降序",
+            "example": "desc"
+          },
+          "projectId": {
+            "type": "string",
+            "description": "项目ID(从路径获取,请求体中无需传)",
+            "example": "proj-001"
+          },
+          "keyword": {
+            "type": "string",
+            "description": "搜索关键词(模糊匹配标题和描述)",
+            "example": "第一季"
+          },
+          "status": {
+            "type": "integer",
+            "description": "状态筛选: 1-草稿, 2-已完成, null-所有",
+            "format": "int32",
+            "example": 1
+          },
+          "desc": {
+            "type": "boolean"
+          },
+          "asc": {
+            "type": "boolean"
+          },
+          "offset": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "description": "查询剧本请求"
+      },
+      "ResultPageResultScriptVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PageResultScriptVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "ScriptCreateRequest": {
+        "required": ["title"],
+        "type": "object",
+        "properties": {
+          "title": {
+            "maxLength": 200,
+            "minLength": 0,
+            "type": "string",
+            "description": "剧本标题",
+            "example": "第一季完整剧本"
+          },
+          "description": {
+            "maxLength": 2000,
+            "minLength": 0,
+            "type": "string",
+            "description": "剧本描述",
+            "example": "第一季12集的完整剧本,包含主线剧情和支线剧情"
+          },
+          "content": {
+            "type": "string",
+            "description": "剧本正文内容,支持多段落文字",
+            "example": "第一集：清晨的阳光洒在..."
+          },
+          "status": {
+            "type": "integer",
+            "description": "状态: 1-草稿, 2-已完成",
+            "format": "int32",
+            "example": 1
+          }
+        },
+        "description": "创建剧本请求"
+      },
+      "ResultScriptVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ScriptVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "ResultStyleConfigResultVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/StyleConfigResultVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "ResultScriptReviewStatusVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ScriptReviewStatusVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "ResultRefAnalysisResultVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/RefAnalysisResultVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "ResultScriptPostApprovalStatusVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ScriptPostApprovalStatusVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "ResultListAssetImageVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AssetImageVO"
+            }
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      }
+    }
+  }
+}

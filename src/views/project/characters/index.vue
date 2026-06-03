@@ -5,7 +5,7 @@
         <div class="flex-cb">
           <div class="flex items-center gap-4">
             <span class="text-lg font-medium">角色管理</span>
-            <ElTag type="info" size="small">山海经动画</ElTag>
+            <ElTag type="info" size="small">{{ projectDetail?.projectName || '角色管理' }}</ElTag>
           </div>
           <ElSpace>
             <ElInput
@@ -19,9 +19,9 @@
               </template>
             </ElInput>
             <ElSelect v-model="filterGender" placeholder="性别筛选" clearable style="width: 120px">
-              <ElOption label="男" value="male" />
-              <ElOption label="女" value="female" />
-              <ElOption label="其他" value="other" />
+              <ElOption label="男" value="男" />
+              <ElOption label="女" value="女" />
+              <ElOption label="其他" value="其他" />
             </ElSelect>
             <ElButton type="primary" @click="handleCreate">
               <ArtSvgIcon icon="ri:add-line" class="mr-1" />
@@ -49,7 +49,6 @@
                 </ElAvatar>
                 <div>
                   <div class="font-medium">{{ scope.row.name }}</div>
-                  <div class="text-xs text-g-400">{{ scope.row.code }}</div>
                 </div>
               </div>
             </template>
@@ -67,13 +66,7 @@
             </template>
           </ElTableColumn>
           <ElTableColumn prop="personality" label="性格" min-width="160" show-overflow-tooltip />
-          <ElTableColumn prop="role" label="定位" width="120">
-            <template #default="scope">
-              <ElTag :type="roleTypeMap[scope.row.role as RoleType]" size="small">
-                {{ roleLabelMap[scope.row.role as RoleType] }}
-              </ElTag>
-            </template>
-          </ElTableColumn>
+          <ElTableColumn prop="voice" label="声音" min-width="160" show-overflow-tooltip />
           <ElTableColumn prop="appearance" label="外貌特征" min-width="180" show-overflow-tooltip />
           <ElTableColumn label="操作" width="200" fixed="right">
             <template #default="scope">
@@ -109,16 +102,13 @@
         <ElFormItem label="角色名称" prop="name">
           <ElInput v-model="form.name" placeholder="请输入角色名称" />
         </ElFormItem>
-        <ElFormItem label="角色编码">
-          <ElInput v-model="form.code" placeholder="请输入角色编码" disabled />
-        </ElFormItem>
         <ElRow :gutter="16">
           <ElCol :span="12">
             <ElFormItem label="性别" prop="gender">
               <ElSelect v-model="form.gender" placeholder="请选择性别" style="width: 100%">
-                <ElOption label="男" value="male" />
-                <ElOption label="女" value="female" />
-                <ElOption label="其他" value="other" />
+                <ElOption label="男" value="男" />
+                <ElOption label="女" value="女" />
+                <ElOption label="其他" value="其他" />
               </ElSelect>
             </ElFormItem>
           </ElCol>
@@ -128,16 +118,6 @@
             </ElFormItem>
           </ElCol>
         </ElRow>
-        <ElFormItem label="角色定位" prop="role">
-          <ElSelect v-model="form.role" placeholder="请选择角色定位" style="width: 100%">
-            <ElOption
-              v-for="item in roleOptions"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value"
-            />
-          </ElSelect>
-        </ElFormItem>
         <ElFormItem label="性格特点" prop="personality">
           <ElInput
             v-model="form.personality"
@@ -154,13 +134,8 @@
             placeholder="请输入外貌特征"
           />
         </ElFormItem>
-        <ElFormItem label="背景故事">
-          <ElInput
-            v-model="form.background"
-            type="textarea"
-            :rows="3"
-            placeholder="请输入背景故事"
-          />
+        <ElFormItem label="声音">
+          <ElInput v-model="form.voice" type="textarea" :rows="2" placeholder="请输入声音描述" />
         </ElFormItem>
         <ElFormItem label="角色头像">
           <ElUpload
@@ -204,25 +179,19 @@
               <ElTag :type="genderTypeMap[currentCharacter.gender as Gender]" size="small">
                 {{ genderLabelMap[currentCharacter.gender as Gender] }}
               </ElTag>
-              <ElTag :type="roleTypeMap[currentCharacter.role as RoleType]" size="small">
-                {{ roleLabelMap[currentCharacter.role as RoleType] }}
-              </ElTag>
               <span class="text-sm text-g-400">{{ currentCharacter.age }} 岁</span>
             </ElSpace>
           </div>
         </div>
         <ElDivider />
         <ElDescriptions :column="1" border>
-          <ElDescriptionsItem label="角色编码">{{ currentCharacter.code }}</ElDescriptionsItem>
           <ElDescriptionsItem label="性格特点">{{
             currentCharacter.personality
           }}</ElDescriptionsItem>
           <ElDescriptionsItem label="外貌特征">{{
             currentCharacter.appearance
           }}</ElDescriptionsItem>
-          <ElDescriptionsItem label="背景故事">{{
-            currentCharacter.background
-          }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="声音">{{ currentCharacter.voice }}</ElDescriptionsItem>
         </ElDescriptions>
       </div>
     </ElDialog>
@@ -239,23 +208,25 @@
     fetchUpdateCharacter,
     fetchDeleteCharacter
   } from '@/api/character'
+  import { logger } from '@/utils/logger'
+  import { useProjectDetail } from '@/api/queries/project'
 
   defineOptions({ name: 'ProjectCharacters' })
 
-  type Gender = 'male' | 'female' | 'other'
-  type RoleType = 'protagonist' | 'supporting' | 'antagonist' | 'npc'
+  const MODULE = 'characters'
+
+  type Gender = '男' | '女' | '其他'
 
   interface CharacterItem {
     id: number
     name: string
-    code: string
     gender: Gender
     age: number
     personality: string
-    role: RoleType
     appearance: string
-    background: string
+    voice: string
     avatar: string
+    background: string
   }
 
   const searchQuery = ref('')
@@ -269,8 +240,10 @@
   const route = useRoute()
 
   const projectId = computed(
-    () => (route.query.id as string) || (route.params.projectId as string) || '1'
+    () => (route.query.id as string) || (route.params.projectId as string) || ''
   )
+
+  const { data: projectDetail } = useProjectDetail(computed(() => projectId.value || undefined))
 
   const pagination = reactive({
     current: 1,
@@ -279,37 +252,16 @@
   })
 
   const genderTypeMap: Record<Gender, 'primary' | 'danger' | 'info'> = {
-    male: 'primary',
-    female: 'danger',
-    other: 'info'
+    男: 'primary',
+    女: 'danger',
+    其他: 'info'
   }
 
   const genderLabelMap: Record<Gender, string> = {
-    male: '男',
-    female: '女',
-    other: '其他'
+    男: '男',
+    女: '女',
+    其他: '其他'
   }
-
-  const roleTypeMap: Record<RoleType, 'success' | 'primary' | 'danger' | 'info'> = {
-    protagonist: 'success',
-    supporting: 'primary',
-    antagonist: 'danger',
-    npc: 'info'
-  }
-
-  const roleLabelMap: Record<RoleType, string> = {
-    protagonist: '主角',
-    supporting: '配角',
-    antagonist: '反派',
-    npc: 'NPC'
-  }
-
-  const roleOptions = [
-    { label: '主角', value: 'protagonist' },
-    { label: '配角', value: 'supporting' },
-    { label: '反派', value: 'antagonist' },
-    { label: 'NPC', value: 'npc' }
-  ]
 
   const characterList = ref<CharacterItem[]>([])
   const loading = ref(false)
@@ -317,43 +269,33 @@
   const loadCharacterList = async () => {
     loading.value = true
     try {
+      logger.apiRequest(MODULE, 'fetchGetCharacterList', projectId.value)
       const res = await fetchGetCharacterList(projectId.value)
       if (res) {
         const list = Array.isArray(res) ? res : (res as any).records || []
         characterList.value = list.map((item: any) => ({
-          id: item.characterId || item.id,
+          id: item.id,
           name: item.name,
-          code: item.code || '',
-          gender: (item.gender as Gender) || 'other',
+          gender: (item.gender as Gender) || '其他',
           age: item.age || 0,
           personality: item.personality || '',
-          role: mapPositioning(item.positioning) as RoleType,
           appearance: item.appearance || '',
-          background: item.background || '',
+          voice: item.voice || '',
           avatar: item.avatar || ''
         })) as CharacterItem[]
-        pagination.total = characterList.value.length
+        pagination.total = (res as any).total ?? characterList.value.length
+        logger.apiSuccess(
+          MODULE,
+          'fetchGetCharacterList',
+          `加载 ${characterList.value.length} 条角色`
+        )
       }
-    } catch {
+    } catch (err) {
+      logger.apiError(MODULE, 'fetchGetCharacterList', err)
       ElMessage.error('加载角色列表失败')
     } finally {
       loading.value = false
     }
-  }
-
-  const mapPositioning = (positioning: string): string => {
-    const map: Record<string, string> = {
-      主角: 'protagonist',
-      女主角: 'protagonist',
-      配角: 'supporting',
-      反派: 'antagonist',
-      其他: 'npc',
-      protagonist: 'protagonist',
-      supporting: 'supporting',
-      antagonist: 'antagonist',
-      npc: 'npc'
-    }
-    return map[positioning] || 'npc'
   }
 
   const columns: ColumnOption[] = [
@@ -362,7 +304,7 @@
     { prop: 'gender', label: '性别', width: 100 },
     { prop: 'age', label: '年龄', width: 100 },
     { prop: 'personality', label: '性格', minWidth: 160 },
-    { prop: 'role', label: '定位', width: 120 },
+    { prop: 'voice', label: '声音', minWidth: 160 },
     { prop: 'appearance', label: '外貌特征', minWidth: 180 },
     { prop: 'operation', label: '操作', width: 200, fixed: 'right' }
   ]
@@ -373,10 +315,7 @@
     if (searchQuery.value) {
       const q = searchQuery.value.toLowerCase()
       result = result.filter(
-        (item) =>
-          item.name.toLowerCase().includes(q) ||
-          item.code.toLowerCase().includes(q) ||
-          item.personality.toLowerCase().includes(q)
+        (item) => item.name.toLowerCase().includes(q) || item.personality.toLowerCase().includes(q)
       )
     }
 
@@ -408,13 +347,11 @@
 
   const form = reactive<Partial<CharacterItem>>({
     name: '',
-    code: '',
-    gender: 'male',
+    gender: '男',
     age: 18,
     personality: '',
-    role: 'supporting',
     appearance: '',
-    background: '',
+    voice: '',
     avatar: ''
   })
 
@@ -422,22 +359,20 @@
     name: [{ required: true, message: '请输入角色名称', trigger: 'blur' }],
     gender: [{ required: true, message: '请选择性别', trigger: 'change' }],
     age: [{ required: true, message: '请输入年龄', trigger: 'blur' }],
-    personality: [{ required: true, message: '请输入性格特点', trigger: 'blur' }],
-    role: [{ required: true, message: '请选择角色定位', trigger: 'change' }]
+    personality: [{ required: true, message: '请输入性格特点', trigger: 'blur' }]
   }
 
   const handleCreate = () => {
     isEdit.value = false
     currentId.value = null
     form.name = ''
-    form.code = `CHR-${String(characterList.value.length + 1).padStart(3, '0')}`
-    form.gender = 'male'
+    form.gender = '男'
     form.age = 18
     form.personality = ''
-    form.role = 'supporting'
     form.appearance = ''
-    form.background = ''
+    form.voice = ''
     form.avatar = ''
+    form.background = ''
     dialogVisible.value = true
   }
 
@@ -454,33 +389,38 @@
       if (valid) {
         try {
           if (isEdit.value && currentId.value) {
+            logger.info(MODULE, '编辑角色', `角色ID: ${currentId.value}, 名称: ${form.name}`)
             await fetchUpdateCharacter(projectId.value, String(currentId.value), {
-              name: form.name!,
-              code: form.code,
+              name: form.name,
               gender: form.gender,
               age: form.age,
               personality: form.personality,
-              positioning: form.role,
               appearance: form.appearance,
               background: form.background
             })
+            logger.apiSuccess(MODULE, 'fetchUpdateCharacter', `角色「${form.name}」编辑成功`)
             ElMessage.success('角色编辑成功')
           } else {
+            logger.info(MODULE, '创建角色', `名称: ${form.name}`)
             await fetchCreateCharacter(projectId.value, {
               name: form.name!,
-              code: form.code,
               gender: form.gender,
               age: form.age,
               personality: form.personality,
-              positioning: form.role,
               appearance: form.appearance,
               background: form.background
             })
+            logger.apiSuccess(MODULE, 'fetchCreateCharacter', `角色「${form.name}」创建成功`)
             ElMessage.success('角色创建成功')
           }
           dialogVisible.value = false
           await loadCharacterList()
-        } catch {
+        } catch (err) {
+          logger.apiError(
+            MODULE,
+            isEdit.value ? 'fetchUpdateCharacter' : 'fetchCreateCharacter',
+            err
+          )
           ElMessage.error(isEdit.value ? '角色编辑失败' : '角色创建失败')
         }
       }
@@ -499,10 +439,13 @@
       type: 'warning'
     }).then(async () => {
       try {
+        logger.info(MODULE, '删除角色', `角色ID: ${row.id}, 名称: ${row.name}`)
         await fetchDeleteCharacter(projectId.value, String(row.id))
+        logger.apiSuccess(MODULE, 'fetchDeleteCharacter', `角色「${row.name}」删除成功`)
         ElMessage.success('删除成功')
         await loadCharacterList()
-      } catch {
+      } catch (err) {
+        logger.apiError(MODULE, 'fetchDeleteCharacter', err)
         ElMessage.error('删除失败')
       }
     })
@@ -527,11 +470,11 @@
 
     .avatar-uploader {
       :deep(.el-upload) {
-        border: 1px dashed var(--el-border-color);
-        border-radius: 50%;
-        cursor: pointer;
         position: relative;
         overflow: hidden;
+        cursor: pointer;
+        border: 1px dashed var(--el-border-color);
+        border-radius: 50%;
         transition: var(--el-transition-duration-fast);
 
         &:hover {
@@ -541,11 +484,11 @@
     }
 
     .avatar-placeholder {
-      width: 80px;
-      height: 80px;
       display: flex;
       align-items: center;
       justify-content: center;
+      width: 80px;
+      height: 80px;
       background: var(--el-fill-color-lighter);
     }
   }

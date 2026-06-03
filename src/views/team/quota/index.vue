@@ -215,12 +215,17 @@
   import { ElMessage, ElMessageBox } from 'element-plus'
   import type { FormInstance, FormRules } from 'element-plus'
   import type { ColumnOption } from '@/types/component'
+  import { useTeamStore } from '@/store/modules/team'
+  import { useRoute } from 'vue-router'
   import { fetchGetTeamDetail } from '@/api/team'
 
   defineOptions({ name: 'TeamQuota' })
 
+  const teamStore = useTeamStore()
   const route = useRoute()
-  const teamId = computed(() => String(route.query.id || route.query.teamId || ''))
+  const teamId = computed(() =>
+    String((route.query.id || route.query.teamId || teamStore.currentTeamId) as string)
+  )
 
   type TargetType = 'team' | 'member' | 'project'
   type ResourceType = 'ai_calls' | 'tokens' | 'storage' | 'render_time' | 'video_gen'

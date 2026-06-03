@@ -164,10 +164,6 @@ const targets = [
   'src/views/template',
   'src/views/dashboard/analysis',
   'src/views/dashboard/ecommerce',
-  'src/mock/json',
-  'src/mock/temp/articleList.ts',
-  'src/mock/temp/commentDetail.ts',
-  'src/mock/temp/commentList.ts',
   'src/assets/images/cover',
   'src/assets/images/safeguard',
   'src/assets/images/3d',
@@ -399,33 +395,6 @@ export enum RoutesAlias {
   }
 }
 
-// 清理变更日志
-async function cleanChangeLog() {
-  const changeLogPath = path.resolve(process.cwd(), 'src/mock/upgrade/changeLog.ts')
-
-  try {
-    const cleanedChangeLog = `import { ref } from 'vue'
-
-interface UpgradeLog {
-  version: string // 版本号
-  title: string // 更新标题
-  date: string // 更新日期
-  detail?: string[] // 更新内容
-  requireReLogin?: boolean // 是否需要重新登录
-  remark?: string // 备注
-}
-
-export const upgradeLogList = ref<UpgradeLog[]>([])
-`
-
-    await fs.writeFile(changeLogPath, cleanedChangeLog, 'utf-8')
-    console.log(`     ${icons.success} ${fmt.success('清空变更日志数据完成')}`)
-  } catch (err) {
-    console.log(`     ${icons.error} ${fmt.error('清理变更日志失败')}`)
-    console.log(`     ${fmt.dim('错误详情: ' + err)}`)
-  }
-}
-
 // 清理快速入口组件
 async function cleanFastEnterComponent() {
   const fastEnterPath = path.resolve(process.cwd(), 'src/config/fastEnter.ts')
@@ -594,7 +563,6 @@ async function showCleanupWarning() {
       desc: '重写routesAlias.ts，移除演示路由别名',
       color: theme.info
     },
-    { icon: icons.data, name: 'Mock数据', desc: '演示用的JSON数据、文章列表、评论数据等', color: theme.success },
     { icon: icons.map, name: '地图组件', desc: '移除art-map-chart地图组件', color: theme.error },
     { icon: icons.chat, name: '评论组件', desc: '移除comment-widget评论组件', color: theme.orange },
     {
@@ -677,115 +645,6 @@ function createSuccessBanner() {
   console.log()
 }
 
-async function cleanMockData() {
-  const mockDir = path.resolve(process.cwd(), 'src/mock')
-  const mockFiles = [
-    'project.ts',
-    'team.ts',
-    'storyboard.ts',
-    'script.ts',
-    'asset.ts',
-    'review.ts',
-    'notification.ts',
-    'statistics.ts',
-    'admin.ts',
-    'common.ts'
-  ]
-
-  console.log(`     ${icons.clean} ${fmt.info('清理业务Mock数据文件...')}`)
-
-  for (const file of mockFiles) {
-    const filePath = path.join(mockDir, file)
-    try {
-      await fs.rm(filePath, { force: true })
-      console.log(`       ${icons.trash} ${fmt.dim(`删除 ${file}`)}`)
-    } catch {
-      // 文件不存在时忽略
-    }
-  }
-
-  const authMockPath = path.join(mockDir, 'auth.ts')
-  try {
-    const minimalAuthMock = `import { MockMethod } from 'vite-plugin-mock'
-
-const MOCK_TOKEN = 'mock-access-token-2024'
-const MOCK_REFRESH_TOKEN = 'mock-refresh-token-2024'
-
-export default [
-  {
-    url: '/api/auth/login',
-    method: 'post',
-    response: () => ({
-      code: 200,
-      message: '登录成功',
-      data: { token: MOCK_TOKEN, refreshToken: MOCK_REFRESH_TOKEN },
-      timestamp: Date.now()
-    })
-  },
-  {
-    url: '/api/auth/me',
-    method: 'get',
-    response: () => ({
-      code: 200,
-      message: 'success',
-      data: {
-        buttons: ['*'],
-        roles: ['R_SUPER'],
-        userId: 1,
-        id: 'user-001',
-        username: 'SuperAdmin',
-        email: 'admin@example.com',
-        avatar: '',
-        status: 1
-      },
-      timestamp: Date.now()
-    })
-  },
-  {
-    url: '/api/auth/permissions',
-    method: 'get',
-    response: () => ({
-      code: 200,
-      message: 'success',
-      data: { permissions: ['*'], roles: ['R_SUPER'] },
-      timestamp: Date.now()
-    })
-  },
-  {
-    url: '/api/auth/captcha',
-    method: 'get',
-    response: () => ({
-      code: 200,
-      message: 'success',
-      data: { captchaKey: 'mock-key', key: 'mock-key', captchaImage: '', image: '' },
-      timestamp: Date.now()
-    })
-  },
-  {
-    url: '/api/auth/logout',
-    method: 'post',
-    response: () => ({ code: 200, message: '退出成功', data: null, timestamp: Date.now() })
-  }
-] as MockMethod[]
-`
-    await fs.writeFile(authMockPath, minimalAuthMock, 'utf-8')
-    console.log(`       ${icons.success} ${fmt.dim('精简 auth.ts 为最小Mock')}`)
-  } catch (err) {
-    console.log(`       ${icons.error} ${fmt.error('精简 auth.ts 失败')}`)
-  }
-
-  const modulesPath = path.join(mockDir, 'modules.ts')
-  try {
-    await fs.rm(modulesPath, { force: true })
-    console.log(`       ${icons.trash} ${fmt.dim('删除 modules.ts')}`)
-  } catch {
-    // 忽略
-  }
-
-  console.log(`     ${icons.success} ${fmt.success('Mock数据清理完成')}`)
-}
-
-// 主函数
 async function main() {
   // 清屏并显示横幅
   console.clear()
@@ -816,40 +675,31 @@ async function main() {
   console.log()
 
   // 开始清理过程
-  console.log(`  ${fmt.badge('步骤 1/7', theme.bgBlue)} ${fmt.title('删除演示文件')}`)
+  console.log(`  ${fmt.badge('步骤 1/5', theme.bgBlue)} ${fmt.title('删除演示文件')}`)
   console.log()
   for (let i = 0; i < targets.length; i++) {
     await remove(targets[i], i)
   }
   console.log()
 
-  console.log(`  ${fmt.badge('步骤 2/7', theme.bgBlue)} ${fmt.title('清理路由模块')}`)
+  console.log(`  ${fmt.badge('步骤 2/5', theme.bgBlue)} ${fmt.title('清理路由模块')}`)
   console.log()
   await cleanRouteModules()
   console.log()
 
-  console.log(`  ${fmt.badge('步骤 3/6', theme.bgBlue)} ${fmt.title('重写路由别名')}`)
+  console.log(`  ${fmt.badge('步骤 3/5', theme.bgBlue)} ${fmt.title('重写路由别名')}`)
   console.log()
   await cleanRoutesAlias()
   console.log()
 
-  console.log(`  ${fmt.badge('步骤 4/6', theme.bgBlue)} ${fmt.title('清空变更日志')}`)
-  console.log()
-  await cleanChangeLog()
-  console.log()
-
-  console.log(`  ${fmt.badge('步骤 5/7', theme.bgBlue)} ${fmt.title('清理快速入口')}`)
+  console.log(`  ${fmt.badge('步骤 4/5', theme.bgBlue)} ${fmt.title('清理快速入口')}`)
   console.log()
   await cleanFastEnterComponent()
   console.log()
 
-  console.log(`  ${fmt.badge('步骤 6/7', theme.bgBlue)} ${fmt.title('更新菜单接口')}`)
+  console.log(`  ${fmt.badge('步骤 5/5', theme.bgBlue)} ${fmt.title('更新菜单接口')}`)
   console.log()
   await updateMenuApi()
-
-  console.log(`  ${fmt.badge('步骤 7/7', theme.bgBlue)} ${fmt.title('清理业务Mock数据')}`)
-  console.log()
-  await cleanMockData()
 
   // 显示统计信息
   await showStats()
