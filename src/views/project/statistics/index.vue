@@ -253,11 +253,11 @@
 <script setup lang="ts">
   import { useProjectStatistics } from '@/api/queries/project'
   import {
-    fetchGetProjectStoryboardStats,
-    fetchGetProjectVideoStats,
-    fetchGetProjectResources,
-    fetchGetProjectAiUsage
-  } from '@/api/statistics'
+    useProjectStoryboardStats,
+    useProjectVideoStats,
+    useProjectResources,
+    useProjectAiUsage
+  } from '@/api/queries'
   import { logger } from '@/utils/logger'
 
   defineOptions({ name: 'ProjectStatistics' })
@@ -316,87 +316,77 @@
     }[]
   >([])
 
-  const loadOtherStatistics = async () => {
-    if (!projectId.value) {
-      logger.warn('ProjectStatistics', 'loadOtherStatistics', '缺少项目ID，无法加载统计数据')
-      return
+  // 分镜统计
+  const { data: storyboardStatsData } = useProjectStoryboardStats(
+    computed(() => projectId.value || undefined)
+  )
+
+  // 视频统计
+  const { data: videoStatsData } = useProjectVideoStats(
+    computed(() => projectId.value || undefined)
+  )
+
+  // 资源消耗
+  const { data: resourcesData } = useProjectResources(
+    computed(() => projectId.value || undefined)
+  )
+
+  // AI 使用量
+  const { data: aiUsageData } = useProjectAiUsage(
+    computed(() => projectId.value || undefined)
+  )
+
+  // 派生数据
+  watch(storyboardStatsData, (data) => {
+    if (!data) return
+    const total = data.totalStoryboards
+    const completed = data.completedStoryboards
+    const inProgress = data.inProgressStoryboards
+    storyboardProgress.value = total > 0 ? Math.round((completed / total) * 100) : 0
+    storyboardTableData.value = [
+      { label: '总分镜数', count: total, color: 'var(--el-color-primary)' },
+      { label: '已完成', count: completed, color: 'var(--el-color-success)' },
+      { label: '进行中', count: inProgress, color: 'var(--el-color-warning)' }
+    ]
+  })
+
+  watch(videoStatsData, (data) => {
+    if (!data) return
+    const total = data.totalVideos
+    const completed = data.completedVideos
+    const failed = data.failedVideos
+    videoProgress.value = total > 0 ? Math.round((completed / total) * 100) : 0
+    videoTableData.value = [
+      { label: '总视频数', count: total, color: 'var(--el-color-primary)' },
+      { label: '已完成', count: completed, color: 'var(--el-color-success)' },
+      { label: '失败', count: failed, color: 'var(--el-color-danger)' }
+    ]
+  })
+
+  watch([storyboardProgress, videoProgress], () => {
+    firstFrameProgress.value = Math.round((storyboardProgress.value + videoProgress.value) / 2)
+    overallProgress.value = Math.round(
+      (storyboardProgress.value + firstFrameProgress.value + videoProgress.value) / 3
+    )
+  })
+
+  watch(resourcesData, (data) => {
+    if (!data) return
+    storageUsedGB.value = Math.round((data.storageUsed / (1024 * 1024 * 1024)) * 10) / 10
+    storagePercentage.value =
+      storageTotalGB.value > 0
+        ? Math.round((storageUsedGB.value / storageTotalGB.value) * 100 * 10) / 10
+        : 0
+    aiComputeCost.value = data.computeUsed
+  })
+
+  watch(aiUsageData, (data) => {
+    if (!data) return
+    tokenConsumption.value = data.totalTokens
+    if (data.totalCost) {
+      aiComputeCost.value = data.totalCost
     }
-
-    try {
-      // 并行加载非项目模块的统计数据
-      const [storyboardStatsRes, videoStatsRes, resourcesRes, aiUsageRes] =
-        await Promise.allSettled([
-          fetchGetProjectStoryboardStats(projectId.value),
-          fetchGetProjectVideoStats(projectId.value),
-          fetchGetProjectResources(projectId.value),
-          fetchGetProjectAiUsage(projectId.value)
-        ])
-
-      // 分镜统计（进度 + 表格）
-      if (storyboardStatsRes.status === 'fulfilled' && storyboardStatsRes.value) {
-        const data = storyboardStatsRes.value
-        const total = data.totalStoryboards
-        const completed = data.completedStoryboards
-        const inProgress = data.inProgressStoryboards
-
-        storyboardProgress.value = total > 0 ? Math.round((completed / total) * 100) : 0
-
-        storyboardTableData.value = [
-          { label: '总分镜数', count: total, color: 'var(--el-color-primary)' },
-          { label: '已完成', count: completed, color: 'var(--el-color-success)' },
-          { label: '进行中', count: inProgress, color: 'var(--el-color-warning)' }
-        ]
-      }
-
-      // 视频统计（进度 + 表格）
-      if (videoStatsRes.status === 'fulfilled' && videoStatsRes.value) {
-        const data = videoStatsRes.value
-        const total = data.totalVideos
-        const completed = data.completedVideos
-        const failed = data.failedVideos
-
-        videoProgress.value = total > 0 ? Math.round((completed / total) * 100) : 0
-
-        videoTableData.value = [
-          { label: '总视频数', count: total, color: 'var(--el-color-primary)' },
-          { label: '已完成', count: completed, color: 'var(--el-color-success)' },
-          { label: '失败', count: failed, color: 'var(--el-color-danger)' }
-        ]
-      }
-
-      // 首帧图完成率为分镜和视频完成率的平均值（派生指标）
-      firstFrameProgress.value = Math.round((storyboardProgress.value + videoProgress.value) / 2)
-
-      // 整体完成率为三项平均值
-      overallProgress.value = Math.round(
-        (storyboardProgress.value + firstFrameProgress.value + videoProgress.value) / 3
-      )
-
-      // 资源消耗
-      if (resourcesRes.status === 'fulfilled' && resourcesRes.value) {
-        const data = resourcesRes.value
-        const storageBytes = data.storageUsed
-        storageUsedGB.value = Math.round((storageBytes / (1024 * 1024 * 1024)) * 10) / 10
-        storageTotalGB.value = 500
-        storagePercentage.value =
-          storageTotalGB.value > 0
-            ? Math.round((storageUsedGB.value / storageTotalGB.value) * 100 * 10) / 10
-            : 0
-        aiComputeCost.value = data.computeUsed
-      }
-
-      // AI 使用量（Token 消耗）
-      if (aiUsageRes.status === 'fulfilled' && aiUsageRes.value) {
-        const data = aiUsageRes.value
-        tokenConsumption.value = data.totalTokens
-        if (data.totalCost) {
-          aiComputeCost.value = data.totalCost
-        }
-      }
-    } catch (error) {
-      logger.error('ProjectStatistics', 'loadOtherStatistics', '加载统计数据失败', error)
-    }
-  }
+  })
 
   const formatTokenCount = (count: number): string => {
     if (count >= 1_000_000) {
@@ -407,10 +397,6 @@
     }
     return String(count)
   }
-
-  onMounted(() => {
-    loadOtherStatistics()
-  })
 </script>
 
 <style lang="scss" scoped>

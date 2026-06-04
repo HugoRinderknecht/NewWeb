@@ -34,7 +34,7 @@
                 show-password
               />
             </ElFormItem>
-            <ElFormItem prop="captchaCode">
+            <!-- <ElFormItem prop="captchaCode">
               <div class="flex w-full gap-2">
                 <ElInput
                   class="custom-height flex-1"
@@ -50,7 +50,7 @@
                   <span v-else class="text-xs text-gray-400">点击获取</span>
                 </div>
               </div>
-            </ElFormItem>
+            </ElFormItem> -->
 
             <div class="flex-cb mt-2 text-sm">
               <ElCheckbox v-model="formData.rememberPassword">记住密码</ElCheckbox>
@@ -122,7 +122,7 @@
       { required: true, message: '请输入密码', trigger: 'blur' },
       { min: 8, max: 100, message: '密码长度在 8 到 100 个字符', trigger: 'blur' }
     ],
-    captchaCode: [{ required: true, message: '请输入验证码', trigger: 'blur' }]
+    // captchaCode: [{ required: true, message: '请输入验证码', trigger: 'blur' }]
   }
 
   const refreshCaptcha = async () => {
@@ -165,9 +165,9 @@
     try {
       const { token, refreshToken } = await fetchLogin({
         account: formData.account,
-        password: formData.password,
-        captchaKey: captchaKey.value,
-        captchaCode: formData.captchaCode
+        password: formData.password
+        // captchaKey: captchaKey.value,
+        // captchaCode: formData.captchaCode
       })
 
       userStore.setToken(token, refreshToken)
@@ -196,16 +196,16 @@
       if (error instanceof Error) {
         showBusinessError(error)
       }
-      await refreshCaptcha()
-      formData.captchaCode = ''
+      // await refreshCaptcha()
+      // formData.captchaCode = ''
     } finally {
       loading.value = false
     }
   }
 
-  onMounted(() => {
-    refreshCaptcha()
-  })
+  // onMounted(() => {
+  //   refreshCaptcha()
+  // })
 </script>
 
 <style scoped>

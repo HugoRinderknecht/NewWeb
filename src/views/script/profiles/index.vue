@@ -214,6 +214,9 @@
   // ==================== 验证状态映射 ====================
   const verificationTagType = (status: string): 'success' | 'warning' | 'info' => {
     const map: Record<string, 'success' | 'warning' | 'info'> = {
+      一致: 'success',
+      需复核: 'warning',
+      // 兼容英文值
       verified: 'success',
       pending: 'warning',
       unverified: 'info'
@@ -223,6 +226,9 @@
 
   const verificationLabel = (status: string): string => {
     const map: Record<string, string> = {
+      一致: '已验证',
+      需复核: '待复核',
+      // 兼容英文值
       verified: '已验证',
       pending: '待验证',
       unverified: '未验证'
@@ -261,7 +267,8 @@
         scriptProjectStore.setCurrentScript(sid)
         await loadProfiles(sid)
       }
-    } catch {
+    } catch (err) {
+      console.error('[Profiles] 加载剧本列表失败:', err)
       scriptOptions.value = []
     }
   }
@@ -275,21 +282,24 @@
     }
     try {
       const res = await fetchGetCharacterProfiles(scriptId)
-      const result = res as Api.Script.CharacterProfileResult | null
-      const profiles = result?.profiles ?? []
-      if (profiles.length > 0) {
-        profileList.value = profiles.map((p: Api.Script.CharacterProfileItem) => ({
-          name: p.name ?? '',
-          identity: p.identity ?? '',
-          appearance: p.appearance ?? '',
-          personality: p.personality ?? '',
-          background: p.background ?? '',
-          voiceRef: p.voiceRef ?? '',
-          appearanceSpan: p.appearanceSpan ?? '',
-          verificationStatus: p.verificationStatus ?? 'unverified',
-          relations: (p.relations ?? []).map((r: { target: string; relation: string }) => ({
-            target: r.target ?? '',
-            relation: r.relation ?? ''
+      // 兼容两种响应格式：扁平数组 或 包装对象 { profiles: [...] }
+      const rawList: Api.Script.CharacterProfileItem[] = Array.isArray(res)
+        ? (res as Api.Script.CharacterProfileItem[])
+        : ((res as Api.Script.CharacterProfileResult | null)?.profiles ?? [])
+      if (rawList.length > 0) {
+        profileList.value = rawList.map((p: any) => ({
+          // 兼容中文字段名（后端实际返回）和英文字段名
+          name: p.name ?? p.姓名 ?? '',
+          identity: p.identity ?? p.身份 ?? '',
+          appearance: p.appearance ?? p.外貌 ?? '',
+          personality: p.personality ?? p.性格 ?? '',
+          background: p.background ?? p.背景 ?? '',
+          voiceRef: p.voiceRef ?? p.音色参考 ?? '',
+          appearanceSpan: p.appearanceSpan ?? p.出场跨度 ?? '',
+          verificationStatus: p.verificationStatus ?? p.验证状态 ?? '',
+          relations: (p.relations ?? p.人物关系 ?? []).map((r: any) => ({
+            target: r.role ?? r.target ?? r.角色 ?? '',
+            relation: r.relation ?? r.关系 ?? ''
           }))
         })) as CharacterProfileItem[]
         currentProfile.value = profileList.value[0] || null
@@ -309,11 +319,7 @@
   // ==================== 事件处理 ====================
   const handleProjectChange = (projectId: string) => {
     scriptProjectStore.setCurrentProject(projectId)
-    currentScriptId.value = ''
-    profileList.value = []
-    currentProfile.value = null
-    activeTab.value = 'basic'
-    loadScriptList(projectId)
+    // 状态清理和数据加载由 watch(currentProjectId) 统一处理
   }
 
   const handleProjectRefresh = () => {
@@ -385,6 +391,17 @@
   // ==================== 初始化 ====================
   onMounted(() => {
     loadScriptList(currentProjectId.value)
+  })
+
+  // 监听项目切换（包括异步加载完成后首次设置）
+  watch(currentProjectId, (newId) => {
+    if (newId) {
+      currentScriptId.value = ''
+      profileList.value = []
+      currentProfile.value = null
+      activeTab.value = 'basic'
+      loadScriptList(newId)
+    }
   })
 </script>
 

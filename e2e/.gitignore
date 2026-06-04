@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+
+# 测试制品
+reports/
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+.tox/
+.cache
+
+# 浏览器
+.playwright/
+playwright-report/
+test-results/
+blob-report/
+playwright/.cache/
+
+# 虚拟环境
+venv/
+.venv/
+env/
+
+# 编辑器
+.vscode/
+.idea/
+*.swp
+.DS_Store

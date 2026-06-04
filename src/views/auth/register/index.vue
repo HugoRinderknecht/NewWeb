@@ -48,7 +48,7 @@
               />
             </ElFormItem>
 
-            <ElFormItem prop="captchaCode">
+            <!-- <ElFormItem prop="captchaCode">
               <div class="flex w-full gap-2">
                 <ElInput
                   class="custom-height flex-1"
@@ -65,7 +65,7 @@
                   <span v-else class="text-xs text-gray-400">点击获取</span>
                 </div>
               </div>
-            </ElFormItem>
+            </ElFormItem> -->
 
             <div class="mb-4">
               <ElCheckbox v-model="autoLogin">注册后自动登录</ElCheckbox>
@@ -165,7 +165,7 @@
         trigger: 'blur'
       }
     ],
-    captchaCode: [{ required: true, message: '请输入验证码', trigger: 'blur' }],
+    // captchaCode: [{ required: true, message: '请输入验证码', trigger: 'blur' }],
     agreement: [
       {
         validator: (_rule: any, value: boolean, callback: any) => {
@@ -219,8 +219,8 @@
       const params: Api.Auth.RegisterParams = {
         phone: formData.phone,
         password: formData.password,
-        captchaKey: captchaKey.value,
-        captchaCode: formData.captchaCode,
+        // captchaKey: captchaKey.value,
+        // captchaCode: formData.captchaCode,
         autoLogin: autoLogin.value
       }
 
@@ -241,16 +241,16 @@
       if (error instanceof Error) {
         showBusinessError(error)
       }
-      await refreshCaptcha()
-      formData.captchaCode = ''
+      // await refreshCaptcha()
+      // formData.captchaCode = ''
     } finally {
       loading.value = false
     }
   }
 
-  onMounted(() => {
-    refreshCaptcha()
-  })
+  // onMounted(() => {
+  //   refreshCaptcha()
+  // })
 </script>
 
 <style scoped>

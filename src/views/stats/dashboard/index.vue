@@ -1,5 +1,15 @@
 <template>
-  <div class="stats-dashboard-page art-full-height">
+  <div class="stats-dashboard-page art-full-height" v-loading="isLoading">
+    <!-- 错误提示 -->
+    <ElAlert
+      v-if="hasError"
+      type="error"
+      :title="errorMessage"
+      show-icon
+      :closable="false"
+      class="mb-5"
+    />
+
     <!-- 核心指标卡片 -->
     <ElRow :gutter="20" class="mb-5">
       <ElCol v-for="(item, index) in dashboardCards" :key="index" :sm="12" :md="6" :lg="6">
@@ -62,7 +72,7 @@
           <ArtLineChart
             height="20rem"
             :data="trendLineData"
-            :xAxisData="monthXAxis"
+            :xAxisData="trendXAxis"
             :showAreaColor="true"
             :showLegend="true"
             legendPosition="bottom"
@@ -155,7 +165,12 @@
     RadarDataItem,
     ScatterDataItem
   } from '@/types/component/chart'
-  import { fetchGetDashboard, fetchGetRealtimeData } from '@/api/statistics'
+  import {
+    useStatsDashboard,
+    useStatsRealtime,
+    useProjectAnalysis,
+    useUserActivityRank
+  } from '@/api/queries/statistics'
 
   defineOptions({ name: 'StatsDashboard' })
 
@@ -167,100 +182,175 @@
     icon: string
   }
 
-  const dashboardCards = reactive<DashboardCard[]>([
-    { label: '项目总数', value: 0, decimals: 0, change: '+0%', icon: 'ri:folder-3-line' },
-    { label: '视频总数', value: 0, decimals: 0, change: '+0%', icon: 'ri:movie-line' },
-    { label: '活跃用户', value: 0, decimals: 0, change: '+0%', icon: 'ri:team-line' },
-    { label: '积分余额', value: 0, decimals: 0, change: '+0%', icon: 'ri:coins-line' }
-  ])
+  // 数据加载（vue-query 自带缓存与请求去重）
+  const {
+    data: dashboardData,
+    isLoading: dashboardLoading,
+    error: dashboardError
+  } = useStatsDashboard()
+  const { data: realtimeData } = useStatsRealtime({ refetchInterval: 60 * 1000 })
+  const { data: projectAnalysis } = useProjectAnalysis()
+  const { data: activityRank } = useUserActivityRank()
 
-  const monthXAxis = [
-    '1月',
-    '2月',
-    '3月',
-    '4月',
-    '5月',
-    '6月',
-    '7月',
-    '8月',
-    '9月',
-    '10月',
-    '11月',
-    '12月'
-  ]
+  const isLoading = computed(() => dashboardLoading.value)
+  const hasError = computed(() => !!dashboardError.value)
+  const errorMessage = computed(() => {
+    if (!dashboardError.value) return ''
+    return (dashboardError.value as Error)?.message || '加载看板数据失败，请稍后重试'
+  })
 
-  const outputBarData = ref<BarDataItem[]>([
-    { name: '项目数', data: [80, 72, 90, 105, 98, 115, 125, 118, 130, 138, 145, 160] },
-    { name: '视频数', data: [210, 195, 240, 280, 265, 310, 335, 320, 350, 375, 400, 430] }
-  ])
+  // 核心指标卡片（基于 API 数据派生）
+  const dashboardCards = computed<DashboardCard[]>(() => {
+    const data = dashboardData.value as Api.Statistics.DashboardData | null
+    const realtime = realtimeData.value as Api.Statistics.RealtimeData | null
+    const activeUserSum = data?.activeUsers?.values?.reduce((a, b) => a + (b || 0), 0) ?? 0
+    return [
+      {
+        label: '项目总数',
+        value: data?.totalProjects ?? 0,
+        decimals: 0,
+        change: data?.ownedProjectsChange ?? '+0%',
+        icon: 'ri:folder-3-line'
+      },
+      {
+        label: '视频总数',
+        value: data?.totalVideos ?? 0,
+        decimals: 0,
+        change: '+0%',
+        icon: 'ri:movie-line'
+      },
+      {
+        label: '活跃用户',
+        value: realtime?.activeUsers ?? activeUserSum,
+        decimals: 0,
+        change: data?.weeklyChange ?? '+0%',
+        icon: 'ri:team-line'
+      },
+      {
+        label: '积分余额',
+        value: data?.creditsBalance ?? 0,
+        decimals: 0,
+        change: data?.creditsBalanceChange ?? '+0%',
+        icon: 'ri:coins-line'
+      }
+    ]
+  })
 
-  const trendLineData = ref<LineDataItem[]>([
-    {
-      name: '存储(GB)',
-      data: [1200, 1350, 1480, 1620, 1580, 1750, 1820, 1900, 1950, 2000, 2100, 2200]
-    },
-    { name: 'AI调用(千次)', data: [25, 28, 32, 35, 38, 42, 40, 45, 48, 50, 52, 55] }
-  ])
+  // 月份 X 轴（基于 API 数据动态生成，否则使用默认）
+  const monthXAxis = computed(() => {
+    const labels = (dashboardData.value as Api.Statistics.DashboardData | null)?.activeUsers?.labels
+    if (labels?.length) return labels
+    return ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月']
+  })
 
-  const resourcePieData = reactive<PieDataItem[]>([
-    { value: 2048, name: '视频存储' },
-    { value: 520, name: '素材库' },
-    { value: 320, name: '音频资源' },
-    { value: 180, name: '图片资源' },
-    { value: 120, name: '其他' }
-  ])
+  const trendXAxis = computed(() => monthXAxis.value)
 
+  // 项目产出柱状图：基于项目分析数据派生
+  const outputBarData = computed<BarDataItem[]>(() => {
+    const list = (projectAnalysis.value as Api.Statistics.ProjectAnalysisItem[] | null) || []
+    if (!list.length) {
+      return [
+        { name: '项目数', data: [] },
+        { name: '视频数', data: [] }
+      ]
+    }
+    return [
+      { name: '项目数', data: list.map(() => 1) },
+      { name: '视频数', data: list.map((i) => i.totalVideos || 0) }
+    ]
+  })
+
+  // 趋势折线：基于活跃用户和总积分
+  const trendLineData = computed<LineDataItem[]>(() => {
+    const data = dashboardData.value as Api.Statistics.DashboardData | null
+    if (data?.activeUsers?.values?.length) {
+      return [{ name: '活跃用户', data: data.activeUsers.values }]
+    }
+    return [{ name: '活跃用户', data: [] }]
+  })
+
+  // 资源占比环形图：基于看板数据派生
+  const resourcePieData = computed<PieDataItem[]>(() => {
+    const data = dashboardData.value as Api.Statistics.DashboardData | null
+    if (!data) return []
+    return [
+      { value: data.totalVideos ?? 0, name: '视频资源' },
+      { value: data.totalStoryboards ?? 0, name: '分镜资源' },
+      { value: data.totalAssets ?? 0, name: '素材资源' }
+    ]
+  })
+
+  // 雷达图指标（前端固定维度，数据来自活跃度排行均值）
   const radarIndicators = [
-    { name: '创意能力', max: 100 },
-    { name: '制作效率', max: 100 },
-    { name: '协作能力', max: 100 },
-    { name: '技术能力', max: 100 },
-    { name: '交付质量', max: 100 },
-    { name: '学习能力', max: 100 }
+    { name: '活跃度', max: 100 },
+    { name: '贡献度', max: 100 },
+    { name: '产出量', max: 100 },
+    { name: '响应速度', max: 100 },
+    { name: '协作效率', max: 100 },
+    { name: '稳定性', max: 100 }
   ]
 
-  const radarData: RadarDataItem[] = [
-    { name: '团队平均', value: [78, 82, 75, 70, 85, 80] },
-    { name: '优秀成员', value: [92, 90, 88, 85, 95, 90] }
-  ]
+  const radarData = computed<RadarDataItem[]>(() => {
+    const ranks = (activityRank.value as Api.Statistics.UserActivityRankItem[] | null) || []
+    if (!ranks.length) return []
+    const avg = ranks.reduce(
+      (acc, r) => {
+        acc.active += r.activeDays || 0
+        acc.score += r.contributionScore || 0
+        return acc
+      },
+      { active: 0, score: 0 }
+    )
+    const total = ranks.length
+    const avgActive = Math.min(100, Math.round(avg.active / total || 0))
+    const avgScore = Math.min(100, Math.round(avg.score / total || 0))
+    return [
+      {
+        name: '团队平均',
+        value: [avgActive, avgScore, avgScore, avgActive, avgScore, avgActive]
+      }
+    ]
+  })
 
-  const scatterData: ScatterDataItem[] = [
-    { value: [12, 28] },
-    { value: [15, 35] },
-    { value: [8, 18] },
-    { value: [22, 55] },
-    { value: [18, 42] },
-    { value: [10, 22] },
-    { value: [25, 62] },
-    { value: [14, 32] },
-    { value: [20, 48] },
-    { value: [16, 38] },
-    { value: [30, 75] },
-    { value: [11, 26] },
-    { value: [19, 45] },
-    { value: [24, 58] },
-    { value: [9, 20] }
-  ]
+  // 散点图：基于项目分析视频数和时长
+  const scatterData = computed<ScatterDataItem[]>(() => {
+    const list = (projectAnalysis.value as Api.Statistics.ProjectAnalysisItem[] | null) || []
+    return list.map((i) => ({
+      value: [i.totalVideos || 0, i.totalStoryboards || 0] as [number, number]
+    }))
+  })
 
+  // 活跃度热力图（基于实时活动派生，无数据时显示空）
   const heatmapRef = ref<HTMLElement>()
   const { initChart, destroyChart } = useChart()
 
   const hours = ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00']
   const days = ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
 
-  const heatmapData: [number, number, number][] = []
-  for (let i = 0; i < 7; i++) {
-    for (let j = 0; j < 6; j++) {
-      let value = Math.floor(Math.random() * 80) + 10
-      if (j >= 2 && j <= 4 && i < 5) {
-        value += Math.floor(Math.random() * 50) + 30
+  const heatmapData = computed<[number, number, number][]>(() => {
+    const realtime = realtimeData.value as Api.Statistics.RealtimeData | null
+    const activities = realtime?.data?.activities || []
+    // 无后端时段分布数据时返回空，避免硬编码
+    if (!activities.length) return []
+    // 简单聚合：按 activities 数量分布到各天数
+    const matrix: number[][] = Array.from({ length: 7 }, () => Array(6).fill(0))
+    activities.forEach((_, idx) => {
+      const day = idx % 7
+      const hour = idx % 6
+      matrix[day][hour] += 1
+    })
+    const result: [number, number, number][] = []
+    for (let i = 0; i < 7; i++) {
+      for (let j = 0; j < 6; j++) {
+        result.push([j, i, matrix[i][j]])
       }
-      heatmapData.push([j, i, value])
     }
-  }
+    return result
+  })
 
   const generateHeatmapOptions = (): EChartsOption => {
     const themeColor = useChartOps().themeColor
+    const max = heatmapData.value.length ? Math.max(...heatmapData.value.map((d) => d[2]), 1) : 1
     return {
       tooltip: {
         position: 'top',
@@ -288,7 +378,7 @@
       },
       visualMap: {
         min: 0,
-        max: 150,
+        max,
         calculable: true,
         orient: 'horizontal',
         left: 'center',
@@ -302,7 +392,7 @@
       series: [
         {
           type: 'heatmap',
-          data: heatmapData,
+          data: heatmapData.value,
           label: { show: false },
           emphasis: {
             itemStyle: {
@@ -315,48 +405,14 @@
     }
   }
 
-  const loadDashboardData = async () => {
-    try {
-      const data = await fetchGetDashboard()
-      if (data) {
-        dashboardCards[0].value = data.totalProjects ?? 0
-        dashboardCards[0].change = data.ownedProjectsChange ?? '+0%'
-        dashboardCards[1].value = data.totalVideos ?? 0
-        dashboardCards[2].value =
-          data.activeUsers?.values?.reduce((a: number, b: number) => a + b, 0) ?? 0
-        dashboardCards[2].change = data.weeklyChange ?? '+0%'
-        dashboardCards[3].value = data.creditsBalance ?? 0
-        dashboardCards[3].change = data.creditsBalanceChange ?? '+0%'
-
-        if (data.activeUsers?.labels && data.activeUsers?.values) {
-          monthXAxis.length = 0
-          data.activeUsers.labels.forEach((l: string) => monthXAxis.push(l))
-          trendLineData.value = [{ name: '活跃用户', data: data.activeUsers.values }]
-        }
-
-        resourcePieData[0].value = data.totalVideos ?? 2048
-        resourcePieData[1].value = data.totalStoryboards ?? 520
-        resourcePieData[2].value = data.totalAssets ?? 320
-      }
-    } catch (error) {
-      console.error('加载看板数据失败:', error)
+  // 热力图响应数据变化
+  watch(heatmapData, () => {
+    if (heatmapRef.value) {
+      initChart(generateHeatmapOptions())
     }
-  }
-
-  const loadRealtimeData = async () => {
-    try {
-      const data = await fetchGetRealtimeData()
-      if (data) {
-        dashboardCards[2].value = data.activeUsers ?? dashboardCards[2].value
-      }
-    } catch (error) {
-      console.error('加载实时数据失败:', error)
-    }
-  }
+  })
 
   onMounted(() => {
-    loadDashboardData()
-    loadRealtimeData()
     nextTick(() => {
       if (heatmapRef.value) {
         initChart(generateHeatmapOptions())

@@ -249,18 +249,45 @@
   import { VueDraggable } from 'vue-draggable-plus'
   import { useRouter } from 'vue-router'
   import {
-    fetchGetProjectEpisodes,
-    fetchCreateEpisode,
-    fetchUpdateEpisode,
-    fetchDeleteEpisode
-  } from '@/api/script'
-  import { fetchGetProjectDetail } from '@/api/project'
+    useProjectEpisodes,
+    useCreateEpisode,
+    useUpdateEpisode,
+    useDeleteEpisode
+  } from '@/api/queries'
+  import { useProjectDetail } from '@/api/queries/project'
   import { logger } from '@/utils/logger'
 
   defineOptions({ name: 'ProjectEpisodes' })
 
-  const router = useRouter()
   const route = useRoute()
+  const router = useRouter()
+
+  const projectId = computed(
+    () => (route.query.id as string) || (route.params.projectId as string) || ''
+  )
+
+  // Vue-query: 集数列表
+  const { data: episodeData } = useProjectEpisodes(projectId)
+  const { data: projectDetail } = useProjectDetail(projectId)
+  const projectName = computed(() => projectDetail.value?.projectName ?? '')
+  const episodeList = ref<EpisodeItem[]>([])
+
+  // 同步 Vue Query 数据到本地状态，支持拖拽排序
+  watch(episodeData, (data) => {
+    episodeList.value = (data ?? []).map((item: any, index: number) => ({
+      id: Number(item.id) || 0,
+      scriptId: item.scriptId || '',
+      number: item.episodeIndex ?? index,
+      name: item.episodeName || '',
+      description: item.content || '',
+      updateTime: item.updateTime || ''
+    }))
+  }, { immediate: true })
+
+  // Mutations
+  const createEpisodeMutation = useCreateEpisode()
+  const updateEpisodeMutation = useUpdateEpisode()
+  const deleteEpisodeMutation = useDeleteEpisode()
 
   type ShotStatus = 'pending' | 'storyboard' | 'firstframe' | 'video' | 'completed'
 
@@ -284,7 +311,6 @@
   }
 
   const searchQuery = ref('')
-  const projectName = ref('')
   const currentEpisode = ref<EpisodeItem | null>(null)
   const shotLoading = ref(false)
   const episodeDialogVisible = ref(false)
@@ -322,37 +348,7 @@
     completed: '已完成'
   }
 
-  const episodeList = ref<EpisodeItem[]>([])
-
   const shotList = ref<ShotItem[]>([])
-
-  const loadEpisodeList = async () => {
-    const projectId = (route.query.id as string) || (route.params.projectId as string) || ''
-    if (!projectId) return
-    logger.apiRequest('Episodes', 'fetchGetProjectEpisodes', projectId)
-    try {
-      const data = await fetchGetProjectEpisodes(projectId)
-      if (data) {
-        const list = Array.isArray(data) ? data : (data as any).records || []
-        episodeList.value = list.map((item: any, index: number) => ({
-          id: Number(item.id) || 0,
-          scriptId: item.scriptId || '',
-          number: item.episodeIndex ?? index,
-          name: item.episodeName || '',
-          description: item.content || '',
-          updateTime: item.updateTime || ''
-        })) as EpisodeItem[]
-        logger.apiSuccess(
-          'Episodes',
-          'fetchGetProjectEpisodes',
-          `加载 ${episodeList.value.length} 条集数`
-        )
-      }
-    } catch (err) {
-      logger.apiError('Episodes', 'fetchGetProjectEpisodes', err)
-      episodeList.value = []
-    }
-  }
 
   const filteredEpisodes = computed(() => {
     let result = episodeList.value
@@ -447,16 +443,13 @@
       type: 'warning'
     }).then(async () => {
       try {
-        logger.apiRequest('Episodes', 'fetchDeleteEpisode', { scriptId: row.scriptId, id: row.id })
-        await fetchDeleteEpisode(row.scriptId, String(row.id))
-        logger.apiSuccess('Episodes', 'fetchDeleteEpisode', `第${row.number}集已删除`)
+        await deleteEpisodeMutation.mutateAsync({ scriptId: row.scriptId, episodeId: String(row.id) })
         if (currentEpisode.value?.id === row.id) {
           currentEpisode.value = null
         }
         ElMessage.success('删除成功')
-        await loadEpisodeList()
       } catch (err) {
-        logger.apiError('Episodes', 'fetchDeleteEpisode', err)
+        logger.apiError('Episodes', 'useDeleteEpisode', err)
         ElMessage.error('删除失败')
       }
     })
@@ -466,38 +459,36 @@
     if (!episodeFormRef.value) return
     await episodeFormRef.value.validate(async (valid) => {
       if (valid) {
-        const projectId = (route.query.id as string) || (route.params.projectId as string) || ''
-        if (!projectId) return
+        if (!projectId.value) return
         try {
           if (isEditEpisode.value && currentEditEpisodeId.value) {
             const episode = episodeList.value.find((e) => e.id === currentEditEpisodeId.value)
-            logger.apiRequest('Episodes', 'fetchUpdateEpisode', { id: currentEditEpisodeId.value })
-            await fetchUpdateEpisode(episode?.scriptId || '', String(currentEditEpisodeId.value), {
-              episodeName: episodeForm.name,
-              content: episodeForm.description,
-              episodeIndex: episodeForm.number
+            await updateEpisodeMutation.mutateAsync({
+              scriptId: episode?.scriptId || '',
+              episodeId: String(currentEditEpisodeId.value),
+              params: {
+                episodeName: episodeForm.name,
+                content: episodeForm.description,
+                episodeIndex: episodeForm.number
+              }
             })
-            logger.apiSuccess('Episodes', 'fetchUpdateEpisode', `第${episodeForm.number}集编辑成功`)
             ElMessage.success('集数编辑成功')
           } else {
-            logger.apiRequest('Episodes', 'fetchCreateEpisode', {
-              projectId,
-              name: episodeForm.name
+            await createEpisodeMutation.mutateAsync({
+              projectId: projectId.value,
+              params: {
+                episodeName: episodeForm.name,
+                content: episodeForm.description,
+                episodeIndex: episodeForm.number
+              }
             })
-            await fetchCreateEpisode(projectId, {
-              episodeName: episodeForm.name,
-              content: episodeForm.description,
-              episodeIndex: episodeForm.number
-            })
-            logger.apiSuccess('Episodes', 'fetchCreateEpisode', `第${episodeForm.number}集创建成功`)
             ElMessage.success('集数创建成功')
           }
           episodeDialogVisible.value = false
-          await loadEpisodeList()
         } catch (err) {
           logger.apiError(
             'Episodes',
-            isEditEpisode.value ? 'fetchUpdateEpisode' : 'fetchCreateEpisode',
+            isEditEpisode.value ? 'useUpdateEpisode' : 'useCreateEpisode',
             err
           )
           ElMessage.error(isEditEpisode.value ? '集数编辑失败' : '集数创建失败')
@@ -638,26 +629,6 @@
       query: { episodeId: currentEpisode.value.id }
     })
   }
-
-  const loadProjectName = async () => {
-    const projectId = (route.query.id as string) || (route.params.projectId as string) || ''
-    if (!projectId) return
-    try {
-      logger.apiRequest('Episodes', 'fetchGetProjectDetail', projectId)
-      const data = await fetchGetProjectDetail(projectId)
-      if (data) {
-        projectName.value = data.projectName || ''
-        logger.apiSuccess('Episodes', 'fetchGetProjectDetail', projectName.value)
-      }
-    } catch (err) {
-      logger.apiError('Episodes', 'fetchGetProjectDetail', err)
-    }
-  }
-
-  onMounted(() => {
-    loadProjectName()
-    loadEpisodeList()
-  })
 </script>
 
 <style lang="scss" scoped>

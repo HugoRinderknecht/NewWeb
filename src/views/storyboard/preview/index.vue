@@ -1,5 +1,13 @@
 <template>
-  <div class="storyboard-preview-page art-full-height">
+  <div class="storyboard-preview-page art-full-height" v-loading="isLoading">
+    <ElAlert
+      v-if="hasError"
+      type="error"
+      :title="errorMessage"
+      show-icon
+      :closable="false"
+      class="mb-4"
+    />
     <ElCard class="art-table-card h-full">
       <template #header>
         <div class="flex-cb">
@@ -275,7 +283,8 @@
 <script setup lang="ts">
   import { ElMessage } from 'element-plus'
   import { useRoute } from 'vue-router'
-  import { fetchGetStoryboardList } from '@/api/storyboard'
+  import { useStoryboardList, useStoryboardImages } from '@/api/queries/storyboard'
+  import { useProjectStore } from '@/store/modules/project'
   defineOptions({ name: 'StoryboardPreview' })
 
   type ShotType = 'closeup' | 'medium' | 'long' | 'full' | 'extreme_closeup' | 'over_shoulder'
@@ -305,6 +314,35 @@
   }
 
   const route = useRoute()
+  const projectStore = useProjectStore()
+
+  const projectId = computed(
+    () => (route.params.projectId as string) || projectStore.currentProjectId || ''
+  )
+
+  const {
+    data: storyboardListData,
+    isLoading: listLoading,
+    error: listError
+  } = useStoryboardList(projectId)
+
+  const isLoading = computed(() => listLoading.value)
+  const hasError = computed(() => !!listError.value)
+  const errorMessage = computed(() => {
+    if (!listError.value) return ''
+    return (listError.value as Error)?.message || '加载分镜数据失败，请稍后重试'
+  })
+
+  const storyboardOptions = computed<StoryboardOption[]>(() => {
+    const data = storyboardListData.value
+    if (!data) return []
+    const list = Array.isArray(data) ? data : (data as any).records || []
+    return list.map((item: any) => ({
+      id: item.id,
+      code: item.code ?? '',
+      name: item.name ?? ''
+    })) as StoryboardOption[]
+  })
 
   const viewMode = ref<ViewMode>('storyboard')
   const currentIndex = ref(0)
@@ -314,27 +352,15 @@
   const exportLoading = ref(false)
   let playTimer: ReturnType<typeof setInterval> | null = null
 
-  const storyboardOptions = ref<StoryboardOption[]>([])
-
-  const loadStoryboardOptions = async () => {
-    try {
-      const projectId = (route.params.projectId as string) || '1'
-      const res = await fetchGetStoryboardList(projectId)
-      if (res) {
-        const list = Array.isArray(res) ? res : (res as any).records || []
-        storyboardOptions.value = list.map((item: any) => ({
-          id: item.id,
-          code: item.code ?? '',
-          name: item.name ?? ''
-        })) as StoryboardOption[]
-        if (storyboardOptions.value.length > 0) {
-          currentStoryboard.value = storyboardOptions.value[0].id
-        }
+  watch(
+    storyboardOptions,
+    (opts) => {
+      if (opts.length > 0 && !opts.find((o) => o.id === currentStoryboard.value)) {
+        currentStoryboard.value = opts[0].id
       }
-    } catch {
-      console.error('获取分镜选项失败')
-    }
-  }
+    },
+    { immediate: true }
+  )
 
   const shotTypeTagMap: Record<ShotType, 'primary' | 'success' | 'warning' | 'info' | 'danger'> = {
     closeup: 'primary',
@@ -364,37 +390,33 @@
     none: '无'
   }
 
-  const shotList = ref<ShotItem[]>([])
+  // 使用 vue-query 获取当前分镜下的镜头列表（复用 storyboardList 接口按 episodeId 过滤）
+  const { data: shotListData } = useStoryboardList(
+    projectId,
+    computed(() => ({
+      episodeId: String(currentStoryboard.value)
+    }))
+  )
 
-  const loadShotList = async () => {
-    try {
-      const projectId = (route.params.projectId as string) || '1'
-      const res = await fetchGetStoryboardList(projectId, {
-        episodeId: String(currentStoryboard.value)
-      })
-      if (res) {
-        const list = Array.isArray(res) ? res : (res as any).records || []
-        if (list.length > 0) {
-          shotList.value = list.map((item: any, idx: number) => ({
-            id: item.id ?? idx + 1,
-            storyboardId: item.storyboardId ?? 1,
-            name: item.name ?? '',
-            type: item.type ?? 'full',
-            description: item.description ?? '',
-            duration: item.duration ?? 5,
-            transition: item.transition ?? 'cut',
-            cameraPosition: item.cameraPosition ?? '',
-            focalLength: item.focalLength ?? 50,
-            movements: item.movements ?? [],
-            remark: item.remark ?? '',
-            thumbnail: item.thumbnail ?? ''
-          })) as ShotItem[]
-        }
-      }
-    } catch {
-      console.error('获取分镜列表失败')
-    }
-  }
+  const shotList = computed<ShotItem[]>(() => {
+    const data = shotListData.value
+    if (!data) return []
+    const list = Array.isArray(data) ? data : (data as any).records || []
+    return list.map((item: any, idx: number) => ({
+      id: item.id ?? idx + 1,
+      storyboardId: item.storyboardId ?? currentStoryboard.value,
+      name: item.name ?? '',
+      type: item.type ?? 'full',
+      description: item.description ?? '',
+      duration: item.duration ?? 5,
+      transition: item.transition ?? 'cut',
+      cameraPosition: item.cameraPosition ?? '',
+      focalLength: item.focalLength ?? 50,
+      movements: item.movements ?? [],
+      remark: item.remark ?? '',
+      thumbnail: item.thumbnail ?? ''
+    })) as ShotItem[]
+  })
 
   const filteredShotList = computed(() => {
     return shotList.value.filter((s) => s.storyboardId === currentStoryboard.value)
@@ -484,28 +506,26 @@
     exportDialogVisible.value = true
   }
 
+  const { data: storyboardImages } = useStoryboardImages(
+    computed(() => String(currentStoryboard.value))
+  )
+
   const handleExportSubmit = async () => {
     exportLoading.value = true
     try {
-      // 根据导出类型构建下载请求
-      const storyboardId = String(currentStoryboard.value)
       if (exportForm.type === 'image') {
-        // 获取分镜配图列表，逐个下载
-        const { fetchGetStoryboardImages } = await import('@/api/storyboard')
-        const images = await fetchGetStoryboardImages(storyboardId)
+        const images = storyboardImages.value
         if (images && Array.isArray(images) && images.length > 0) {
           for (const img of images) {
-            window.open(img.url, '_blank')
+            window.open((img as any).url, '_blank')
           }
           ElMessage.success('图片导出成功')
         } else {
           ElMessage.warning('暂无可导出的图片')
         }
       } else if (exportForm.type === 'pdf') {
-        // PDF 导出 - 暂无后端 API，提示用户
         ElMessage.info('PDF导出功能开发中，请使用图片导出')
       } else if (exportForm.type === 'video') {
-        // 视频导出 - 暂无后端 API，提示用户
         ElMessage.info('视频导出功能开发中，请使用图片导出')
       }
     } catch {
@@ -517,8 +537,7 @@
   }
 
   onMounted(() => {
-    loadStoryboardOptions()
-    loadShotList()
+    // vue-query 自动加载数据
   })
 
   onUnmounted(() => {

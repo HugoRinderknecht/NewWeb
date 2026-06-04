@@ -135,15 +135,15 @@
 
   /**
    * 递归过滤菜单路由，移除隐藏的菜单项
-   * 但如果父菜单本身就是可访问页面，则即使子菜单都被隐藏也应该保留
+   * 支持 meta.isHide / meta.menuShow / meta.hidden 三种隐藏标记
    * @param items 菜单项数组
    * @returns 过滤后的菜单项数组
    */
   const filterRoutes = (items: AppRouteRecord[]): AppRouteRecord[] => {
     return items
       .filter((item) => {
-        // 如果当前项被隐藏，直接过滤掉
-        if (item.meta.isHide) {
+        // 如果当前项被隐藏（isHide / menuShow:false / hidden），直接过滤掉
+        if (item.meta.isHide || item.meta.hidden || item.meta.menuShow === false) {
           return false
         }
 

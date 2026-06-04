@@ -22,7 +22,7 @@
             <ElTag v-else type="info" size="small">未保存</ElTag>
           </div>
           <ElSpace>
-            <ElButton @click="handleGoBack">
+            <ElButton @click="handleGoBack()">
               <ArtSvgIcon icon="ri:arrow-left-line" class="mr-1" />
               返回列表
             </ElButton>
@@ -89,6 +89,56 @@
         </div>
       </div>
     </ElCard>
+
+    <!-- 引导弹窗：未选择剧本时显示 -->
+    <ElDialog
+      v-model="showGuideDialog"
+      :title="hasScripts ? '请先选择剧本' : '暂无剧本'"
+      width="480px"
+      align-center
+      :close-on-click-modal="false"
+      :show-close="false"
+      :close-on-press-escape="false"
+    >
+      <div class="guide-dialog-content">
+        <div class="guide-icon">
+          <ArtSvgIcon
+            :icon="hasScripts ? 'ri:file-list-3-line' : 'ri:folder-open-line'"
+            class="text-6xl"
+          />
+        </div>
+
+        <div v-if="hasScripts" class="guide-text">
+          <p class="guide-title">您尚未选择要编辑的剧本</p>
+          <p class="guide-desc">
+            请返回<span class="highlight">「剧本管理」</span>页面，从列表中选择具体剧本后进行编辑操作。
+          </p>
+        </div>
+        <div v-else class="guide-text">
+          <p class="guide-title">当前项目下暂无剧本</p>
+          <p class="guide-desc">
+            您需要先创建或上传剧本才能进行编辑。请返回<span class="highlight">「剧本管理」</span>页面：
+          </p>
+          <ul class="guide-steps">
+            <li>
+              <ArtSvgIcon icon="ri:add-circle-line" class="step-icon" />
+              <span>点击「新建剧本」手动创建</span>
+            </li>
+            <li>
+              <ArtSvgIcon icon="ri:upload-cloud-line" class="step-icon" />
+              <span>点击「上传剧本」导入已有文件</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <template #footer>
+        <ElButton type="primary" @click="handleGoBack(true)">
+          <ArtSvgIcon icon="ri:arrow-left-line" class="mr-1" />
+          返回剧本管理
+        </ElButton>
+      </template>
+    </ElDialog>
   </div>
 </template>
 
@@ -98,6 +148,7 @@
   import { useScriptProjectStore } from '@/store/modules/script-project'
   import {
     fetchGetScriptDetail,
+    fetchGetScriptList,
     fetchCreateScript,
     fetchUpdateScript,
     fetchSubmitScriptReview
@@ -125,6 +176,8 @@
   const scriptId = ref<string>('')
   const isEditMode = ref(false)
   const saveStatus = ref<SaveStatus>('saved')
+  const showGuideDialog = ref(false)
+  const hasScripts = ref(false)
 
   const form = reactive<ScriptForm>({
     title: '',
@@ -183,8 +236,8 @@
   }
 
   // 返回列表
-  const handleGoBack = () => {
-    if (saveStatus.value === 'unsaved') {
+  const handleGoBack = (skipConfirm = false) => {
+    if (saveStatus.value === 'unsaved' && !skipConfirm) {
       ElMessageBox.confirm('当前有未保存的更改，确定要离开吗？', '提示', {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
@@ -310,8 +363,23 @@
     }
   )
 
+  // 检查是否有可编辑的剧本
+  const checkHasScripts = async () => {
+    const projectId = currentProjectId.value
+    if (!projectId) {
+      hasScripts.value = false
+      return
+    }
+    try {
+      const res = await fetchGetScriptList(projectId, { current: 1, size: 1 })
+      hasScripts.value = (res?.total || 0) > 0
+    } catch {
+      hasScripts.value = false
+    }
+  }
+
   // 初始化
-  onMounted(() => {
+  onMounted(async () => {
     const id = (route.query.scriptId as string) || ''
     if (id) {
       scriptId.value = id
@@ -321,6 +389,9 @@
     } else {
       isEditMode.value = false
       saveStatus.value = 'unsaved'
+      // 无 scriptId 时检查是否有剧本，弹出引导弹窗
+      await checkHasScripts()
+      showGuideDialog.value = true
     }
   })
 
@@ -411,6 +482,63 @@
 
     to {
       transform: rotate(360deg);
+    }
+  }
+
+  .guide-dialog-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px 8px;
+    text-align: center;
+
+    .guide-icon {
+      margin-bottom: 20px;
+      color: var(--el-color-primary);
+    }
+
+    .guide-text {
+      .guide-title {
+        margin-bottom: 12px;
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--el-text-color-primary);
+      }
+
+      .guide-desc {
+        margin-bottom: 16px;
+        font-size: 14px;
+        line-height: 1.6;
+        color: var(--el-text-color-regular);
+
+        .highlight {
+          font-weight: 600;
+          color: var(--el-color-primary);
+        }
+      }
+
+      .guide-steps {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 0;
+        margin: 0;
+        list-style: none;
+
+        li {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          font-size: 14px;
+          color: var(--el-text-color-regular);
+
+          .step-icon {
+            font-size: 18px;
+            color: var(--el-color-primary);
+          }
+        }
+      }
     }
   }
 </style>

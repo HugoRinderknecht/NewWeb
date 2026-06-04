@@ -138,7 +138,7 @@ export function fetchGenerateCharacterProfiles(
 
 /** 获取人物小传结果 */
 export function fetchGetCharacterProfiles(scriptId: string) {
-  return getApiAdapter().get<Api.Script.CharacterProfileResult>(
+  return getApiAdapter().get<Api.Script.CharacterProfileItem[]>(
     `/api/scripts/${scriptId}/character-profiles`
   )
 }

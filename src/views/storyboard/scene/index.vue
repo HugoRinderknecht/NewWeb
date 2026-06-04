@@ -1,5 +1,13 @@
 <template>
-  <div class="storyboard-scene-page art-full-height">
+  <div class="storyboard-scene-page art-full-height" v-loading="isLoading">
+    <ElAlert
+      v-if="hasError"
+      type="error"
+      :title="errorMessage"
+      show-icon
+      :closable="false"
+      class="mb-4"
+    />
     <ElCard class="art-table-card h-full">
       <template #header>
         <div class="flex-cb">
@@ -249,17 +257,19 @@
   import { VueDraggable } from 'vue-draggable-plus'
   import { useRoute } from 'vue-router'
   import {
-    fetchGetSceneList,
-    fetchCreateScene,
-    fetchGetStoryboardList,
-    fetchDeleteScene,
-    fetchUpdateScene,
-    fetchReorderStoryboards
-  } from '@/api/storyboard'
+    useStoryboardList,
+    useSceneList,
+    useCreateScene,
+    useDeleteScene,
+    useUpdateScene,
+    useReorderStoryboards
+  } from '@/api/queries/storyboard'
+  import { useProjectStore } from '@/store/modules/project'
 
   defineOptions({ name: 'StoryboardScene' })
 
   const route = useRoute()
+  const projectStore = useProjectStore()
 
   type SceneType = 'interior' | 'exterior' | 'mixed' | 'studio'
 
@@ -293,27 +303,43 @@
   const currentEpisode = ref<number>(1)
   const formRef = ref<FormInstance>()
 
-  const storyboardOptions = ref<StoryboardOption[]>([])
+  const projectId = computed(
+    () => (route.params.projectId as string) || projectStore.currentProjectId || ''
+  )
 
-  const loadStoryboardOptions = async () => {
-    try {
-      const projectId = (route.params.projectId as string) || '1'
-      const res = await fetchGetStoryboardList(projectId)
-      if (res) {
-        const list = Array.isArray(res) ? res : (res as any).records || []
-        storyboardOptions.value = list.map((item: any) => ({
-          id: item.id,
-          code: item.code ?? '',
-          name: item.name ?? ''
-        })) as StoryboardOption[]
-        if (storyboardOptions.value.length > 0) {
-          currentStoryboard.value = storyboardOptions.value[0].id
-        }
+  const {
+    data: storyboardListData,
+    isLoading: listLoading,
+    error: listError
+  } = useStoryboardList(projectId)
+
+  const isLoading = computed(() => listLoading.value)
+  const hasError = computed(() => !!listError.value)
+  const errorMessage = computed(() => {
+    if (!listError.value) return ''
+    return (listError.value as Error)?.message || '加载数据失败，请稍后重试'
+  })
+
+  const storyboardOptions = computed<StoryboardOption[]>(() => {
+    const data = storyboardListData.value
+    if (!data) return []
+    const list = Array.isArray(data) ? data : (data as any).records || []
+    return list.map((item: any) => ({
+      id: item.id,
+      code: item.code ?? '',
+      name: item.name ?? ''
+    })) as StoryboardOption[]
+  })
+
+  watch(
+    storyboardOptions,
+    (opts) => {
+      if (opts.length > 0 && !opts.find((o) => o.id === currentStoryboard.value)) {
+        currentStoryboard.value = opts[0].id
       }
-    } catch {
-      console.error('获取分镜选项失败')
-    }
-  }
+    },
+    { immediate: true }
+  )
 
   const sceneTypeOptions = [
     { label: '内景', value: 'interior' },
@@ -342,25 +368,21 @@
     return map[type]
   }
 
-  const shotOptions = ref<string[]>([])
+  const episodeIdForScene = computed(() => String(currentEpisode.value))
 
-  const loadShotOptions = async () => {
-    try {
-      const episodeId = String(currentEpisode.value)
-      const res = await fetchGetSceneList(episodeId)
-      if (res && Array.isArray(res) && res.length > 0) {
-        const allShots = new Set<string>()
-        res.forEach((s: any) => {
-          if (Array.isArray(s.shots)) {
-            s.shots.forEach((shot: string) => allShots.add(shot))
-          }
-        })
-        shotOptions.value = Array.from(allShots)
+  const { data: sceneListDataRaw, refetch: refetchSceneList } = useSceneList(episodeIdForScene)
+
+  const shotOptions = computed<string[]>(() => {
+    const data = sceneListDataRaw.value
+    if (!data || !Array.isArray(data)) return []
+    const allShots = new Set<string>()
+    data.forEach((s: any) => {
+      if (Array.isArray(s.shots)) {
+        s.shots.forEach((shot: string) => allShots.add(shot))
       }
-    } catch {
-      console.error('获取镜头选项失败')
-    }
-  }
+    })
+    return Array.from(allShots)
+  })
 
   const form = reactive<Partial<SceneItem>>({
     name: '',
@@ -386,51 +408,35 @@
     type: [{ required: true, message: '请选择场景类型', trigger: 'change' }]
   }
 
-  const sceneListData = ref<SceneItem[]>([])
-
-  const loadSceneList = async () => {
-    try {
-      const episodeId = String(currentEpisode.value)
-      if (!episodeId || episodeId === '1') {
-        // 如果没有选择剧集，尝试从路由获取
-        const routeEpisodeId = route.query.episodeId as string
-        if (routeEpisodeId) {
-          currentEpisode.value = Number(routeEpisodeId) || 1
-        }
-      }
-      const res = await fetchGetSceneList(String(currentEpisode.value))
-      if (res && Array.isArray(res) && res.length > 0) {
-        sceneListData.value = res.map((s: any) => ({
-          id: s.id ?? Date.now() + Math.random(),
-          storyboardId: currentStoryboard.value,
-          name: s.name ?? s.description ?? '',
-          type: (s.angle ?? s.type ?? 'exterior') as SceneType,
-          background: s.background ?? '',
-          time: s.time ?? '清晨',
-          mood: s.mood ?? '神秘',
-          description: s.description ?? '',
-          shots: s.shots ?? [],
-          aperture: s.aperture ?? 'f/2.8',
-          iso: s.iso ?? 400,
-          colorTemp: s.colorTemp ?? 5600
-        })) as SceneItem[]
-      }
-    } catch {
-      console.error('获取场景列表失败')
-    }
-  }
-
-  const sceneList = computed({
-    get: () => sceneListData.value.filter((s) => s.storyboardId === currentStoryboard.value),
-    set: (val) => {
-      const otherScenes = sceneListData.value.filter(
-        (s) => s.storyboardId !== currentStoryboard.value
-      )
-      sceneListData.value = [...otherScenes, ...val]
-    }
+  const sceneListData = computed<SceneItem[]>(() => {
+    const data = sceneListDataRaw.value
+    if (!data || !Array.isArray(data)) return []
+    return data.map((s: any) => ({
+      id: s.id ?? Date.now() + Math.random(),
+      storyboardId: currentStoryboard.value,
+      name: s.name ?? s.description ?? '',
+      type: (s.angle ?? s.type ?? 'exterior') as SceneType,
+      background: s.background ?? '',
+      time: s.time ?? '清晨',
+      mood: s.mood ?? '神秘',
+      description: s.description ?? '',
+      shots: s.shots ?? [],
+      aperture: s.aperture ?? 'f/2.8',
+      iso: s.iso ?? 400,
+      colorTemp: s.colorTemp ?? 5600
+    })) as SceneItem[]
   })
 
+  const sceneList = computed(() =>
+    sceneListData.value.filter((s) => s.storyboardId === currentStoryboard.value)
+  )
+
   const dialogTitle = computed(() => (isEdit.value ? '编辑场景' : '新建场景'))
+
+  const { mutateAsync: createScene } = useCreateScene()
+  const { mutateAsync: deleteScene } = useDeleteScene()
+  const { mutateAsync: updateScene } = useUpdateScene()
+  const { mutateAsync: reorderStoryboards } = useReorderStoryboards()
 
   const handleSelectScene = (scene: SceneItem, event: MouseEvent) => {
     if ((event.target as HTMLElement).closest('.el-checkbox')) return
@@ -465,8 +471,8 @@
       type: 'error'
     }).then(async () => {
       try {
-        await fetchDeleteScene(String(scene.id))
-        await loadSceneList()
+        await deleteScene({ sceneId: String(scene.id), episodeId: String(currentEpisode.value) })
+        await refetchSceneList()
         selectedScenes.value = selectedScenes.value.filter((id) => id !== scene.id)
         ElMessage.success('删除成功')
       } catch {
@@ -481,25 +487,29 @@
       if (valid) {
         if (isEdit.value && currentScene.value) {
           try {
-            await fetchUpdateScene(String(currentScene.value.id), {
-              name: form.name,
-              description: form.description || '',
-              angle: form.type as string
+            await updateScene({
+              sceneId: String(currentScene.value.id),
+              params: {
+                name: form.name,
+                description: form.description || '',
+                angle: form.type as string,
+                episodeId: String(currentEpisode.value)
+              }
             })
-            await loadSceneList()
+            await refetchSceneList()
             ElMessage.success('编辑成功')
           } catch {
             ElMessage.error('编辑场景失败')
           }
         } else {
           try {
-            await fetchCreateScene({
+            await createScene({
               episodeId: String(currentEpisode.value),
               name: form.name!,
               description: form.description || '',
               angle: form.type as string
-            })
-            await loadSceneList()
+            } as any)
+            await refetchSceneList()
             ElMessage.success('创建成功')
           } catch {
             ElMessage.error('创建场景失败')
@@ -522,19 +532,19 @@
       const updatePromises = selectedScenes.value.map(async (sceneId) => {
         const scene = sceneListData.value.find((s) => s.id === sceneId)
         if (scene) {
-          const params: any = {}
+          const params: any = { episodeId: String(currentEpisode.value) }
           if (batchForm.type) params.angle = batchForm.type
           if (batchForm.time || batchForm.mood) {
             params.description = [batchForm.time, batchForm.mood, scene.description]
               .filter(Boolean)
               .join(' | ')
           }
-          return fetchUpdateScene(String(sceneId), params)
+          return updateScene({ sceneId: String(sceneId), params })
         }
         return Promise.resolve()
       })
       await Promise.all(updatePromises)
-      await loadSceneList()
+      await refetchSceneList()
       batchDialogVisible.value = false
       selectedScenes.value = []
       ElMessage.success('批量编辑成功')
@@ -544,9 +554,13 @@
   }
 
   onMounted(() => {
-    loadStoryboardOptions()
-    loadShotOptions()
-    loadSceneList()
+    const routeEpisodeId = route.query.episodeId as string
+    if (routeEpisodeId) {
+      currentEpisode.value = Number(routeEpisodeId) || 1
+    }
+    if (projectId.value && !projectStore.currentProjectId) {
+      projectStore.setCurrentProject(projectId.value)
+    }
   })
 
   const handleDragEnd = async () => {
@@ -557,7 +571,11 @@
           storyboardId: String(scene.id),
           newOrder: index + 1
         }))
-        await fetchReorderStoryboards(String(firstScene.id), items)
+        await reorderStoryboards({
+          sceneId: String(firstScene.id),
+          items,
+          projectId: projectId.value
+        })
       }
       ElMessage.success('排序已更新')
     } catch {
@@ -567,14 +585,13 @@
 
   const handleSave = async () => {
     try {
-      // 保存当前场景编排顺序
       const sceneId = sceneList.value[0]?.id
       if (sceneId) {
         const items = sceneList.value.map((scene, index) => ({
           storyboardId: String(scene.id),
           newOrder: index + 1
         }))
-        await fetchReorderStoryboards(String(sceneId), items)
+        await reorderStoryboards({ sceneId: String(sceneId), items, projectId: projectId.value })
       }
       ElMessage.success('场景编排保存成功')
     } catch {

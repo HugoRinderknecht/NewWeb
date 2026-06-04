@@ -1,5 +1,13 @@
 <template>
-  <div class="storyboard-batch-edit-page art-full-height">
+  <div class="storyboard-batch-edit-page art-full-height" v-loading="listLoading">
+    <ElAlert
+      v-if="listError"
+      type="error"
+      title="加载分镜列表失败"
+      show-icon
+      :closable="false"
+      class="mb-4"
+    />
     <ElCard class="art-table-card h-full">
       <template #header>
         <div class="flex-cb">
@@ -253,11 +261,11 @@
   import { ElMessage, ElMessageBox } from 'element-plus'
   import { useRoute } from 'vue-router'
   import {
-    fetchGetStoryboardList,
-    fetchBatchSubmitStoryboardReview,
-    fetchBatchDeleteStoryboards,
-    fetchUpdateStoryboard
-  } from '@/api/storyboard'
+    useStoryboardList,
+    useBatchSubmitStoryboardReview,
+    useBatchDeleteStoryboards,
+    useUpdateStoryboard
+  } from '@/api/queries/storyboard'
 
   defineOptions({ name: 'StoryboardBatchEdit' })
 
@@ -294,6 +302,34 @@
     remark: ''
   })
 
+  const projectId = computed(() => (route.params.projectId as string) || '')
+
+  const {
+    data: storyboardListData,
+    isLoading: listLoading,
+    error: listError,
+    refetch: refetchStoryboardList
+  } = useStoryboardList(projectId, { page: 1, pageSize: 100 })
+
+  const storyboardList = computed<StoryboardItem[]>(() => {
+    const data = storyboardListData.value
+    if (!data) return []
+    const list = (data as any).records || []
+    return list.map((item: any) => ({
+      id: item.id,
+      name: item.title ?? item.name ?? '',
+      thumbnail: item.thumbnail ?? '',
+      episode: item.episodeIndex ?? item.episode ?? 1,
+      shotNumber: item.storyboardNo ?? item.shotNumber ?? 1,
+      sceneType: item.sceneType ?? 'outdoor',
+      timeOfDay: item.timeOfDay ?? 'day',
+      cameraType: item.cameraType ?? 'wide',
+      tags: item.tags ?? [],
+      status: mapStatus(item.status),
+      remark: item.remark ?? ''
+    })) as StoryboardItem[]
+  })
+
   const allTags = computed(() => {
     const tagSet = new Set<string>()
     storyboardList.value.forEach((item) => {
@@ -325,8 +361,6 @@
   const getStatusTag = (status: string) => statusTagMap[status as StatusType] || 'info'
   const getStatusLabel = (status: string) => statusLabelMap[status as StatusType] || status
 
-  const storyboardList = ref<StoryboardItem[]>([])
-
   const mapStatus = (status: number | string): StatusType => {
     const map: Record<number, StatusType> = {
       1: 'pending',
@@ -338,39 +372,15 @@
     return (status as StatusType) || 'pending'
   }
 
-  const loadStoryboardList = async () => {
-    try {
-      const projectId = (route.params.projectId as string) || '1'
-      const data = await fetchGetStoryboardList(projectId, {
-        page: 1,
-        pageSize: 100
-      })
-      if (data) {
-        const list = data.records || []
-        storyboardList.value = list.map((item: any) => ({
-          id: item.id,
-          name: item.title ?? item.name ?? '',
-          thumbnail: item.thumbnail ?? '',
-          episode: item.episodeIndex ?? item.episode ?? 1,
-          shotNumber: item.storyboardNo ?? item.shotNumber ?? 1,
-          sceneType: item.sceneType ?? 'outdoor',
-          timeOfDay: item.timeOfDay ?? 'day',
-          cameraType: item.cameraType ?? 'wide',
-          tags: item.tags ?? [],
-          status: mapStatus(item.status),
-          remark: item.remark ?? ''
-        })) as StoryboardItem[]
-      }
-    } catch {
-      ElMessage.error('加载分镜列表失败')
-    }
-  }
-
   const selectedStoryboards = computed(() => storyboardList.value)
 
   const previewList = computed(() => {
     return selectedStoryboards.value.slice(0, 5)
   })
+
+  const { mutateAsync: batchSubmitReview } = useBatchSubmitStoryboardReview()
+  const { mutateAsync: batchDeleteStoryboards } = useBatchDeleteStoryboards()
+  const { mutateAsync: updateStoryboard } = useUpdateStoryboard()
 
   const handleRemoveItem = (item: StoryboardItem) => {
     ElMessageBox.confirm(`确定要从列表中移除「${item.name}」吗？`, '确认', {
@@ -378,7 +388,11 @@
       cancelButtonText: '取消',
       type: 'warning'
     }).then(() => {
-      storyboardList.value = storyboardList.value.filter((i) => i.id !== item.id)
+      // 仅前端移除展示，不调用删除接口
+      const data = storyboardListData.value as any
+      if (data && Array.isArray(data.records)) {
+        data.records = data.records.filter((i: any) => i.id !== item.id)
+      }
       ElMessage.success('已移除')
     })
   }
@@ -393,7 +407,10 @@
       cancelButtonText: '取消',
       type: 'warning'
     }).then(() => {
-      storyboardList.value = []
+      const data = storyboardListData.value as any
+      if (data && Array.isArray(data.records)) {
+        data.records = []
+      }
       ElMessage.success('已清空')
     })
   }
@@ -432,7 +449,7 @@
 
         // 如果修改了审核状态为已通过，提交审核
         if (batchForm.status === 'approved') {
-          await fetchBatchSubmitStoryboardReview(ids)
+          await batchSubmitReview({ storyboardIds: ids, projectId: projectId.value })
         }
 
         // 逐个更新分镜属性
@@ -457,13 +474,17 @@
           }
 
           if (Object.keys(updateParams).length > 0) {
-            return fetchUpdateStoryboard(id, updateParams)
+            return updateStoryboard({
+              storyboardId: id,
+              params: updateParams,
+              projectId: projectId.value
+            })
           }
           return Promise.resolve()
         })
 
         await Promise.all(updatePromises)
-        await loadStoryboardList()
+        await refetchStoryboardList()
         ElMessage.success('批量修改已应用')
 
         batchForm.sceneType = ''
@@ -495,8 +516,11 @@
     ).then(async () => {
       try {
         const ids = selectedStoryboards.value.map((item) => String(item.id))
-        await fetchBatchDeleteStoryboards(ids)
-        storyboardList.value = []
+        await batchDeleteStoryboards({ storyboardIds: ids, projectId: projectId.value })
+        const data = storyboardListData.value as any
+        if (data && Array.isArray(data.records)) {
+          data.records = []
+        }
         ElMessage.success('批量删除成功')
       } catch {
         ElMessage.error('批量删除失败')
@@ -520,7 +544,7 @@
     ).then(async () => {
       try {
         const ids = selectedStoryboards.value.map((item) => String(item.id))
-        await fetchBatchSubmitStoryboardReview(ids)
+        await batchSubmitReview({ storyboardIds: ids, projectId: projectId.value })
         storyboardList.value.forEach((item) => {
           item.status = 'pending' as StatusType
         })
@@ -532,7 +556,7 @@
   }
 
   onMounted(() => {
-    loadStoryboardList()
+    // vue-query enabled 控制自动请求
   })
 </script>
 

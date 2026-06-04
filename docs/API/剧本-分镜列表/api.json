@@ -1,0 +1,748 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "OpenAPI definition - 剧本-分镜列表",
+    "version": "v0",
+    "description": "模块: 剧本-分镜列表\n\n分镜列表查询功能，支持两种查询方式：\n1. 按项目查询分镜列表（分页） - GET /api/projects/{projectId}/storyboards\n2. 获取指定剧本的分镜列表 - GET /api/projects/{projectId}/scripts/{scriptId}/storyboards"
+  },
+  "servers": [
+    {
+      "url": "http://server.bsuniversal.cn:10006",
+      "description": "Generated server url"
+    }
+  ],
+  "tags": [
+    {
+      "name": "剧本-分镜列表",
+      "description": "分镜列表查询：按项目分页查询分镜列表、获取指定剧本的分镜数据"
+    }
+  ],
+  "paths": {
+    "/api/projects/{projectId}/storyboards": {
+      "get": {
+        "tags": ["剧本-分镜列表"],
+        "summary": "查询分镜列表",
+        "description": "分页查询指定项目下的分镜列表,支持按镜头、剧本、状态和关键词筛选",
+        "operationId": "listStoryboards",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "项目ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "proj-001"
+          },
+          {
+            "name": "query",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/StoryboardQueryRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultPageResultStoryboardVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/scripts/{scriptId}/storyboards": {
+      "get": {
+        "tags": ["剧本-分镜列表"],
+        "summary": "获取剧本分镜列表",
+        "description": "获取指定剧本下所有已拆解分集的分镜数据，按分集分组返回段落和镜头信息。",
+        "operationId": "getStoryboards",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "项目唯一标识符",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "scriptId",
+            "in": "path",
+            "description": "剧本唯一标识符",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultListScriptStoryboardVO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ResultObject": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "type": "object"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "StoryboardQueryRequest": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "minimum": 1,
+            "type": "integer",
+            "description": "当前页码, 从 1 开始",
+            "format": "int32",
+            "example": 1
+          },
+          "pageSize": {
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer",
+            "description": "每页大小, 最大 100",
+            "format": "int32",
+            "example": 10
+          },
+          "sortField": {
+            "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$",
+            "type": "string",
+            "description": "排序字段, 如 createTime",
+            "example": "createTime"
+          },
+          "sortOrder": {
+            "pattern": "^(asc|desc|ASC|DESC)$",
+            "type": "string",
+            "description": "排序方向: asc-升序, desc-降序",
+            "example": "desc"
+          },
+          "projectId": {
+            "type": "string",
+            "description": "项目ID筛选(可选,不传则查询所有项目)",
+            "example": "proj-001"
+          },
+          "sceneId": {
+            "type": "string",
+            "description": "镜头(Scene)ID筛选(可选,不传则查询所有镜头)",
+            "example": "scene-001"
+          },
+          "scriptId": {
+            "type": "string",
+            "description": "关联剧本ID筛选(可选,不传则查询所有剧本)",
+            "example": "script-001"
+          },
+          "status": {
+            "type": "integer",
+            "description": "分镜状态筛选(可选)",
+            "format": "int32",
+            "example": 1,
+            "enum": [1, 2, 3, 4]
+          },
+          "keyword": {
+            "type": "string",
+            "description": "关键词搜索,模糊匹配标题和描述(可选)",
+            "example": "开场"
+          },
+          "desc": {
+            "type": "boolean"
+          },
+          "asc": {
+            "type": "boolean"
+          },
+          "offset": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "description": "分镜查询请求(继承PageRequest,支持page/pageSize/sortField/sortOrder分页排序参数)"
+      },
+      "PageResultStoryboardVO": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer",
+            "description": "总记录数",
+            "format": "int64",
+            "example": 100
+          },
+          "page": {
+            "type": "integer",
+            "description": "当前页码, 从 1 开始",
+            "format": "int32",
+            "example": 1
+          },
+          "pageSize": {
+            "type": "integer",
+            "description": "每页大小",
+            "format": "int32",
+            "example": 10
+          },
+          "totalPages": {
+            "type": "integer",
+            "description": "总页数",
+            "format": "int32",
+            "example": 10
+          },
+          "records": {
+            "type": "array",
+            "description": "当前页数据列表",
+            "items": {
+              "$ref": "#/components/schemas/StoryboardVO"
+            }
+          },
+          "hasNext": {
+            "type": "boolean",
+            "description": "是否有下一页",
+            "example": true
+          },
+          "hasPrevious": {
+            "type": "boolean",
+            "description": "是否有上一页",
+            "example": false
+          },
+          "first": {
+            "type": "boolean"
+          },
+          "last": {
+            "type": "boolean"
+          },
+          "currentSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "empty": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ResultPageResultStoryboardVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PageResultStoryboardVO"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "StoryboardVO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "分镜ID",
+            "example": "uuid-001"
+          },
+          "sceneId": {
+            "type": "string",
+            "description": "所属镜头ID",
+            "example": "scene-001"
+          },
+          "projectId": {
+            "type": "string",
+            "description": "所属项目ID",
+            "example": "proj-001"
+          },
+          "scriptId": {
+            "type": "string",
+            "description": "关联剧本ID",
+            "example": "script-001"
+          },
+          "episodeId": {
+            "type": "string",
+            "description": "AI分镜-所属分集ID",
+            "example": "ep-abc123"
+          },
+          "batchId": {
+            "type": "string",
+            "description": "AI分镜-批次ID(同批次镜头归属同一拆解)",
+            "example": "batch-uuid-xxx"
+          },
+          "episodeName": {
+            "type": "string",
+            "description": "AI分镜-所属分集名称",
+            "example": "第一集"
+          },
+          "episodeIndex": {
+            "type": "integer",
+            "description": "AI分镜-所属分集序号",
+            "format": "int32",
+            "example": 1
+          },
+          "storyboardNo": {
+            "type": "integer",
+            "description": "分镜序号",
+            "format": "int32",
+            "example": 1
+          },
+          "title": {
+            "type": "string",
+            "description": "分镜标题",
+            "example": "开场镜头"
+          },
+          "description": {
+            "type": "string",
+            "description": "分镜描述",
+            "example": "女主角走进咖啡厅的广角镜头"
+          },
+          "prompt": {
+            "type": "string",
+            "description": "AI提示词/视觉描述",
+            "example": "A young woman walking into a modern cafe, warm lighting"
+          },
+          "cameraAngle": {
+            "type": "string",
+            "description": "机位角度",
+            "example": "wide",
+            "enum": [
+              "wide",
+              "medium",
+              "close",
+              "extreme_close",
+              "over_shoulder",
+              "pov",
+              "birds_eye",
+              "dutch"
+            ]
+          },
+          "cameraMovement": {
+            "type": "string",
+            "description": "镜头运动",
+            "example": "tracking",
+            "enum": [
+              "fixed",
+              "pan",
+              "tilt",
+              "dolly",
+              "crane",
+              "tracking",
+              "steadicam",
+              "zoom",
+              "rack"
+            ]
+          },
+          "durationSeconds": {
+            "type": "number",
+            "description": "预计时长(秒)",
+            "example": 5.0
+          },
+          "scriptText": {
+            "type": "string",
+            "description": "台词/旁白",
+            "example": "又是一个晴朗的早晨..."
+          },
+          "soundEffect": {
+            "type": "string",
+            "description": "音效提示",
+            "example": "咖啡机声、轻快的背景音乐"
+          },
+          "backgroundMusic": {
+            "type": "string",
+            "description": "背景音乐",
+            "example": "轻松爵士"
+          },
+          "status": {
+            "type": "integer",
+            "description": "分镜状态",
+            "format": "int32",
+            "example": 1,
+            "enum": [1, 2, 3, 4]
+          },
+          "assetCount": {
+            "type": "integer",
+            "description": "关联资产数量",
+            "format": "int32",
+            "example": 3
+          },
+          "imageCount": {
+            "type": "integer",
+            "description": "配图数量",
+            "format": "int32",
+            "example": 2
+          },
+          "versionCount": {
+            "type": "integer",
+            "description": "版本数量",
+            "format": "int32",
+            "example": 5
+          },
+          "createdBy": {
+            "type": "string",
+            "description": "创建者ID",
+            "example": "user-001"
+          },
+          "creatorName": {
+            "type": "string",
+            "description": "创建者名称",
+            "example": "张三"
+          },
+          "createTime": {
+            "type": "string",
+            "description": "创建时间(ISO 8601)",
+            "format": "date-time"
+          },
+          "updateTime": {
+            "type": "string",
+            "description": "最后更新时间(ISO 8601)",
+            "format": "date-time"
+          }
+        },
+        "description": "分镜信息"
+      },
+      "ResultListScriptStoryboardVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应状态码",
+            "format": "int32",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScriptStoryboardVO"
+            }
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "时间戳(毫秒)",
+            "format": "int64"
+          }
+        }
+      },
+      "ScriptStoryboardVO": {
+        "type": "object",
+        "properties": {
+          "scriptId": {
+            "type": "string",
+            "description": "剧本ID"
+          },
+          "episodeId": {
+            "type": "string",
+            "description": "分集ID"
+          },
+          "batchId": {
+            "type": "string",
+            "description": "批次ID"
+          },
+          "episodeName": {
+            "type": "string",
+            "description": "分集名称"
+          },
+          "episodeIndex": {
+            "type": "integer",
+            "description": "分集序号",
+            "format": "int32"
+          },
+          "paragraphs": {
+            "type": "array",
+            "description": "段落列表",
+            "items": {
+              "$ref": "#/components/schemas/ParagraphVO"
+            }
+          },
+          "totalShots": {
+            "type": "integer",
+            "description": "总镜头数",
+            "format": "int32"
+          }
+        },
+        "description": "剧本分镜信息"
+      },
+      "ParagraphVO": {
+        "type": "object",
+        "properties": {
+          "index": {
+            "type": "integer",
+            "description": "段落编号(1-based)",
+            "format": "int32",
+            "example": 1
+          },
+          "prompt": {
+            "type": "string",
+            "description": "通用提示词(来自风格配置的分镜拼接后缀)",
+            "example": "写实风格，电影级画质，自然光影"
+          },
+          "duration": {
+            "type": "string",
+            "description": "段落总时长",
+            "example": "12s"
+          },
+          "shots": {
+            "type": "array",
+            "description": "镜头列表",
+            "items": {
+              "$ref": "#/components/schemas/ShotVO"
+            }
+          },
+          "sceneAssets": {
+            "type": "array",
+            "description": "资产清单-场景",
+            "example": ["森林", "洞穴"],
+            "items": {
+              "type": "string",
+              "description": "资产清单-场景"
+            }
+          },
+          "characterAssets": {
+            "type": "array",
+            "description": "资产清单-人物",
+            "example": ["陆寻"],
+            "items": {
+              "type": "string",
+              "description": "资产清单-人物"
+            }
+          },
+          "propAssets": {
+            "type": "array",
+            "description": "资产清单-道具",
+            "example": ["铜钱"],
+            "items": {
+              "type": "string",
+              "description": "资产清单-道具"
+            }
+          },
+          "notes": {
+            "type": "array",
+            "description": "备注(含[AI补写]/[冲突]等标记)",
+            "example": ["[AI补写]镜头3缺少原文依据"],
+            "items": {
+              "type": "string",
+              "description": "备注(含[AI补写]/[冲突]等标记)"
+            }
+          }
+        },
+        "description": "分镜段落"
+      },
+      "ShotVO": {
+        "type": "object",
+        "properties": {
+          "shotNo": {
+            "type": "integer",
+            "description": "镜号",
+            "format": "int32",
+            "example": 1
+          },
+          "duration": {
+            "type": "string",
+            "description": "时长",
+            "example": "4s"
+          },
+          "shotType": {
+            "type": "string",
+            "description": "景别(特写/近景/中景/全景/远景)",
+            "example": "中景"
+          },
+          "cameraMovement": {
+            "type": "string",
+            "description": "运镜(固定/推/拉/摇/移/跟)",
+            "example": "固定"
+          },
+          "cameraEffects": {
+            "type": "string",
+            "description": "镜头特效",
+            "example": "无"
+          },
+          "shotCategory": {
+            "type": "string",
+            "description": "镜头类型(narrative/breath/climax/transition)",
+            "example": "narrative"
+          },
+          "scriptText": {
+            "type": "string",
+            "description": "原剧本"
+          },
+          "description": {
+            "type": "string",
+            "description": "剧情描述"
+          },
+          "visualPresentation": {
+            "type": "string",
+            "description": "画面与动态呈现"
+          },
+          "diegeticText": {
+            "type": "string",
+            "description": "画面内文本",
+            "example": "无"
+          },
+          "audioMixing": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "description": "全音频调度(dialogue/ambient_sound/bgm/transition_type)"
+            },
+            "description": "全音频调度(dialogue/ambient_sound/bgm/transition_type)"
+          },
+          "boundAssets": {
+            "type": "array",
+            "description": "绑定资产(资产名称列表)",
+            "example": ["陆寻", "铜钱"],
+            "items": {
+              "type": "string",
+              "description": "绑定资产(资产名称列表)"
+            }
+          },
+          "appearingCharacters": {
+            "type": "array",
+            "description": "出场角色",
+            "example": ["陆寻"],
+            "items": {
+              "type": "string",
+              "description": "出场角色"
+            }
+          },
+          "transition": {
+            "type": "string",
+            "description": "镜头衔接",
+            "example": "切"
+          },
+          "preview": {
+            "type": "string",
+            "description": "预览",
+            "example": "镜1 | 4s | 中景 | 固定 | [narrative]"
+          }
+        },
+        "description": "分镜镜头"
+      }
+    }
+  }
+}

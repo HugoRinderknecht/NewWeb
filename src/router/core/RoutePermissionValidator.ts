@@ -38,7 +38,7 @@ export class RoutePermissionValidator {
       return true
     }
 
-    return this.matchRoute(targetPath, menuList)
+    return this.matchRoute(targetPath, menuList, '')
   }
 
   /**
@@ -92,8 +92,10 @@ export class RoutePermissionValidator {
 
   /**
    * 递归匹配路由配置，支持隐藏路由和动态参数路由
+   * 标记为 meta.hidden 的路由视为无权限访问
+   * @param parentPath 父路径前缀（用于拼接完整路径）
    */
-  static matchRoute(targetPath: string, routes: AppRouteRecord[]): boolean {
+  static matchRoute(targetPath: string, routes: AppRouteRecord[], parentPath: string = ''): boolean {
     if (!Array.isArray(routes) || routes.length === 0) {
       return false
     }
@@ -103,22 +105,50 @@ export class RoutePermissionValidator {
         continue
       }
 
-      const routePath = route.path.startsWith('/') ? route.path : `/${route.path}`
+      // 标记为 hidden 的路由不允许访问
+      if (route.meta?.hidden) {
+        continue
+      }
 
-      if (
-        routePath === targetPath ||
-        this.isDynamicRouteMatch(targetPath, routePath) ||
-        targetPath.startsWith(`${routePath}/`)
-      ) {
+      // 构建完整路径
+      const routePath = this.buildFullPath(route.path, parentPath)
+
+      // 精确匹配或动态参数匹配
+      if (routePath === targetPath || this.isDynamicRouteMatch(targetPath, routePath)) {
         return true
       }
 
-      if (route.children?.length && this.matchRoute(targetPath, route.children)) {
+      // 前缀匹配：需要递归检查子路由
+      if (targetPath.startsWith(`${routePath}/`)) {
+        if (route.children?.length && this.matchRoute(targetPath, route.children, routePath)) {
+          return true
+        }
+        // 有子路由但子路由不匹配，或没有子路由，则不匹配
+        continue
+      }
+
+      // 非前缀匹配，递归检查子路由（处理路径不标准的情况）
+      if (route.children?.length && this.matchRoute(targetPath, route.children, parentPath)) {
         return true
       }
     }
 
     return false
+  }
+
+  /**
+   * 构建完整路径（复用 MenuProcessor 的逻辑）
+   */
+  private static buildFullPath(path: string, parentPath: string): string {
+    if (!path) return ''
+    if (path.startsWith('http://') || path.startsWith('https://')) return path
+    if (path.startsWith('/')) return path
+    if (parentPath) {
+      const cleanParent = parentPath.replace(/\/$/, '')
+      const cleanChild = path.replace(/^\//, '')
+      return `${cleanParent}/${cleanChild}`
+    }
+    return `/${path}`
   }
 
   /**

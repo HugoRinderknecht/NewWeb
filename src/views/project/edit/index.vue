@@ -1,5 +1,35 @@
 <template>
   <div class="project-edit-page art-full-height">
+    <!-- 无项目ID时的提示弹窗 -->
+    <ElDialog
+      v-model="showNoProjectDialog"
+      title="操作提示"
+      width="480px"
+      align-center
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      :show-close="false"
+      class="no-project-dialog"
+    >
+      <div class="no-project-content">
+        <div class="no-project-icon">
+          <ArtSvgIcon icon="ri:information-line" class="text-4xl text-primary" />
+        </div>
+        <h3 class="no-project-title">请通过项目列表进入编辑</h3>
+        <p class="no-project-desc">
+          您当前未选择具体项目。请返回项目列表界面，找到并点击对应项目行中的「编辑」按钮，即可进入项目编辑流程。
+        </p>
+      </div>
+      <template #footer>
+        <div class="dialog-footer">
+          <ElButton type="primary" @click="handleGoToList">
+            <ArtSvgIcon icon="ri:arrow-left-line" class="mr-1" />
+            前往项目列表
+          </ElButton>
+        </div>
+      </template>
+    </ElDialog>
+
     <ElCard class="art-table-card">
       <template #header>
         <div class="flex-cb">
@@ -365,11 +395,6 @@
   import type { UploadFile } from 'element-plus'
   import ProjectMember from '../member/index.vue'
   import ProjectFormComponent from '../components/ProjectForm.vue'
-  import { fetchArchiveProject, fetchDeleteProject, fetchGetProjectMembers } from '@/api/project'
-  import { fetchGetScriptList, fetchDeleteScript } from '@/api/script'
-  import { fetchGetStoryboardList, fetchDeleteStoryboard } from '@/api/storyboard'
-  import { fetchGetVideoTaskList } from '@/api/video'
-  import { fetchGetProjectAssets, fetchDeleteAsset } from '@/api/asset'
   import {
     useProjectDetail,
     useProjectConfig,
@@ -377,8 +402,15 @@
     useUpdateProject,
     useUpdateProjectConfig,
     useUpdateReviewConfig,
-    useUploadProjectCover
+    useUploadProjectCover,
+    useDeleteProject,
+    useArchiveProject,
+    useProjectMembers
   } from '@/api/queries/project'
+  import { useScriptList, useDeleteScript } from '@/api/queries/script'
+  import { useStoryboardList, useDeleteStoryboard } from '@/api/queries/storyboard'
+  import { useVideoTaskList } from '@/api/queries/video'
+  import { useAssetList, useDeleteAsset } from '@/api/queries/asset'
   import { logger } from '@/utils/logger'
 
   defineOptions({ name: 'ProjectEdit' })
@@ -436,6 +468,19 @@
   const route = useRoute()
 
   const projectId = ref(String(route.query.id || ''))
+  const showNoProjectDialog = ref(false)
+
+  // 检查是否从项目列表进入：如果没有有效的项目ID，提示用户通过项目列表进入编辑
+  onMounted(() => {
+    if (!route.query.id) {
+      showNoProjectDialog.value = true
+    }
+  })
+
+  const handleGoToList = () => {
+    showNoProjectDialog.value = false
+    router.push('/project/list')
+  }
 
   // Vue-query: 项目详情
   const { data: projectDetail } = useProjectDetail(computed(() => projectId.value || undefined))
@@ -444,11 +489,30 @@
   // Vue-query: 审核配置
   const { data: reviewConfig } = useReviewConfig(computed(() => projectId.value || undefined))
 
+  // Vue-query: 剧本列表
+  const { data: scriptListResult, isLoading: scriptLoading } = useScriptList(projectId)
+  // Vue-query: 分镜列表
+  const { data: storyboardListResult, isLoading: storyboardLoading } = useStoryboardList(projectId)
+  // Vue-query: 视频列表
+  const { data: videoListResult, isLoading: videoLoading } = useVideoTaskList(
+    computed(() => ({ projectId: projectId.value || undefined }))
+  )
+  // Vue-query: 资产列表
+  const { data: assetListResult, isLoading: assetLoading } = useAssetList(projectId)
+  // Vue-query: 项目成员
+  const { data: memberListResult } = useProjectMembers(projectId, undefined)
+
   // Mutations
   const updateProjectMutation = useUpdateProject()
   const updateProjectConfigMutation = useUpdateProjectConfig()
   const updateReviewConfigMutation = useUpdateReviewConfig()
   const uploadCoverMutation = useUploadProjectCover()
+  const deleteProjectMutation = useDeleteProject()
+  const archiveProjectMutation = useArchiveProject()
+  const deleteScriptMutation = useDeleteScript()
+  const deleteStoryboardMutation = useDeleteStoryboard()
+  const deleteVideoMutation = useDeleteAsset()
+  const deleteAssetMutation = useDeleteAsset()
 
   const activeTab = ref('overview')
   const projectFormRef = ref<InstanceType<typeof ProjectFormComponent>>()
@@ -584,63 +648,58 @@
     { immediate: true }
   )
 
-  onMounted(() => {
-    loadScriptList()
-    loadStoryboardList()
-    loadVideoList()
-    loadAssetList()
-    loadMemberOptions()
-  })
+  const scriptList = computed<ScriptItem[]>(() =>
+    (scriptListResult.value?.records ?? []).map((item: any) => ({
+      id: Number(item.id) || 0,
+      title: item.title || item.name || '',
+      author: item.author || '',
+      version: item.version || 'v1.0',
+      updateTime: item.updateTime || ''
+    }))
+  )
 
-  const scriptList = ref<ScriptItem[]>([])
-  const storyboardList = ref<StoryboardItem[]>([])
-  const videoList = ref<VideoItem[]>([])
-  const assetList = ref<AssetItem[]>([])
-  const scriptLoading = ref(false)
-  const storyboardLoading = ref(false)
-  const videoLoading = ref(false)
-  const assetLoading = ref(false)
+  const storyboardList = computed<StoryboardItem[]>(() =>
+    (storyboardListResult.value?.records ?? []).map((item: any) => ({
+      id: Number(item.id) || 0,
+      name: item.name || item.title || '',
+      scene: item.sceneName || item.scene || '',
+      status: mapStoryboardStatus(item.status),
+      updateTime: item.updateTime || ''
+    }))
+  )
 
-  const loadScriptList = async () => {
-    const pid = String(route.query.id)
-    if (!pid) return
-    scriptLoading.value = true
-    try {
-      const res = await fetchGetScriptList(pid)
-      const list = (res as any)?.records || (Array.isArray(res) ? res : [])
-      scriptList.value = list.map((item: any) => ({
-        id: Number(item.id) || 0,
-        title: item.title || item.name || '',
-        author: item.author || '',
-        version: item.version || 'v1.0',
-        updateTime: item.updateTime || ''
-      }))
-    } catch {
-      ElMessage.error('加载剧本列表失败')
-    } finally {
-      scriptLoading.value = false
-    }
-  }
+  const videoList = computed<VideoItem[]>(() =>
+    (videoListResult.value?.records ?? []).map((item: any) => ({
+      id: Number(item.id) || 0,
+      name: item.name || item.taskName || '',
+      duration: item.duration || '00:00',
+      resolution: item.resolution || '1920x1080',
+      status: mapVideoStatus(item.status),
+      updateTime: item.updateTime || item.createdAt || ''
+    }))
+  )
 
-  const loadStoryboardList = async () => {
-    const pid = String(route.query.id)
-    if (!pid) return
-    storyboardLoading.value = true
-    try {
-      const res = await fetchGetStoryboardList(pid)
-      const list = (res as any)?.records || (Array.isArray(res) ? res : [])
-      storyboardList.value = list.map((item: any) => ({
-        id: Number(item.id) || 0,
-        name: item.name || item.title || '',
-        scene: item.sceneName || item.scene || '',
-        status: mapStoryboardStatus(item.status),
-        updateTime: item.updateTime || ''
-      }))
-    } catch {
-      ElMessage.error('加载分镜列表失败')
-    } finally {
-      storyboardLoading.value = false
-    }
+  const assetList = computed<AssetItem[]>(() =>
+    (assetListResult.value?.records ?? []).map((item: any) => ({
+      id: Number(item.id) || 0,
+      name: item.assetName || item.name || '',
+      type: item.assetType || item.type || '',
+      size: item.fileSize ? formatFileSize(item.fileSize) : item.size || '',
+      updateTime: item.updateTime || ''
+    }))
+  )
+
+  const memberOptions = computed<{ label: string; value: string }[]>(() =>
+    (memberListResult.value?.records ?? []).map((item: any) => ({
+      label: item.userName || item.name || item.nickname || '',
+      value: String(item.userId || item.id || '')
+    }))
+  )
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return bytes + 'B'
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + 'KB'
+    return (bytes / (1024 * 1024)).toFixed(1) + 'MB'
   }
 
   const mapStoryboardStatus = (status: any): string => {
@@ -652,28 +711,6 @@
       draft: 'progress'
     }
     return map[String(status)] || 'progress'
-  }
-
-  const loadVideoList = async () => {
-    const pid = String(route.query.id)
-    if (!pid) return
-    videoLoading.value = true
-    try {
-      const res = await fetchGetVideoTaskList({ projectId: pid } as any)
-      const list = (res as any)?.records || (Array.isArray(res) ? res : [])
-      videoList.value = list.map((item: any) => ({
-        id: Number(item.id) || 0,
-        name: item.name || item.taskName || '',
-        duration: item.duration || '00:00',
-        resolution: item.resolution || '1920x1080',
-        status: mapVideoStatus(item.status),
-        updateTime: item.updateTime || item.createdAt || ''
-      }))
-    } catch {
-      ElMessage.error('加载视频列表失败')
-    } finally {
-      videoLoading.value = false
-    }
   }
 
   const mapVideoStatus = (status: any): string => {
@@ -688,56 +725,12 @@
     return map[String(status)] || 'progress'
   }
 
-  const loadAssetList = async () => {
-    const pid = String(route.query.id)
-    if (!pid) return
-    assetLoading.value = true
-    try {
-      const res = await fetchGetProjectAssets(pid)
-      const list = (res as any)?.records || (Array.isArray(res) ? res : [])
-      assetList.value = list.map((item: any) => ({
-        id: Number(item.id) || 0,
-        name: item.assetName || item.name || '',
-        type: item.assetType || item.type || '',
-        size: item.fileSize ? formatFileSize(item.fileSize) : item.size || '',
-        updateTime: item.updateTime || ''
-      }))
-    } catch {
-      ElMessage.error('加载资产列表失败')
-    } finally {
-      assetLoading.value = false
-    }
-  }
-
-  const formatFileSize = (bytes: number): string => {
-    if (bytes < 1024) return bytes + 'B'
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + 'KB'
-    return (bytes / (1024 * 1024)).toFixed(1) + 'MB'
-  }
-
   const statusOptions = [
     { label: '草稿', value: 0 },
     { label: '进行中', value: 1 },
     { label: '已完成', value: 2 },
     { label: '已归档', value: 3 }
   ]
-
-  const memberOptions = ref<{ label: string; value: string }[]>([])
-
-  const loadMemberOptions = async () => {
-    const pid = String(route.query.id)
-    if (!pid) return
-    try {
-      const res = await fetchGetProjectMembers(pid)
-      const list = (res as any)?.records || (Array.isArray(res) ? res : [])
-      memberOptions.value = list.map((item: any) => ({
-        label: item.userName || item.name || item.nickname || '',
-        value: String(item.userId || item.id || '')
-      }))
-    } catch {
-      // 静默失败，不影响页面加载
-    }
-  }
 
   const handleFormatJson = () => {
     try {
@@ -853,7 +846,7 @@
       type: 'warning'
     }).then(async () => {
       try {
-        await fetchArchiveProject(String(projectForm.id))
+        await archiveProjectMutation.mutateAsync(String(projectForm.id))
         projectForm.status = 3
         settingsForm.status = 3
         ElMessage.success('项目已归档')
@@ -870,7 +863,7 @@
       type: 'error'
     }).then(async () => {
       try {
-        await fetchDeleteProject(String(projectForm.id))
+        await deleteProjectMutation.mutateAsync(String(projectForm.id))
         ElMessage.success('项目已删除')
         router.push('/project/list')
       } catch {
@@ -891,9 +884,8 @@
       type: 'warning'
     }).then(async () => {
       try {
-        await fetchDeleteScript(String(row.id))
+        await deleteScriptMutation.mutateAsync({ scriptId: String(row.id) })
         ElMessage.success('删除成功')
-        await loadScriptList()
       } catch {
         ElMessage.error('删除失败')
       }
@@ -912,9 +904,8 @@
       type: 'warning'
     }).then(async () => {
       try {
-        await fetchDeleteStoryboard(String(row.id))
+        await deleteStoryboardMutation.mutateAsync({ storyboardId: String(row.id), projectId: projectId.value })
         ElMessage.success('删除成功')
-        await loadStoryboardList()
       } catch {
         ElMessage.error('删除失败')
       }
@@ -933,9 +924,8 @@
       type: 'warning'
     }).then(async () => {
       try {
-        await fetchDeleteAsset(String(projectForm.id), String(row.id))
+        await deleteAssetMutation.mutateAsync({ projectId: projectId.value, assetId: String(row.id) })
         ElMessage.success('删除成功')
-        await loadVideoList()
       } catch {
         ElMessage.error('删除失败')
       }
@@ -954,9 +944,8 @@
       type: 'warning'
     }).then(async () => {
       try {
-        await fetchDeleteAsset(String(projectForm.id), String(row.id))
+        await deleteAssetMutation.mutateAsync({ projectId: projectId.value, assetId: String(row.id) })
         ElMessage.success('删除成功')
-        await loadAssetList()
       } catch {
         ElMessage.error('删除失败')
       }
@@ -1031,5 +1020,61 @@
       font-size: 12px;
       color: var(--el-text-color-secondary);
     }
+  }
+
+  // 无项目ID提示弹窗样式
+  .no-project-dialog {
+    :deep(.el-dialog__header) {
+      text-align: center;
+      padding-bottom: 0;
+    }
+
+    :deep(.el-dialog__body) {
+      padding: 24px 32px 8px;
+    }
+
+    :deep(.el-dialog__footer) {
+      padding: 16px 32px 24px;
+      border-top: none;
+    }
+  }
+
+  .no-project-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 8px 0;
+
+    .no-project-icon {
+      width: 64px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--el-color-primary-light-9);
+      border-radius: 50%;
+      margin-bottom: 16px;
+    }
+
+    .no-project-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--el-text-color-primary);
+      margin: 0 0 12px;
+    }
+
+    .no-project-desc {
+      font-size: 14px;
+      color: var(--el-text-color-secondary);
+      line-height: 1.6;
+      margin: 0;
+    }
+  }
+
+  .dialog-footer {
+    display: flex;
+    justify-content: center;
+    width: 100%;
   }
 </style>

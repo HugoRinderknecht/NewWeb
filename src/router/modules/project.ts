@@ -26,25 +26,25 @@ export const projectRoutes: AppRouteRecord = {
       path: 'scripts',
       name: 'ProjectScripts',
       component: '/project/scripts',
-      meta: { title: '剧本管理', keepAlive: true }
+      meta: { title: '剧本管理', keepAlive: true, menuShow: false, hidden: true }
     },
     {
       path: 'characters',
       name: 'ProjectCharacters',
       component: '/project/characters',
-      meta: { title: '角色管理', keepAlive: true }
+      meta: { title: '角色管理', keepAlive: true, menuShow: false, hidden: true }
     },
     {
       path: 'episodes',
       name: 'ProjectEpisodes',
       component: '/project/episodes',
-      meta: { title: '集数管理', keepAlive: true }
+      meta: { title: '集数管理', keepAlive: true, menuShow: false, hidden: true }
     },
     {
       path: 'member',
       name: 'ProjectMember',
       component: '/project/member',
-      meta: { title: '成员管理', keepAlive: true }
+      meta: { title: '成员管理', keepAlive: true, menuShow: false, hidden: true }
     },
     {
       path: 'statistics',

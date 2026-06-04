@@ -477,9 +477,13 @@ declare namespace Api {
       appearanceSpan: string
       verificationStatus: string
       relations: {
-        target: string
+        role: string
         relation: string
       }[]
+      // 后端实际返回的中文字段（运行时存在，类型定义仅供映射参考）
+      // 姓名?: string; 身份?: string; 外貌?: string; 性格?: string;
+      // 背景?: string; 音色参考?: string; 出场跨度?: string; 验证状态?: string;
+      // 人物关系?: { 角色?: string; 关系?: string }[];
     }
 
     /** 人物小传结果 (CharacterProfileResultVO) */
@@ -488,7 +492,14 @@ declare namespace Api {
       profiles: CharacterProfileItem[]
       workflowRunId: string
       duration: number
-      tokenUsage: number
+      tokenUsage: {
+        aiProvider: string
+        modelName: string
+        tokensIn: number
+        tokensOut: number
+        tokensTotal: number
+        creditsUsed: number
+      }
       creditsDeducted: number
     }
 

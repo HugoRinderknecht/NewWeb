@@ -229,26 +229,6 @@
         { path: '/project/list', meta: { title: '项目列表', icon: 'ri:list-check' }, component: '' },
         { path: '/project/edit', meta: { title: '项目编辑', icon: 'ri:edit-line' }, component: '' },
         {
-          path: '/project/scripts',
-          meta: { title: '剧本管理', icon: 'ri:book-3-line' },
-          component: ''
-        },
-        {
-          path: '/project/characters',
-          meta: { title: '角色管理', icon: 'ri:user-star-line' },
-          component: ''
-        },
-        {
-          path: '/project/episodes',
-          meta: { title: '集数管理', icon: 'ri:film-line' },
-          component: ''
-        },
-        {
-          path: '/project/member',
-          meta: { title: '成员管理', icon: 'ri:user-settings-line' },
-          component: ''
-        },
-        {
           path: '/project/statistics',
           meta: { title: '项目统计', icon: 'ri:bar-chart-box-line' },
           component: ''

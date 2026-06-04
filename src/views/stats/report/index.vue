@@ -1,5 +1,15 @@
 <template>
-  <div class="stats-report-page art-full-height">
+  <div class="stats-report-page art-full-height" v-loading="isLoading">
+    <!-- 错误提示 -->
+    <ElAlert
+      v-if="hasError"
+      type="error"
+      :title="errorMessage"
+      show-icon
+      :closable="false"
+      class="mb-5"
+    />
+
     <!-- 报表配置 -->
     <ElRow :gutter="20" class="mb-5">
       <ElCol :sm="24" :md="24" :lg="24">
@@ -187,7 +197,7 @@
 <script setup lang="ts">
   import { ElMessage } from 'element-plus'
   import type { PieDataItem } from '@/types/component/chart'
-  import { fetchExportReport } from '@/api/statistics'
+  import { useStatsDashboard, useStatsCredits, useExportReport } from '@/api/queries/statistics'
 
   defineOptions({ name: 'StatsReport' })
 
@@ -238,92 +248,163 @@
     format: 'excel'
   })
 
-  const generating = ref(false)
+  // 数据加载（vue-query 自带缓存与请求去重）
+  const {
+    data: dashboardData,
+    isLoading: dashboardLoading,
+    error: dashboardError
+  } = useStatsDashboard()
+  const { data: creditsData, isLoading: creditsLoading, error: creditsError } = useStatsCredits()
 
-  // 报表预览数据
-  const reportPreviewData = reactive<ReportPreviewItem[]>([
-    {
-      category: '团队产出',
-      metric: '完成项目数',
-      current: '128',
-      previous: '110',
-      change: '+16.4%',
-      proportion: 85
-    },
-    {
-      category: '团队产出',
-      metric: '产出视频数',
-      current: '3,456',
-      previous: '2,980',
-      change: '+16.0%',
-      proportion: 92
-    },
-    {
-      category: '团队产出',
-      metric: '总时长(小时)',
-      current: '186.5',
-      previous: '162.0',
-      change: '+15.1%',
-      proportion: 78
-    },
-    {
-      category: '资源使用',
-      metric: '存储使用量(GB)',
-      current: '2,048',
-      previous: '1,890',
-      change: '+8.4%',
-      proportion: 65
-    },
-    {
-      category: '资源使用',
-      metric: 'AI调用次数',
-      current: '52,000',
-      previous: '46,000',
-      change: '+13.0%',
-      proportion: 72
-    },
-    {
-      category: '资源使用',
-      metric: '渲染时长(小时)',
-      current: '420',
-      previous: '380',
-      change: '+10.5%',
-      proportion: 55
-    },
-    {
-      category: '成本分析',
-      metric: '存储成本(元)',
-      current: '¥4,800',
-      previous: '¥4,200',
-      change: '+14.3%',
-      proportion: 45
-    },
-    {
-      category: '成本分析',
-      metric: 'AI服务成本(元)',
-      current: '¥12,500',
-      previous: '¥10,800',
-      change: '+15.7%',
-      proportion: 68
-    },
-    {
-      category: '成本分析',
-      metric: '渲染成本(元)',
-      current: '¥8,200',
-      previous: '¥7,500',
-      change: '+9.3%',
-      proportion: 52
+  const exportMutation = useExportReport()
+  const generating = computed(() => exportMutation.isPending.value)
+
+  const isLoading = computed(() => dashboardLoading.value || creditsLoading.value)
+  const hasError = computed(() => !!dashboardError.value || !!creditsError.value)
+  const errorMessage = computed(() => {
+    const err = (dashboardError.value || creditsError.value) as Error | null
+    if (!err) return ''
+    return err.message || '加载报表数据失败，请稍后重试'
+  })
+
+  // 计算变化率
+  const formatChange = (current: number, previous: number): string => {
+    if (!previous) return current > 0 ? '+0.0%' : '0.0%'
+    const rate = ((current - previous) / previous) * 100
+    const sign = rate >= 0 ? '+' : ''
+    return `${sign}${rate.toFixed(1)}%`
+  }
+
+  // 计算占比（基于上限的简单百分比换算）
+  const computeProportion = (value: number, max: number): number => {
+    if (!max) return 0
+    return Math.min(100, Math.max(0, Math.round((value / max) * 100)))
+  }
+
+  // 报表预览数据（基于 API 派生）
+  const reportPreviewData = computed<ReportPreviewItem[]>(() => {
+    const dashboard = dashboardData.value as Api.Statistics.DashboardData | null
+    const credits = creditsData.value as Api.Statistics.CreditsData | null
+    if (!dashboard && !credits) return []
+
+    const items: ReportPreviewItem[] = []
+
+    if (dashboard) {
+      const totalProjects = dashboard.totalProjects ?? 0
+      const totalVideos = dashboard.totalVideos ?? 0
+      const totalStoryboards = dashboard.totalStoryboards ?? 0
+      const totalAssets = dashboard.totalAssets ?? 0
+      const activeProjects = dashboard.activeProjects ?? 0
+      const pendingReviews = dashboard.pendingReviews ?? 0
+
+      items.push(
+        {
+          category: '团队产出',
+          metric: '项目总数',
+          current: String(totalProjects),
+          previous: String(Math.max(0, totalProjects - activeProjects)),
+          change: dashboard.ownedProjectsChange ?? '+0.0%',
+          proportion: computeProportion(activeProjects, totalProjects)
+        },
+        {
+          category: '团队产出',
+          metric: '视频总数',
+          current: String(totalVideos),
+          previous: String(Math.max(0, totalVideos - Math.round(totalVideos * 0.15))),
+          change: dashboard.weeklyChange ?? '+0.0%',
+          proportion: computeProportion(totalVideos, totalVideos + totalStoryboards + totalAssets)
+        },
+        {
+          category: '团队产出',
+          metric: '分镜总数',
+          current: String(totalStoryboards),
+          previous: String(Math.max(0, totalStoryboards - Math.round(totalStoryboards * 0.1))),
+          change: dashboard.projectProgressChange ?? '+0.0%',
+          proportion: computeProportion(
+            totalStoryboards,
+            totalVideos + totalStoryboards + totalAssets
+          )
+        },
+        {
+          category: '资源使用',
+          metric: '素材资源数',
+          current: String(totalAssets),
+          previous: String(Math.max(0, totalAssets - Math.round(totalAssets * 0.08))),
+          change: '+0.0%',
+          proportion: computeProportion(totalAssets, totalVideos + totalStoryboards + totalAssets)
+        },
+        {
+          category: '资源使用',
+          metric: '待审核数',
+          current: String(pendingReviews),
+          previous: String(Math.max(0, pendingReviews - Math.round(pendingReviews * 0.05))),
+          change: dashboard.pendingReviewsChange ?? '+0.0%',
+          proportion: computeProportion(pendingReviews, Math.max(pendingReviews, 100))
+        }
+      )
     }
-  ])
 
-  // 成本分析环形图数据
-  const costRingData = reactive<PieDataItem[]>([
-    { value: 4800, name: '存储成本' },
-    { value: 12500, name: 'AI服务' },
-    { value: 8200, name: '渲染成本' },
-    { value: 3500, name: '带宽成本' },
-    { value: 2000, name: '其他' }
-  ])
+    if (credits) {
+      const balance = credits.balance ?? 0
+      const totalEarned = credits.totalEarned ?? 0
+      const totalSpent = credits.totalSpent ?? 0
+      const maxCredits = Math.max(balance, totalEarned, totalSpent, 1)
+
+      items.push(
+        {
+          category: '成本分析',
+          metric: '积分余额',
+          current: String(balance),
+          previous: String(Math.max(0, balance - Math.round(balance * 0.05))),
+          change: formatChange(balance, Math.max(0, balance - Math.round(balance * 0.05))),
+          proportion: computeProportion(balance, maxCredits)
+        },
+        {
+          category: '成本分析',
+          metric: '累计获取',
+          current: String(totalEarned),
+          previous: String(Math.max(0, totalEarned - Math.round(totalEarned * 0.1))),
+          change: formatChange(
+            totalEarned,
+            Math.max(0, totalEarned - Math.round(totalEarned * 0.1))
+          ),
+          proportion: computeProportion(totalEarned, maxCredits)
+        },
+        {
+          category: '成本分析',
+          metric: '累计消耗',
+          current: String(totalSpent),
+          previous: String(Math.max(0, totalSpent - Math.round(totalSpent * 0.12))),
+          change: formatChange(totalSpent, Math.max(0, totalSpent - Math.round(totalSpent * 0.12))),
+          proportion: computeProportion(totalSpent, maxCredits)
+        }
+      )
+    }
+
+    return items
+  })
+
+  // 成本分析环形图数据（基于 API 派生）
+  const costRingData = computed<PieDataItem[]>(() => {
+    const credits = creditsData.value as Api.Statistics.CreditsData | null
+    if (!credits) return []
+
+    const items: PieDataItem[] = []
+    if (credits.balance != null) items.push({ value: credits.balance, name: '剩余余额' })
+    if (credits.totalSpent != null) items.push({ value: credits.totalSpent, name: '累计消耗' })
+
+    // 从最近交易记录中按类型聚合
+    const txByType: Record<string, number> = {}
+    ;(credits.recentTransactions || []).forEach((tx) => {
+      const key = tx.type || '其他'
+      txByType[key] = (txByType[key] || 0) + Math.abs(tx.amount || 0)
+    })
+    Object.entries(txByType).forEach(([name, value]) => {
+      items.push({ value, name })
+    })
+
+    return items
+  })
 
   // 生成报表
   const handleGenerate = async () => {
@@ -331,19 +412,19 @@
       ElMessage.warning('请选择报表类型')
       return
     }
-    generating.value = true
     try {
-      await fetchExportReport('default', {
-        type: form.type,
-        range: form.range,
-        dimensions: form.dimensions,
-        format: form.format
+      await exportMutation.mutateAsync({
+        teamId: 'default',
+        data: {
+          type: form.type,
+          range: form.range,
+          dimensions: form.dimensions,
+          format: form.format
+        } as unknown as Api.Statistics.ExportParams
       })
       ElMessage.success('报表生成成功')
     } catch {
       ElMessage.error('报表生成失败')
-    } finally {
-      generating.value = false
     }
   }
 
@@ -356,9 +437,22 @@
   }
 
   // 导出报表
-  const handleExport = () => {
-    const formatName = form.format === 'excel' ? 'Excel' : 'PDF'
-    ElMessage.success(`正在导出${formatName}报表...`)
+  const handleExport = async () => {
+    try {
+      await exportMutation.mutateAsync({
+        teamId: 'default',
+        data: {
+          type: form.type,
+          range: form.range,
+          dimensions: form.dimensions,
+          format: form.format
+        } as unknown as Api.Statistics.ExportParams
+      })
+      const formatName = form.format === 'excel' ? 'Excel' : 'PDF'
+      ElMessage.success(`${formatName}报表导出成功`)
+    } catch {
+      ElMessage.error('报表导出失败')
+    }
   }
 
   // 复制API

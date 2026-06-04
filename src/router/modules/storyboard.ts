@@ -11,7 +11,7 @@ export const storyboardRoutes: AppRouteRecord = {
   },
   children: [
     {
-      path: 'design',
+      path: 'design/:projectId?',
       name: 'StoryboardDesign',
       component: '/storyboard/design',
       meta: { title: '分镜设计', keepAlive: true }

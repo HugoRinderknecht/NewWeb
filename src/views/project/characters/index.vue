@@ -203,13 +203,13 @@
   import type { FormInstance, FormRules } from 'element-plus'
   import type { ColumnOption } from '@/types/component'
   import {
-    fetchGetCharacterList,
-    fetchCreateCharacter,
-    fetchUpdateCharacter,
-    fetchDeleteCharacter
-  } from '@/api/character'
-  import { logger } from '@/utils/logger'
+    useCharacterList,
+    useCreateCharacter,
+    useUpdateCharacter,
+    useDeleteCharacter
+  } from '@/api/queries'
   import { useProjectDetail } from '@/api/queries/project'
+  import { logger } from '@/utils/logger'
 
   defineOptions({ name: 'ProjectCharacters' })
 
@@ -245,11 +245,34 @@
 
   const { data: projectDetail } = useProjectDetail(computed(() => projectId.value || undefined))
 
+  // Vue-query: 角色列表
+  const { data: characterListData, isLoading } = useCharacterList(projectId)
+  const characterList = computed(() =>
+    (characterListData.value ?? []).map((item: any) => ({
+      id: item.id,
+      name: item.name,
+      gender: (item.gender as Gender) || '其他',
+      age: item.age || 0,
+      personality: item.personality || '',
+      appearance: item.appearance || '',
+      voice: item.voice || '',
+      avatar: item.avatar || '',
+      background: item.background || ''
+    }))
+  )
+
+  // Mutations
+  const createMutation = useCreateCharacter()
+  const updateMutation = useUpdateCharacter()
+  const deleteMutation = useDeleteCharacter()
+
   const pagination = reactive({
     current: 1,
     size: 10,
     total: 0
   })
+
+  const loading = isLoading
 
   const genderTypeMap: Record<Gender, 'primary' | 'danger' | 'info'> = {
     男: 'primary',
@@ -262,52 +285,6 @@
     女: '女',
     其他: '其他'
   }
-
-  const characterList = ref<CharacterItem[]>([])
-  const loading = ref(false)
-
-  const loadCharacterList = async () => {
-    loading.value = true
-    try {
-      logger.apiRequest(MODULE, 'fetchGetCharacterList', projectId.value)
-      const res = await fetchGetCharacterList(projectId.value)
-      if (res) {
-        const list = Array.isArray(res) ? res : (res as any).records || []
-        characterList.value = list.map((item: any) => ({
-          id: item.id,
-          name: item.name,
-          gender: (item.gender as Gender) || '其他',
-          age: item.age || 0,
-          personality: item.personality || '',
-          appearance: item.appearance || '',
-          voice: item.voice || '',
-          avatar: item.avatar || ''
-        })) as CharacterItem[]
-        pagination.total = (res as any).total ?? characterList.value.length
-        logger.apiSuccess(
-          MODULE,
-          'fetchGetCharacterList',
-          `加载 ${characterList.value.length} 条角色`
-        )
-      }
-    } catch (err) {
-      logger.apiError(MODULE, 'fetchGetCharacterList', err)
-      ElMessage.error('加载角色列表失败')
-    } finally {
-      loading.value = false
-    }
-  }
-
-  const columns: ColumnOption[] = [
-    { type: 'selection' },
-    { prop: 'name', label: '角色信息', minWidth: 220 },
-    { prop: 'gender', label: '性别', width: 100 },
-    { prop: 'age', label: '年龄', width: 100 },
-    { prop: 'personality', label: '性格', minWidth: 160 },
-    { prop: 'voice', label: '声音', minWidth: 160 },
-    { prop: 'appearance', label: '外貌特征', minWidth: 180 },
-    { prop: 'operation', label: '操作', width: 200, fixed: 'right' }
-  ]
 
   const filteredCharacters = computed(() => {
     let result = characterList.value
@@ -323,14 +300,15 @@
       result = result.filter((item) => item.gender === filterGender.value)
     }
 
-    const start = (pagination.current - 1) * pagination.size
-    const end = start + pagination.size
-    return result.slice(start, end)
+    return result
   })
 
-  watch(filteredCharacters, (list) => {
-    pagination.total = list.length
-  })
+  watch(
+    () => filteredCharacters.value.length,
+    (len) => {
+      pagination.total = len
+    }
+  )
 
   const handleSelectionChange = (selection: CharacterItem[]) => {
     console.log('selected:', selection)
@@ -389,36 +367,38 @@
       if (valid) {
         try {
           if (isEdit.value && currentId.value) {
-            logger.info(MODULE, '编辑角色', `角色ID: ${currentId.value}, 名称: ${form.name}`)
-            await fetchUpdateCharacter(projectId.value, String(currentId.value), {
-              name: form.name,
-              gender: form.gender,
-              age: form.age,
-              personality: form.personality,
-              appearance: form.appearance,
-              background: form.background
+            await updateMutation.mutateAsync({
+              projectId: projectId.value,
+              characterId: String(currentId.value),
+              data: {
+                name: form.name,
+                gender: form.gender,
+                age: form.age,
+                personality: form.personality,
+                appearance: form.appearance,
+                background: form.background
+              }
             })
-            logger.apiSuccess(MODULE, 'fetchUpdateCharacter', `角色「${form.name}」编辑成功`)
             ElMessage.success('角色编辑成功')
           } else {
-            logger.info(MODULE, '创建角色', `名称: ${form.name}`)
-            await fetchCreateCharacter(projectId.value, {
-              name: form.name!,
-              gender: form.gender,
-              age: form.age,
-              personality: form.personality,
-              appearance: form.appearance,
-              background: form.background
+            await createMutation.mutateAsync({
+              projectId: projectId.value,
+              data: {
+                name: form.name!,
+                gender: form.gender,
+                age: form.age,
+                personality: form.personality,
+                appearance: form.appearance,
+                background: form.background
+              }
             })
-            logger.apiSuccess(MODULE, 'fetchCreateCharacter', `角色「${form.name}」创建成功`)
             ElMessage.success('角色创建成功')
           }
           dialogVisible.value = false
-          await loadCharacterList()
         } catch (err) {
           logger.apiError(
             MODULE,
-            isEdit.value ? 'fetchUpdateCharacter' : 'fetchCreateCharacter',
+            isEdit.value ? 'useUpdateCharacter' : 'useCreateCharacter',
             err
           )
           ElMessage.error(isEdit.value ? '角色编辑失败' : '角色创建失败')
@@ -439,13 +419,10 @@
       type: 'warning'
     }).then(async () => {
       try {
-        logger.info(MODULE, '删除角色', `角色ID: ${row.id}, 名称: ${row.name}`)
-        await fetchDeleteCharacter(projectId.value, String(row.id))
-        logger.apiSuccess(MODULE, 'fetchDeleteCharacter', `角色「${row.name}」删除成功`)
+        await deleteMutation.mutateAsync({ projectId: projectId.value, characterId: String(row.id) })
         ElMessage.success('删除成功')
-        await loadCharacterList()
       } catch (err) {
-        logger.apiError(MODULE, 'fetchDeleteCharacter', err)
+        logger.apiError(MODULE, 'useDeleteCharacter', err)
         ElMessage.error('删除失败')
       }
     })
@@ -454,10 +431,6 @@
   const handleAvatarChange = (file: any) => {
     form.avatar = URL.createObjectURL(file.raw)
   }
-
-  onMounted(() => {
-    loadCharacterList()
-  })
 </script>
 
 <style lang="scss" scoped>

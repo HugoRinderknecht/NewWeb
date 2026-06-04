@@ -1,144 +1,43 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import {
-  fetchGetProjectList,
-  fetchGetProjectDetail,
-  fetchGetProjectMembers,
-  fetchGetProjectConfig
-} from '@/api/project'
-import { fetchGetProjectEpisodes } from '@/api/script'
-import { fetchGetCharacterList } from '@/api/character'
-import { useProjectDataStore } from './project-data'
 
+/**
+ * 项目 Store（轻量版）
+ *
+ * 本 store 仅负责追踪当前项目 ID 和 UI 相关状态。
+ * 所有服务端数据（项目列表、详情、成员等）统一通过
+ * `useProjectList`、`useProjectDetail` 等 Vue Query Hook 获取。
+ *
+ * 保留对 project-data store 的引用，用于跨模块同步当前选中项目。
+ */
 export const useProjectStore = defineStore(
   'project',
   () => {
-    const projectList = ref<any[]>([])
+    /** 当前选中的项目 ID（由 route / 用户交互驱动） */
     const currentProjectId = ref<string>('')
-    const currentProject = ref<any>(null)
-    const episodes = ref<any[]>([])
-    const characters = ref<any[]>([])
-    const members = ref<any[]>([])
-    const projectConfig = ref<Record<string, string>>({})
-    const loading = ref(false)
 
-    const currentProjectName = computed(
-      () => currentProject.value?.projectName || currentProject.value?.name || ''
-    )
-    const currentEpisodes = computed(() => episodes.value)
+    const currentProjectName = computed(() => '')
 
-    const loadProjectList = async (params?: any) => {
-      loading.value = true
-      try {
-        const res = await fetchGetProjectList(params)
-        projectList.value = (res as any)?.records || res || []
-      } catch {
-        projectList.value = []
-      } finally {
-        loading.value = false
-      }
-    }
-
-    const loadProjectDetail = async (projectId: string) => {
-      if (!projectId) return
-      loading.value = true
-      try {
-        const res = await fetchGetProjectDetail(projectId)
-        currentProject.value = res
-        currentProjectId.value = projectId
-      } catch {
-        currentProject.value = null
-      } finally {
-        loading.value = false
-      }
-    }
-
-    const loadEpisodes = async (projectId?: string) => {
-      const id = projectId || currentProjectId.value
-      if (!id) return
-      try {
-        const res = await fetchGetProjectEpisodes(id)
-        episodes.value = res || []
-      } catch {
-        episodes.value = []
-      }
-    }
-
-    const loadCharacters = async (projectId?: string) => {
-      const id = projectId || currentProjectId.value
-      if (!id) return
-      try {
-        const res = await fetchGetCharacterList(id)
-        characters.value = res || []
-      } catch {
-        characters.value = []
-      }
-    }
-
-    const loadMembers = async (projectId?: string) => {
-      const id = projectId || currentProjectId.value
-      if (!id) return
-      try {
-        const res = await fetchGetProjectMembers(id)
-        members.value = (res as any)?.records || res || []
-      } catch {
-        members.value = []
-      }
-    }
-
-    const loadProjectConfig = async (projectId?: string) => {
-      const id = projectId || currentProjectId.value
-      if (!id) return
-      try {
-        const res = await fetchGetProjectConfig(id)
-        projectConfig.value = (res as any)?.configs || res || {}
-      } catch {
-        projectConfig.value = {}
-      }
-    }
-
+    /** 设置当前项目（同时通知 project-data store 同步） */
     const setCurrentProject = (projectId: string) => {
       currentProjectId.value = projectId
-      const projectDataStore = useProjectDataStore()
-      if (projectDataStore.currentProjectId !== projectId) {
-        projectDataStore.setCurrentProject(projectId)
-      }
+      import('./project-data').then(({ useProjectDataStore }) => {
+        const dataStore = useProjectDataStore()
+        if (dataStore.currentProjectId !== projectId) {
+          dataStore.$patch({ currentProjectId: projectId })
+        }
+      })
     }
 
     const clearCurrentProject = () => {
       currentProjectId.value = ''
-      currentProject.value = null
-      episodes.value = []
-      characters.value = []
-      members.value = []
-      projectConfig.value = {}
-    }
-
-    const clearAll = () => {
-      projectList.value = []
-      clearCurrentProject()
     }
 
     return {
-      projectList,
       currentProjectId,
-      currentProject,
-      episodes,
-      characters,
-      members,
-      projectConfig,
-      loading,
       currentProjectName,
-      currentEpisodes,
-      loadProjectList,
-      loadProjectDetail,
-      loadEpisodes,
-      loadCharacters,
-      loadMembers,
-      loadProjectConfig,
       setCurrentProject,
-      clearCurrentProject,
-      clearAll
+      clearCurrentProject
     }
   },
   {

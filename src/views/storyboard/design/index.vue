@@ -1,27 +1,38 @@
 <template>
-  <div class="storyboard-design-page art-full-height">
+  <div class="storyboard-design-page art-full-height" v-loading="isLoading">
+    <!-- 无项目时显示引导 -->
+    <div v-if="!projectId" class="flex-col-cc py-16">
+      <ArtSvgIcon icon="ri:folder-3-line" class="text-6xl text-g-300 mb-4" />
+      <p class="text-lg text-g-400 mb-6">请先选择一个项目</p>
+      <ElButton type="primary" @click="router.push({ name: 'ProjectList' })">
+        前往项目列表
+      </ElButton>
+    </div>
+    <template v-else>
+    <ElAlert
+      v-if="hasError"
+      type="error"
+      :title="errorMessage"
+      show-icon
+      :closable="false"
+      class="mb-4"
+    />
     <ElCard class="art-table-card h-full">
       <template #header>
         <div class="flex-cb">
           <div class="flex items-center gap-4">
             <span class="text-lg font-medium">分镜设计</span>
-            <ElSelect v-model="filterEpisode" placeholder="选择剧集" clearable style="width: 180px">
-              <ElOption
-                v-for="ep in episodeOptions"
-                :key="ep.id"
-                :label="`第${ep.number}集：${ep.name}`"
-                :value="ep.id"
-              />
-            </ElSelect>
-            <ElTag v-if="currentEpisode" type="info" size="small"> 剧本：《山海经·异兽录》 </ElTag>
-            <ElTag v-else type="info" size="small">剧本：《山海经·异兽录》</ElTag>
+            <ElTag v-if="projectName" type="info" size="small">{{ projectName }}</ElTag>
           </div>
           <ElSpace>
-            <ElInput v-model="searchQuery" placeholder="搜索分镜" clearable style="width: 220px">
+            <ElInput v-model="searchQuery" placeholder="搜索分镜标题" clearable style="width: 220px">
               <template #prefix>
                 <ArtSvgIcon icon="ri:search-line" class="text-g-400" />
               </template>
             </ElInput>
+            <ElSelect v-model="filterStatus" placeholder="状态筛选" clearable style="width: 140px">
+              <ElOption v-for="item in statusOptions" :key="item.value" :label="item.label" :value="item.value" />
+            </ElSelect>
             <ElSelect v-model="filterSource" placeholder="来源筛选" clearable style="width: 140px">
               <ElOption label="剧本生成" value="script" />
               <ElOption label="手动创建" value="manual" />
@@ -31,31 +42,11 @@
               <ArtSvgIcon icon="ri:add-line" class="mr-1" />
               新建分镜
             </ElButton>
-            <ElButton @click="handleAutoGenerate">
-              <ArtSvgIcon icon="ri:magic-line" class="mr-1" />
-              剧本生成
-            </ElButton>
-            <ElButton type="success" @click="handleAIGenerate">
-              <ArtSvgIcon icon="ri:sparkling-line" class="mr-1" />
-              AI辅助
-            </ElButton>
-            <ElButton type="warning" @click="handleSubmitReview">
-              <ArtSvgIcon icon="ri:send-plane-line" class="mr-1" />
-              提交审核
-            </ElButton>
-            <ElButton @click="handleWithdrawReview">
-              <ArtSvgIcon icon="ri:arrow-go-back-line" class="mr-1" />
-              撤回审核
-            </ElButton>
-            <ElButton type="info" @click="handleViewVersions">
-              <ArtSvgIcon icon="ri:history-line" class="mr-1" />
-              版本历史
-            </ElButton>
           </ElSpace>
         </div>
       </template>
 
-      <!-- 统计卡片 -->
+      <!-- 统计概览 -->
       <div class="storyboard-stats mb-6">
         <ElRow :gutter="16">
           <ElCol :span="6">
@@ -64,7 +55,7 @@
                 <ArtSvgIcon icon="ri:movie-line" />
               </div>
               <div class="stat-info">
-                <div class="stat-value">{{ storyboardList.length }}</div>
+                <div class="stat-value">{{ pagination.total }}</div>
                 <div class="stat-label">总分镜数</div>
               </div>
             </div>
@@ -105,41 +96,106 @@
         </ElRow>
       </div>
 
-      <!-- 可视化分镜板 -->
-      <ArtStoryboardPanel
-        v-model="filteredList"
-        @select="handleStoryboardSelect"
-        @add="handleStoryboardAdd"
-        @delete="handleStoryboardDelete"
-        @batch-delete="handleStoryboardBatchDelete"
-        @reorder="handleStoryboardReorder"
-      />
-
-      <div class="pagination-wrapper">
-        <ElPagination
-          v-model:current-page="pagination.current"
-          v-model:page-size="pagination.size"
-          :total="pagination.total"
-          :page-sizes="[10, 20, 50, 100]"
-          layout="total, sizes, prev, pager, next, jumper"
-          background
-        />
-      </div>
+      <!-- 分镜表格 -->
+      <ArtTable
+        v-if="displayList !== undefined"
+        :data="displayList"
+        :pagination="pagination"
+        :loading="isLoading"
+        empty-text="暂无分镜，点击「新建分镜」创建一个"
+        @selection-change="handleSelectionChange"
+        @pagination:size-change="handleSizeChange"
+        @pagination:current-change="handleCurrentChange"
+      >
+        <template #default>
+          <ElTableColumn type="selection" width="55" />
+          <ElTableColumn label="分镜标题" min-width="200">
+            <template #default="scope">
+              <div class="flex-c cursor-pointer" @click="handleView(scope.row)">
+                <div class="storyboard-thumb">
+                  <ElImage v-if="scope.row.thumbnail" :src="scope.row.thumbnail" fit="cover" class="thumb-image" />
+                  <div v-else class="thumb-placeholder flex-cc">
+                    <ArtSvgIcon icon="ri:image-line" class="text-g-400" />
+                  </div>
+                </div>
+                <div class="ml-3">
+                  <div class="font-medium text-sm">{{ scope.row.name }}</div>
+                  <div class="text-xs text-g-400 mt-1">{{ scope.row.code }}</div>
+                </div>
+              </div>
+            </template>
+          </ElTableColumn>
+          <ElTableColumn label="来源" width="110">
+            <template #default="scope">
+              <ElTag :type="sourceTypeMap[scope.row.source as SourceType] || 'info'" size="small">
+                {{ sourceLabelMap[scope.row.source as SourceType] || scope.row.source }}
+              </ElTag>
+            </template>
+          </ElTableColumn>
+          <ElTableColumn label="状态" width="100">
+            <template #default="scope">
+              <ElTag :type="statusTypeMap[scope.row.status as StatusType] || 'info'" size="small">
+                {{ statusLabelMap[scope.row.status as StatusType] || scope.row.status }}
+              </ElTag>
+            </template>
+          </ElTableColumn>
+          <ElTableColumn label="镜头数" width="90" align="center">
+            <template #default="scope">
+              <span>{{ scope.row.shotCount ?? 0 }}</span>
+            </template>
+          </ElTableColumn>
+          <ElTableColumn label="时长" width="90" align="center">
+            <template #default="scope">
+              <span>{{ scope.row.duration || 0 }}s</span>
+            </template>
+          </ElTableColumn>
+          <ElTableColumn label="描述" min-width="160" show-overflow-tooltip>
+            <template #default="scope">
+              <span class="text-g-400">{{ scope.row.description || '-' }}</span>
+            </template>
+          </ElTableColumn>
+          <ElTableColumn label="更新时间" width="160" sortable prop="updateTime" />
+          <ElTableColumn label="操作" width="220" fixed="right">
+            <template #default="scope">
+              <ElSpace>
+                <ElButton type="primary" link size="small" @click="handleView(scope.row)">
+                  <ArtSvgIcon icon="ri:eye-line" class="mr-1" />
+                  查看
+                </ElButton>
+                <ElButton type="primary" link size="small" @click="handleEdit(scope.row)">
+                  <ArtSvgIcon icon="ri:edit-line" class="mr-1" />
+                  编辑
+                </ElButton>
+                <ElButton type="danger" link size="small" @click="handleDelete(scope.row)">
+                  <ArtSvgIcon icon="ri:delete-bin-line" class="mr-1" />
+                  删除
+                </ElButton>
+              </ElSpace>
+            </template>
+          </ElTableColumn>
+        </template>
+      </ArtTable>
     </ElCard>
 
     <!-- 新建/编辑分镜弹窗 -->
-    <ElDialog v-model="dialogVisible" :title="dialogTitle" width="700px">
+    <ElDialog
+      v-model="dialogVisible"
+      :title="isEdit ? '编辑分镜' : '新建分镜'"
+      width="640px"
+      align-center
+      destroy-on-close
+    >
       <ElForm :model="form" label-width="100px" :rules="formRules" ref="formRef">
-        <ElFormItem label="分镜名称" prop="name" required>
-          <ElInput v-model="form.name" placeholder="请输入分镜名称" />
+        <ElFormItem label="分镜标题" prop="name" required>
+          <ElInput v-model="form.name" placeholder="请输入分镜标题" maxlength="200" show-word-limit />
         </ElFormItem>
-        <ElFormItem label="关联场景">
-          <ElSelect v-model="form.sceneId" placeholder="请选择关联场景" class="w-full">
+        <ElFormItem label="所属剧集">
+          <ElSelect v-model="form.episodeId" placeholder="请选择剧集" class="w-full" clearable>
             <ElOption
-              v-for="scene in sceneOptions"
-              :key="scene.id"
-              :label="scene.name"
-              :value="scene.id"
+              v-for="ep in episodeOptions"
+              :key="ep.id"
+              :label="`第${ep.number}集：${ep.name}`"
+              :value="ep.id"
             />
           </ElSelect>
         </ElFormItem>
@@ -169,12 +225,12 @@
       </ElForm>
       <template #footer>
         <ElButton @click="dialogVisible = false">取消</ElButton>
-        <ElButton type="primary" @click="handleSubmit">确定</ElButton>
+        <ElButton type="primary" @click="handleSubmit">{{ isEdit ? '保存' : '创建' }}</ElButton>
       </template>
     </ElDialog>
 
     <!-- 查看分镜详情弹窗 -->
-    <ElDialog v-model="viewDialogVisible" title="分镜详情" width="700px">
+    <ElDialog v-model="viewDialogVisible" title="分镜详情" width="700px" align-center destroy-on-close>
       <div v-if="currentItem" class="storyboard-detail">
         <div class="detail-header">
           <div class="detail-thumb">
@@ -185,12 +241,12 @@
           </div>
           <div class="detail-info">
             <h3 class="text-lg font-medium">{{ currentItem.name }}</h3>
-            <ElSpace>
-              <ElTag :type="getSourceTag(currentItem.source)" size="small">
-                {{ getSourceLabel(currentItem.source) }}
+            <ElSpace class="mt-2">
+              <ElTag :type="sourceTypeMap[currentItem.source as SourceType] || 'info'" size="small">
+                {{ sourceLabelMap[currentItem.source as SourceType] || currentItem.source }}
               </ElTag>
-              <ElTag :type="getStatusTag(currentItem.status)" size="small">
-                {{ getStatusLabel(currentItem.status) }}
+              <ElTag :type="statusTypeMap[currentItem.status as StatusType] || 'info'" size="small">
+                {{ statusLabelMap[currentItem.status as StatusType] || currentItem.status }}
               </ElTag>
               <span class="text-sm text-g-400">{{ currentItem.code }}</span>
             </ElSpace>
@@ -198,130 +254,60 @@
         </div>
         <ElDivider />
         <ElDescriptions :column="2" border>
-          <ElDescriptionsItem label="关联场景">{{ currentItem.sceneName }}</ElDescriptionsItem>
-          <ElDescriptionsItem label="镜头数量">{{ currentItem.shotCount }} 个</ElDescriptionsItem>
-          <ElDescriptionsItem label="总时长">{{ currentItem.duration }} 秒</ElDescriptionsItem>
-          <ElDescriptionsItem label="状态">{{
-            getStatusLabel(currentItem.status)
-          }}</ElDescriptionsItem>
-          <ElDescriptionsItem label="创建时间">{{ currentItem.createTime }}</ElDescriptionsItem>
-          <ElDescriptionsItem label="更新时间">{{ currentItem.updateTime }}</ElDescriptionsItem>
-          <ElDescriptionsItem label="描述" :span="2">{{
-            currentItem.description || '-'
-          }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="分镜编号">{{ currentItem.code }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="镜头数量">{{ currentItem.shotCount ?? 0 }} 个</ElDescriptionsItem>
+          <ElDescriptionsItem label="总时长">{{ currentItem.duration || 0 }} 秒</ElDescriptionsItem>
+          <ElDescriptionsItem label="更新状态">
+            <ElTag :type="statusTypeMap[currentItem.status as StatusType] || 'info'" size="small">
+              {{ statusLabelMap[currentItem.status as StatusType] || currentItem.status }}
+            </ElTag>
+          </ElDescriptionsItem>
+          <ElDescriptionsItem label="创建时间">{{ currentItem.createTime || '-' }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="更新时间">{{ currentItem.updateTime || '-' }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="描述" :span="2">{{ currentItem.description || '-' }}</ElDescriptionsItem>
         </ElDescriptions>
       </div>
     </ElDialog>
-
-    <!-- 版本历史弹窗 -->
-    <ElDialog v-model="versionDialogVisible" title="分镜版本历史" width="700px" destroy-on-close>
-      <ElTimeline>
-        <ElTimelineItem
-          v-for="(version, index) in versionList"
-          :key="version.versionId"
-          :type="index === 0 ? 'primary' : undefined"
-          :timestamp="version.versionTime"
-          placement="top"
-        >
-          <ElCard shadow="hover">
-            <div class="flex-cb">
-              <div>
-                <div class="font-medium">版本 {{ version.versionId }}</div>
-                <div class="text-g-400 text-sm mt-1"
-                  >操作人: {{ version.operator }} | {{ version.operationType }}</div
-                >
-                <div class="text-g-400 text-sm mt-1">{{ version.changeSummary }}</div>
-              </div>
-              <ElButton type="warning" size="small" @click="handleRollback(version)">
-                回退到此版本
-              </ElButton>
-            </div>
-          </ElCard>
-        </ElTimelineItem>
-      </ElTimeline>
-    </ElDialog>
-
-    <!-- AI辅助生成弹窗 -->
-    <ElDialog v-model="aiDialogVisible" title="AI辅助生成分镜" width="600px">
-      <ElForm :model="aiForm" label-width="100px">
-        <ElFormItem label="生成方式">
-          <ElRadioGroup v-model="aiForm.mode">
-            <ElRadioButton value="script">基于剧本</ElRadioButton>
-            <ElRadioButton value="prompt">基于描述</ElRadioButton>
-          </ElRadioGroup>
-        </ElFormItem>
-        <ElFormItem v-if="aiForm.mode === 'script'" label="选择剧本">
-          <ElSelect v-model="aiForm.scriptId" placeholder="请选择剧本" class="w-full">
-            <ElOption label="山海经·异兽录" value="shj" />
-            <ElOption label="品牌宣传片" value="brand" />
-          </ElSelect>
-        </ElFormItem>
-        <ElFormItem label="生成数量">
-          <ElSlider v-model="aiForm.count" :min="1" :max="20" show-stops />
-        </ElFormItem>
-        <ElFormItem label="描述提示">
-          <ElInput
-            v-model="aiForm.prompt"
-            type="textarea"
-            :rows="4"
-            placeholder="请输入分镜描述提示词，AI将根据此生成对应的分镜..."
-          />
-        </ElFormItem>
-      </ElForm>
-      <template #footer>
-        <ElButton @click="aiDialogVisible = false">取消</ElButton>
-        <ElButton type="success" :loading="aiLoading" @click="handleAISubmit">
-          <ArtSvgIcon icon="ri:sparkling-line" class="mr-1" />
-          开始生成
-        </ElButton>
-      </template>
-    </ElDialog>
+    </template>
   </div>
 </template>
 
 <script setup lang="ts">
   import { ElMessage, ElMessageBox } from 'element-plus'
   import type { FormInstance, FormRules, UploadFile } from 'element-plus'
-  import { useRoute } from 'vue-router'
-  import {
-    fetchGetStoryboardList,
-    fetchCreateStoryboard,
-    fetchDeleteStoryboard,
-    fetchUpdateStoryboard,
-    fetchBatchDeleteStoryboards,
-    fetchSubmitStoryboardReview,
-    fetchWithdrawStoryboardReview
-  } from '@/api/storyboard'
+  import type { ColumnOption } from '@/types/component'
+  import { useRoute, useRouter } from 'vue-router'
+  import { useStoryboardList, useCreateStoryboard, useUpdateStoryboard, useDeleteStoryboard } from '@/api/queries'
+  import { useProjectEpisodes } from '@/api/queries/project'
+  import { useProjectDetail } from '@/api/queries/project'
+  import { useProjectDataStore } from '@/store/modules/project-data'
+  import { logger } from '@/utils/logger'
 
   defineOptions({ name: 'StoryboardDesign' })
 
   const route = useRoute()
+  const router = useRouter()
+  const projectDataStore = useProjectDataStore()
 
-  type StoryboardSource = 'script' | 'manual' | 'ai'
-  type StoryboardStatus = 'draft' | 'designing' | 'completed' | 'archived'
+  type SourceType = 'script' | 'manual' | 'ai'
+  type StatusType = 'draft' | 'designing' | 'completed' | 'archived'
 
-  interface StoryboardItem {
+  interface StoryboardRow {
     id: string
     code: string
     name: string
-    source: StoryboardSource
+    source: string
     sceneId: string
-    sceneName: string
-    episodeId: string
     description: string
     thumbnail: string
     shotCount: number
     duration: number
-    status: StoryboardStatus
+    status: string
     order: number
+    episodeId: string
     projectId: string
     createTime: string
     updateTime: string
-  }
-
-  interface SceneOption {
-    id: string
-    name: string
   }
 
   interface EpisodeOption {
@@ -331,42 +317,101 @@
   }
 
   const searchQuery = ref('')
-  const filterSource = ref<StoryboardSource | ''>('')
-  const filterEpisode = ref<string | ''>('')
+  const filterStatus = ref<number | ''>('')
+  const filterSource = ref<SourceType | ''>('')
+  const selectedRows = ref<StoryboardRow[]>([])
+
   const dialogVisible = ref(false)
   const viewDialogVisible = ref(false)
-  const versionDialogVisible = ref(false)
-  const aiDialogVisible = ref(false)
-  const aiLoading = ref(false)
   const isEdit = ref(false)
-  const currentItem = ref<StoryboardItem | null>(null)
+  const currentItem = ref<StoryboardRow | null>(null)
   const formRef = ref<FormInstance>()
 
-  const versionList = ref([
-    {
-      versionId: 'V3',
-      versionTime: '2026-05-27 11:30:00',
-      operator: '王五',
-      operationType: '修改',
-      changeSummary: '更新分镜描述和镜头数量'
-    },
-    {
-      versionId: 'V2',
-      versionTime: '2026-05-27 10:00:00',
-      operator: '李四',
-      operationType: '修改',
-      changeSummary: '调整分镜顺序'
-    },
-    {
-      versionId: 'V1',
-      versionTime: '2026-05-27 09:00:00',
-      operator: '张三',
-      operationType: '创建',
-      changeSummary: '初始创建分镜'
-    }
-  ])
+  // projectId 优先从 URL 路由参数获取，其次从 store 获取
+  const projectId = computed(() => {
+    const fromRoute = (route.params.projectId as string) || (route.query.projectId as string)
+    if (fromRoute) return fromRoute
+    return projectDataStore.currentProjectId || ''
+  })
 
-  const currentEpisode = computed(() => episodeOptions.find((ep) => ep.id === filterEpisode.value))
+  const { data: projectDetail } = useProjectDetail(projectId)
+  const projectName = computed(() => projectDetail.value?.projectName || '')
+
+  const searchParams = computed<Api.Storyboard.StoryboardSearchParams>(() => ({
+    page: pagination.current,
+    pageSize: pagination.size,
+    keyword: searchQuery.value || undefined,
+    status: filterStatus.value !== '' ? (filterStatus.value as number) : undefined
+  }))
+
+  const {
+    data: listResult,
+    isLoading,
+    error: listError,
+    refetch: refetchList
+  } = useStoryboardList(projectId, searchParams)
+
+  const isLoadingComputed = computed(() => isLoading.value)
+  const hasError = computed(() => !!listError.value)
+  const errorMessage = computed(() => {
+    if (!listError.value) return ''
+    return (listError.value as Error)?.message || '加载分镜列表失败，请稍后重试'
+  })
+
+  const rawList = computed<StoryboardRow[]>(() => {
+    const data = listResult.value
+    if (!data) return []
+    const records = Array.isArray(data)
+      ? data
+      : Array.isArray((data as any)?.records)
+        ? (data as any).records
+        : []
+    return records.map((item: any) => {
+      const statusMap: Record<number, StatusType> = { 1: 'draft', 2: 'designing', 3: 'completed', 4: 'archived' }
+      const rawStatus = typeof item.status === 'number' ? item.status : 1
+      return {
+        id: String(item.id ?? ''),
+        code: item.storyboardNo ? `SB-${String(item.storyboardNo).padStart(3, '0')}` : item.code || `SB-${String(item.id ?? '').padStart(3, '0')}`,
+        name: item.title || item.name || '未命名分镜',
+        source: item.source || 'manual',
+        sceneId: String(item.sceneId ?? ''),
+        description: item.description || '',
+        thumbnail: item.thumbnail || '',
+        shotCount: item.shotCount ?? 0,
+        duration: item.durationSeconds ?? item.duration ?? 0,
+        status: statusMap[rawStatus] || 'draft',
+        order: item.storyboardNo ?? item.order ?? 0,
+        episodeId: String(item.episodeId ?? ''),
+        projectId: String(item.projectId ?? ''),
+        createTime: item.createTime || '',
+        updateTime: item.updateTime || ''
+      } as StoryboardRow
+    })
+  })
+
+  const displayList = computed<StoryboardRow[]>(() => {
+    let result = rawList.value
+    if (filterSource.value) {
+      result = result.filter((item) => item.source === filterSource.value)
+    }
+    return result
+  })
+
+  // 统计
+  const scriptGeneratedCount = computed(() => rawList.value.filter((i) => i.source === 'script').length)
+  const manualCount = computed(() => rawList.value.filter((i) => i.source === 'manual').length)
+  const aiGeneratedCount = computed(() => rawList.value.filter((i) => i.source === 'ai').length)
+
+  // 剧集选项
+  const { data: episodesData } = useProjectEpisodes(projectId)
+  const episodeOptions = computed<EpisodeOption[]>(() => {
+    const eps = episodesData.value || []
+    return eps.map((ep: any, idx: number) => ({
+      id: String(ep.id || idx + 1),
+      number: ep.number || ep.episodeNumber || idx + 1,
+      name: ep.name || ep.title || ep.episodeName || `第${idx + 1}集`
+    }))
+  })
 
   const pagination = reactive({
     current: 1,
@@ -374,296 +419,165 @@
     total: 0
   })
 
-  const getSourceTag = (source: StoryboardSource) => {
-    const map: Record<StoryboardSource, 'primary' | 'success' | 'info'> = {
-      script: 'success',
-      manual: 'primary',
-      ai: 'info'
-    }
-    return map[source]
-  }
+  watch(
+    () => listResult.value,
+    (val) => {
+      if (val) {
+        pagination.total = (val as any).total ?? 0
+      }
+    },
+    { immediate: true }
+  )
 
-  const getSourceLabel = (source: StoryboardSource) => {
-    const map: Record<StoryboardSource, string> = {
-      script: '剧本生成',
-      manual: '手动创建',
-      ai: 'AI辅助'
-    }
-    return map[source]
-  }
+  watch([searchQuery, filterStatus, filterSource], () => {
+    pagination.current = 1
+  })
 
-  const getStatusTag = (status: StoryboardStatus) => {
-    const map: Record<StoryboardStatus, 'info' | 'primary' | 'success' | 'warning'> = {
-      draft: 'info',
-      designing: 'primary',
-      completed: 'success',
-      archived: 'warning'
-    }
-    return map[status]
+  const sourceTypeMap: Record<string, 'success' | 'primary' | 'info'> = {
+    script: 'success',
+    manual: 'primary',
+    ai: 'info'
   }
-
-  const getStatusLabel = (status: StoryboardStatus) => {
-    const map: Record<StoryboardStatus, string> = {
-      draft: '草稿',
-      designing: '设计中',
-      completed: '已完成',
-      archived: '已归档'
-    }
-    return map[status]
+  const sourceLabelMap: Record<string, string> = {
+    script: '剧本生成',
+    manual: '手动创建',
+    ai: 'AI辅助'
   }
-
-  const sceneOptions: SceneOption[] = [
-    { id: '1', name: '青丘山' },
-    { id: '2', name: '昆仑墟' },
-    { id: '3', name: '幽都' },
-    { id: '4', name: '不周山' },
-    { id: '5', name: '东海之滨' }
+  const statusTypeMap: Record<string, 'info' | 'primary' | 'success' | 'warning'> = {
+    draft: 'info',
+    designing: 'primary',
+    completed: 'success',
+    archived: 'warning'
+  }
+  const statusLabelMap: Record<string, string> = {
+    draft: '草稿',
+    designing: '设计中',
+    completed: '已完成',
+    archived: '已归档'
+  }
+  const statusOptions = [
+    { label: '草稿', value: 1 },
+    { label: '设计中', value: 2 },
+    { label: '已完成', value: 3 },
+    { label: '已归档', value: 4 }
   ]
 
-  const episodeOptions: EpisodeOption[] = [
-    { id: '1', number: 1, name: '初遇九尾' },
-    { id: '2', number: 2, name: '昆仑求药' },
-    { id: '3', number: 3, name: '白泽指引' },
-    { id: '4', number: 4, name: '幽都危机' },
-    { id: '5', number: 5, name: '神兽之战' }
+  const columns: ColumnOption[] = [
+    { type: 'selection' },
+    { prop: 'name', label: '分镜标题', minWidth: 200 },
+    { prop: 'source', label: '来源', width: 110 },
+    { prop: 'status', label: '状态', width: 100 },
+    { prop: 'shotCount', label: '镜头数', width: 90 },
+    { prop: 'duration', label: '时长', width: 90 },
+    { prop: 'description', label: '描述', minWidth: 160 },
+    { prop: 'updateTime', label: '更新时间', width: 160, sortable: true },
+    { prop: 'operation', label: '操作', width: 220, fixed: 'right' }
   ]
 
-  const form = reactive<Partial<StoryboardItem>>({
+  // Mutations
+  const createMutation = useCreateStoryboard()
+  const updateMutation = useUpdateStoryboard()
+  const deleteMutation = useDeleteStoryboard()
+
+  const handleSelectionChange = (selection: StoryboardRow[]) => {
+    selectedRows.value = selection
+  }
+  const handleSizeChange = (size: number) => {
+    pagination.size = size
+    pagination.current = 1
+  }
+  const handleCurrentChange = (current: number) => {
+    pagination.current = current
+  }
+
+  // 表单
+  const form = reactive({
+    id: '',
     name: '',
-    sceneId: undefined,
-    sceneName: '',
+    episodeId: '',
     description: '',
     thumbnail: ''
   })
-
-  const aiForm = reactive({
-    mode: 'script' as 'script' | 'prompt',
-    scriptId: '',
-    count: 5,
-    prompt: ''
-  })
-
   const formRules: FormRules = {
-    name: [{ required: true, message: '请输入分镜名称', trigger: 'blur' }]
+    name: [{ required: true, message: '请输入分镜标题', trigger: 'blur' }]
   }
-
-  const storyboardList = ref<StoryboardItem[]>([])
-
-  const loadStoryboardList = async () => {
-    try {
-      const projectId = (route.params.projectId as string) || '1'
-      const res = await fetchGetStoryboardList(projectId)
-      if (res) {
-        const list = Array.isArray(res) ? res : res.records || []
-        storyboardList.value = list.map((item: any) => ({
-          id: item.id,
-          code: item.code || `SB-${String(item.id).padStart(3, '0')}`,
-          name: item.name,
-          source: item.source || 'manual',
-          sceneId: String(item.sceneId || ''),
-          sceneName: item.sceneName || '',
-          episodeId: String(item.episodeId || ''),
-          description: item.description || '',
-          thumbnail: item.thumbnail || '',
-          shotCount: item.shotCount || 0,
-          duration: item.duration || 0,
-          status: item.status || 'draft',
-          order: item.order || 0,
-          projectId: String(item.projectId || ''),
-          createTime: item.createTime || '',
-          updateTime: item.updateTime || ''
-        })) as StoryboardItem[]
-      }
-    } catch {
-      ElMessage.error('加载分镜列表失败')
-    }
-  }
-
-  const filteredList = computed(() => {
-    let result = storyboardList.value
-
-    if (filterEpisode.value !== '') {
-      result = result.filter((item) => item.episodeId === filterEpisode.value)
-    }
-
-    if (searchQuery.value) {
-      const q = searchQuery.value.toLowerCase()
-      result = result.filter(
-        (item) =>
-          item.name.toLowerCase().includes(q) ||
-          item.code.toLowerCase().includes(q) ||
-          item.description.toLowerCase().includes(q)
-      )
-    }
-
-    if (filterSource.value) {
-      result = result.filter((item) => item.source === filterSource.value)
-    }
-
-    return result
-  })
-
-  const scriptGeneratedCount = computed(
-    () => storyboardList.value.filter((i) => i.source === 'script').length
-  )
-  const manualCount = computed(
-    () => storyboardList.value.filter((i) => i.source === 'manual').length
-  )
-  const aiGeneratedCount = computed(
-    () => storyboardList.value.filter((i) => i.source === 'ai').length
-  )
-
-  watch(filteredList, (list) => {
-    pagination.total = list.length
-  })
-
-  const dialogTitle = computed(() => (isEdit.value ? '编辑分镜' : '新建分镜'))
 
   const handleCreate = () => {
     isEdit.value = false
-    form.name = ''
-    form.sceneId = undefined
-    form.sceneName = ''
-    form.description = ''
-    form.thumbnail = ''
+    Object.assign(form, { id: '', name: '', episodeId: '', description: '', thumbnail: '' })
     dialogVisible.value = true
   }
 
-  const handleAutoGenerate = () => {
-    ElMessageBox.confirm('将从剧本《山海经·异兽录》自动生成分镜，是否继续？', '剧本生成', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'info'
-    }).then(async () => {
-      try {
-        const projectId = (route.params.projectId as string) || '1'
-        await fetchCreateStoryboard(projectId, {
-          name: '剧本生成·不周山崩塌',
-          source: 'script',
-          sceneId: '4',
-          description: '共工怒触不周山，天柱断裂，天倾西北',
-          status: 'draft'
-        })
-        await loadStoryboardList()
-        ElMessage.success('剧本生成分镜成功')
-      } catch {
-        ElMessage.error('剧本生成分镜失败')
-      }
+  const handleEdit = (row: StoryboardRow) => {
+    isEdit.value = true
+    Object.assign(form, {
+      id: row.id,
+      name: row.name,
+      episodeId: row.episodeId,
+      description: row.description,
+      thumbnail: row.thumbnail
     })
+    dialogVisible.value = true
   }
 
-  const handleAIGenerate = () => {
-    aiForm.mode = 'script'
-    aiForm.scriptId = 'shj'
-    aiForm.count = 5
-    aiForm.prompt = ''
-    aiDialogVisible.value = true
-  }
-
-  const handleAISubmit = async () => {
-    aiLoading.value = true
-    try {
-      const projectId = (route.params.projectId as string) || '1'
-      for (let i = 0; i < aiForm.count; i++) {
-        await fetchCreateStoryboard(projectId, {
-          name: `AI生成·分镜 ${i + 1}`,
-          source: 'ai',
-          sceneId: '1',
-          description: aiForm.prompt || 'AI根据剧本内容智能生成的分镜描述',
-          status: 'draft'
-        })
-      }
-      await loadStoryboardList()
-      aiDialogVisible.value = false
-      ElMessage.success(`AI成功生成 ${aiForm.count} 个分镜`)
-    } catch {
-      ElMessage.error('AI生成分镜失败')
-    } finally {
-      aiLoading.value = false
-    }
+  const handleView = (row: StoryboardRow) => {
+    currentItem.value = row
+    viewDialogVisible.value = true
   }
 
   const handleSubmit = async () => {
     if (!formRef.value) return
     await formRef.value.validate(async (valid) => {
-      if (valid) {
-        try {
-          if (isEdit.value && currentItem.value) {
-            await fetchUpdateStoryboard(String(currentItem.value.id), {
-              name: form.name,
-              sceneId: form.sceneId,
+      if (!valid) return
+      try {
+        if (isEdit.value && form.id) {
+          await updateMutation.mutateAsync({
+            storyboardId: form.id,
+            params: {
+              title: form.name,
               description: form.description,
               thumbnail: form.thumbnail
-            })
-            ElMessage.success('编辑成功')
-          } else {
-            const projectId = (route.params.projectId as string) || '1'
-            await fetchCreateStoryboard(projectId, {
-              name: form.name!,
-              source: 'manual',
-              sceneId: form.sceneId || '',
-              description: form.description || '',
-              thumbnail: form.thumbnail || '',
-              status: 'draft'
-            })
-            ElMessage.success('创建成功')
-          }
-          await loadStoryboardList()
-          dialogVisible.value = false
-        } catch {
-          ElMessage.error(isEdit.value ? '编辑失败' : '创建失败')
+            } as any
+          })
+          ElMessage.success('分镜已更新')
+        } else {
+          const pid = projectId.value
+          await createMutation.mutateAsync({
+            projectId: pid,
+            params: {
+              title: form.name,
+              episodeId: form.episodeId || undefined,
+              description: form.description,
+              thumbnail: form.thumbnail,
+              source: 'manual'
+            } as any
+          })
+          ElMessage.success('分镜创建成功')
         }
+        await refetchList()
+        dialogVisible.value = false
+      } catch (err) {
+        logger.apiError('Storyboard', isEdit.value ? 'update' : 'create', err)
+        ElMessage.error(isEdit.value ? '更新失败' : '创建失败')
       }
     })
   }
 
-  // 可视化分镜板事件
-  const handleStoryboardSelect = (item: any) => {
-    currentItem.value = item as StoryboardItem
-  }
-
-  const handleStoryboardAdd = async (item: any) => {
-    try {
-      const projectId = (route.params.projectId as string) || '1'
-      await fetchCreateStoryboard(projectId, item)
-      await loadStoryboardList()
-      ElMessage.success('分镜添加成功')
-    } catch {
-      ElMessage.error('分镜添加失败')
-    }
-  }
-
-  const handleStoryboardDelete = async (id: string) => {
-    try {
-      await fetchDeleteStoryboard(String(id))
-      await loadStoryboardList()
-    } catch {
-      ElMessage.error('删除分镜失败')
-    }
-  }
-
-  const handleStoryboardBatchDelete = async (ids: string[]) => {
-    try {
-      await fetchBatchDeleteStoryboards(ids.map(String))
-      await loadStoryboardList()
-      ElMessage.success('批量删除成功')
-    } catch {
-      ElMessage.error('批量删除失败')
-    }
-  }
-
-  const handleStoryboardReorder = async (list: any[]) => {
-    try {
-      // 只更新当前过滤列表中项的顺序，保持其他剧集分镜不变
-      const updatedIds = new Set(list.map((i) => i.id))
-      const unchanged = storyboardList.value.filter((i) => !updatedIds.has(i.id))
-      storyboardList.value = [...(list as StoryboardItem[]), ...unchanged].sort(
-        (a, b) => a.order - b.order
-      )
-      ElMessage.success('分镜顺序已更新')
-    } catch {
-      ElMessage.error('更新分镜顺序失败')
-    }
+  const handleDelete = (row: StoryboardRow) => {
+    ElMessageBox.confirm(`确定要删除分镜「${row.name}」吗？`, '删除确认', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }).then(async () => {
+      try {
+        await deleteMutation.mutateAsync({ storyboardId: row.id })
+        await refetchList()
+        ElMessage.success('删除成功')
+      } catch (err) {
+        logger.apiError('Storyboard', 'delete', err)
+        ElMessage.error('删除失败')
+      }
+    })
   }
 
   const handleThumbChange = (file: UploadFile) => {
@@ -675,71 +589,6 @@
       reader.readAsDataURL(file.raw)
     }
   }
-
-  const handleSubmitReview = () => {
-    ElMessageBox.confirm('确定提交当前分镜进行审核吗？', '提交审核', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
-    }).then(async () => {
-      try {
-        if (currentItem.value) {
-          await fetchSubmitStoryboardReview(String(currentItem.value.id))
-        } else if (filteredList.value.length > 0) {
-          await fetchSubmitStoryboardReview(String(filteredList.value[0].id))
-        }
-        ElMessage.success('分镜已提交审核')
-      } catch {
-        ElMessage.error('提交审核失败')
-      }
-    })
-  }
-
-  const handleWithdrawReview = () => {
-    ElMessageBox.confirm('确定撤回审核中的分镜吗？', '撤回审核', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'info'
-    }).then(async () => {
-      try {
-        if (currentItem.value) {
-          await fetchWithdrawStoryboardReview(String(currentItem.value.id))
-        } else if (filteredList.value.length > 0) {
-          await fetchWithdrawStoryboardReview(String(filteredList.value[0].id))
-        }
-        ElMessage.success('分镜审核已撤回')
-      } catch {
-        ElMessage.error('撤回审核失败')
-      }
-    })
-  }
-
-  const handleViewVersions = () => {
-    versionDialogVisible.value = true
-  }
-
-  const handleRollback = (version: any) => {
-    ElMessageBox.confirm(`确定回退到版本 ${version.versionId} 吗？`, '版本回退', {
-      confirmButtonText: '确定回退',
-      cancelButtonText: '取消',
-      type: 'warning'
-    }).then(() => {
-      ElMessage.success('版本回退成功')
-      versionDialogVisible.value = false
-    })
-  }
-
-  // 从路由 query 初始化剧集筛选
-  onMounted(() => {
-    const episodeId = route.query.episodeId
-    if (episodeId) {
-      const id = String(episodeId)
-      if (episodeOptions.some((ep) => ep.id === id)) {
-        filterEpisode.value = id
-      }
-    }
-    loadStoryboardList()
-  })
 </script>
 
 <style lang="scss" scoped>
@@ -801,11 +650,11 @@
 
   .storyboard-thumb {
     flex-shrink: 0;
-    width: 48px;
-    height: 48px;
+    width: 64px;
+    height: 40px;
     overflow: hidden;
     background: var(--el-fill-color-lighter);
-    border-radius: 8px;
+    border-radius: 6px;
 
     .thumb-image {
       width: 100%;
@@ -815,13 +664,8 @@
     .thumb-placeholder {
       width: 100%;
       height: 100%;
+      font-size: 18px;
     }
-  }
-
-  .pagination-wrapper {
-    display: flex;
-    justify-content: center;
-    padding-top: 16px;
   }
 
   .storyboard-detail {
@@ -841,6 +685,7 @@
         .thumb-placeholder {
           width: 100%;
           height: 100%;
+          font-size: 28px;
         }
       }
     }

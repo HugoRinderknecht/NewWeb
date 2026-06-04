@@ -29,6 +29,10 @@
                 :value="item.value"
               />
             </ElSelect>
+            <ElButton @click="handleOpenUploadDialog">
+              <ArtSvgIcon icon="ri:upload-cloud-line" class="mr-1" />
+              上传剧本
+            </ElButton>
             <ElButton type="primary" @click="handleOpenCreateDialog">
               <ArtSvgIcon icon="ri:add-line" class="mr-1" />
               新建剧本
@@ -198,6 +202,66 @@
       </div>
     </ElCard>
 
+    <!-- 上传剧本弹窗 -->
+    <ElDialog
+      v-model="uploadDialogVisible"
+      title="上传剧本"
+      width="520px"
+      align-center
+      destroy-on-close
+    >
+      <div class="upload-dialog-content">
+        <ElAlert type="info" :closable="false" class="mb-4">
+          <template #title>
+            <div class="flex items-center gap-2">
+              <ArtSvgIcon icon="ri:information-line" />
+              <span>支持以下文件格式</span>
+            </div>
+          </template>
+          <div class="file-type-list">
+            <div class="file-type-item supported">
+              <ArtSvgIcon icon="ri:file-text-line" class="file-icon" />
+              <span>.txt / .md</span>
+              <ElTag type="success" size="small">推荐</ElTag>
+            </div>
+            <div class="file-type-item unsupported">
+              <ArtSvgIcon icon="ri:file-word-line" class="file-icon" />
+              <span>.docx / .doc</span>
+              <ElTag type="info" size="small">需另存为 .txt</ElTag>
+            </div>
+            <div class="file-type-item unsupported">
+              <ArtSvgIcon icon="ri:file-pdf-line" class="file-icon" />
+              <span>.pdf</span>
+              <ElTag type="info" size="small">需复制文本</ElTag>
+            </div>
+          </div>
+        </ElAlert>
+
+        <ElUpload
+          ref="uploadRef"
+          drag
+          action="#"
+          :auto-upload="false"
+          :show-file-list="true"
+          :limit="1"
+          :on-change="handleFileChange"
+          :on-exceed="handleUploadExceed"
+          accept=".txt,.md"
+          class="upload-area"
+        >
+          <ArtSvgIcon icon="ri:upload-cloud-2-line" class="upload-icon" />
+          <div class="el-upload__text">
+            将文件拖到此处，或 <em>点击上传</em>
+          </div>
+          <template #tip>
+            <div class="el-upload__tip">
+              请上传 .txt 或 .md 格式的剧本文件，文件大小不超过 10MB
+            </div>
+          </template>
+        </ElUpload>
+      </div>
+    </ElDialog>
+
     <!-- 新建剧本弹窗 -->
     <ElDialog
       v-model="createDialogVisible"
@@ -314,7 +378,7 @@
 
 <script setup lang="ts">
   import { ElMessage, ElMessageBox } from 'element-plus'
-  import type { FormInstance, FormRules } from 'element-plus'
+  import type { FormInstance, FormRules, UploadFile, UploadRawFile } from 'element-plus'
   import { useRouter } from 'vue-router'
   import { storeToRefs } from 'pinia'
   import { useScriptProjectStore } from '@/store/modules/script-project'
@@ -567,6 +631,9 @@
   const createDialogVisible = ref(false)
   const createLoading = ref(false)
   const createFormRef = ref<FormInstance>()
+  const uploadRef = ref<any>(null)
+  const uploadDialogVisible = ref(false)
+  const isParsing = ref(false)
 
   const createForm = reactive<Api.Script.CreateScriptParams>({
     title: '',
@@ -606,6 +673,79 @@
         ElMessage.error('创建失败')
       } finally {
         createLoading.value = false
+      }
+    })
+  }
+
+  // ==================== 上传剧本弹窗 ====================
+  const handleOpenUploadDialog = () => {
+    uploadDialogVisible.value = true
+  }
+
+  const handleUploadExceed = () => {
+    ElMessage.warning('每次只能上传一个文件，请删除当前文件后再上传')
+  }
+
+  // ==================== 文件上传与解析 ====================
+  const handleFileChange = async (uploadFile: UploadFile) => {
+    const file = uploadFile.raw
+    if (!file) return
+
+    // 文件大小限制 10MB
+    const maxSize = 10 * 1024 * 1024
+    if (file.size > maxSize) {
+      ElMessage.error('文件大小超过 10MB 限制')
+      if (uploadRef.value) {
+        uploadRef.value.clearFiles()
+      }
+      return
+    }
+
+    const projectId = currentProjectId.value
+    if (!projectId) {
+      ElMessage.warning('请先选择项目')
+      return
+    }
+
+    isParsing.value = true
+    try {
+      const content = await parseScriptFile(file)
+      if (content) {
+        const fileName = file.name.replace(/\.[^/.]+$/, '')
+        await fetchCreateScript(projectId, {
+          title: fileName,
+          description: '',
+          content: content,
+          status: 1
+        })
+        ElMessage.success(`已导入剧本「${file.name}」，共 ${content.replace(/\s/g, '').length} 字`)
+        uploadDialogVisible.value = false
+        loadScriptList()
+      }
+    } catch (error) {
+      ElMessage.error('文件解析失败：' + (error instanceof Error ? error.message : '未知错误'))
+    } finally {
+      isParsing.value = false
+      if (uploadRef.value) {
+        uploadRef.value.clearFiles()
+      }
+    }
+  }
+
+  const parseScriptFile = (file: UploadRawFile): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const ext = '.' + file.name.split('.').pop()?.toLowerCase()
+
+      if (ext === '.txt' || ext === '.md') {
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          const text = (e.target?.result as string) || ''
+          resolve(text)
+        }
+        reader.onerror = () => reject(new Error('读取文件失败'))
+        reader.readAsText(file, 'UTF-8')
+      } else {
+        reject(new Error('不支持的文件格式'))
       }
     })
   }
@@ -757,6 +897,51 @@
           color: var(--el-text-color-primary);
           word-wrap: break-word;
           white-space: pre-wrap;
+        }
+      }
+    }
+
+    .upload-dialog-content {
+      .file-type-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 8px;
+
+        .file-type-item {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 12px;
+          border-radius: 6px;
+
+          &.supported {
+            background: var(--el-color-success-light-9);
+          }
+
+          &.unsupported {
+            background: var(--el-fill-color-lighter);
+          }
+
+          .file-icon {
+            font-size: 18px;
+          }
+        }
+      }
+
+      .upload-area {
+        :deep(.el-upload) {
+          width: 100%;
+        }
+
+        :deep(.el-upload-dragger) {
+          width: 100%;
+          padding: 32px 0;
+        }
+
+        .upload-icon {
+          font-size: 48px;
+          color: var(--el-text-color-secondary);
         }
       }
     }

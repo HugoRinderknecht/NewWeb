@@ -381,7 +381,7 @@
 <script setup lang="ts">
   import { ElMessage, ElMessageBox } from 'element-plus'
   import type { FormInstance, FormRules } from 'element-plus'
-  import { fetchGetProjectAssets, fetchDeleteAsset, fetchBatchDeleteAssets } from '@/api/asset'
+  import { useAssetList, useUpdateAsset, useBatchDeleteAssets, useBatchAddTags, useBatchMoveCategory, useDeleteAsset } from '@/api/queries'
   import { useProjectDataStore } from '@/store/modules/project-data'
 
   defineOptions({ name: 'AssetLibrary' })
@@ -492,37 +492,50 @@
     '反派'
   ]
 
-  const assetList = ref<AssetItem[]>([])
-  const loading = ref(false)
+  // Vue Query: 资产列表（后端分页/过滤）
+  const computedProjectId = computed(() =>
+    (route.params.projectId as string) || projectStore.currentProjectId || ''
+  )
 
-  const loadAssetList = async () => {
-    loading.value = true
-    try {
-      const data = await fetchGetProjectAssets(projectId.value)
-      if (data) {
-        const records = Array.isArray(data) ? data : data.records || []
-        assetList.value = records.map((item: any) => ({
-          id: Number(item.id),
-          name: item.name || '',
-          type: (item.type || item.assetType || 'image') as AssetType,
-          category: item.category || '',
-          categoryName: item.categoryName || item.category || '',
-          tags: Array.isArray(item.tags) ? item.tags : [],
-          description: item.description || '',
-          size: Number(item.size) || 0,
-          format: item.format || '',
-          url: item.url || '',
-          updateTime: item.updateTime || '',
-          createTime: item.createTime || ''
-        }))
-        pagination.total = Array.isArray(data) ? records.length : data.total || records.length
-      }
-    } catch {
-      ElMessage.error('加载资产列表失败')
-    } finally {
-      loading.value = false
-    }
-  }
+  const searchParams = computed<Api.Asset.AssetSearchParams>(() => ({
+    page: pagination.current,
+    pageSize: pagination.size,
+    keyword: searchQuery.value || undefined,
+    assetType: filterType.value || undefined,
+    category: filterCategory.value || undefined
+  }))
+
+  const { data: listResult, isLoading } = useAssetList(computedProjectId, searchParams)
+
+  const assetList = computed(() => {
+    const records = listResult.value?.records ?? []
+    return records.map((item: any) => ({
+      id: Number(item.id),
+      name: item.name || '',
+      type: (item.type || item.assetType || 'image') as AssetType,
+      category: item.category || '',
+      categoryName: item.categoryName || item.category || '',
+      tags: Array.isArray(item.tags) ? item.tags : [],
+      description: item.description || '',
+      size: Number(item.size) || 0,
+      format: item.format || '',
+      url: item.url || '',
+      updateTime: item.updateTime || '',
+      createTime: item.createTime || ''
+    }))
+  })
+
+  const paginationTotal = computed(() => listResult.value?.total ?? 0)
+
+  watch(paginationTotal, (val) => {
+    pagination.total = val
+  })
+
+  watch([searchQuery, filterType, filterCategory], () => {
+    pagination.current = 1
+  })
+
+  // 删除操作后会自动 invalidate，不需要手动刷新
 
   const editForm = reactive({
     name: '',
@@ -535,12 +548,18 @@
     name: [{ required: true, message: '请输入资产名称', trigger: 'blur' }]
   }
 
+  // Mutations
+  const deleteMutation = useDeleteAsset()
+  const batchDeleteMutation = useBatchDeleteAssets()
+  const updateMutation = useUpdateAsset()
+  const batchAddTagsMutation = useBatchAddTags()
+
   const selectedIds = computed(() => selectedAssets.value.map((a) => a.id))
 
   const isAllSelected = computed(() => {
     return (
-      pagedList.value.length > 0 &&
-      pagedList.value.every((item) => selectedIds.value.includes(item.id))
+      assetList.value.length > 0 &&
+      assetList.value.every((item) => selectedIds.value.includes(item.id))
     )
   })
 
@@ -548,40 +567,8 @@
     return selectedAssets.value.length > 0 && !isAllSelected.value
   })
 
-  const filteredList = computed(() => {
-    let result = assetList.value
-
-    if (searchQuery.value) {
-      const q = searchQuery.value.toLowerCase()
-      result = result.filter(
-        (item) =>
-          item.name.toLowerCase().includes(q) ||
-          item.tags.some((t) => t.toLowerCase().includes(q)) ||
-          item.description.toLowerCase().includes(q)
-      )
-    }
-
-    if (filterType.value) {
-      result = result.filter((item) => item.type === filterType.value)
-    }
-
-    if (filterCategory.value) {
-      result = result.filter((item) => item.category === filterCategory.value)
-    }
-
-    return result
-  })
-
-  const pagedList = computed(() => {
-    const list = filteredList.value
-    const start = (pagination.current - 1) * pagination.size
-    const end = start + pagination.size
-    return list.slice(start, end)
-  })
-
-  watch(filteredList, (list) => {
-    pagination.total = list.length
-  })
+  // 后端分页：数据直接来自 Vue Query
+  const pagedList = assetList
 
   const formatSize = (bytes: number): string => {
     if (bytes === 0) return '0 B'
@@ -602,14 +589,14 @@
   const handleSelectAllChange = (val: boolean) => {
     if (val) {
       const newSelection = [...selectedAssets.value]
-      pagedList.value.forEach((item) => {
+      assetList.value.forEach((item) => {
         if (!newSelection.find((s) => s.id === item.id)) {
           newSelection.push(item)
         }
       })
       selectedAssets.value = newSelection
     } else {
-      const pageIds = pagedList.value.map((i) => i.id)
+      const pageIds = assetList.value.map((i) => i.id)
       selectedAssets.value = selectedAssets.value.filter((s) => !pageIds.includes(s.id))
     }
   }
@@ -645,21 +632,22 @@
     if (!editFormRef.value) return
     await editFormRef.value.validate(async (valid) => {
       if (valid && currentAsset.value) {
-        const index = assetList.value.findIndex((i) => i.id === currentAsset.value!.id)
-        if (index !== -1) {
-          const cat = categoryOptions.find((c) => c.value === editForm.category)
-          assetList.value[index] = {
-            ...assetList.value[index],
-            name: editForm.name,
-            category: editForm.category,
-            categoryName: cat?.label || assetList.value[index].categoryName,
-            tags: [...editForm.tags],
-            description: editForm.description,
-            updateTime: new Date().toISOString().slice(0, 10)
-          }
+        try {
+          await updateMutation.mutateAsync({
+            projectId: computedProjectId.value,
+            assetId: String(currentAsset.value.id),
+            params: {
+              assetName: editForm.name,
+              category: editForm.category,
+              tags: editForm.tags,
+              description: editForm.description
+            }
+          })
+          ElMessage.success('编辑成功')
+          editVisible.value = false
+        } catch {
+          ElMessage.error('编辑失败')
         }
-        ElMessage.success('编辑成功')
-        editVisible.value = false
       }
     })
   }
@@ -681,9 +669,10 @@
         cancelButtonText: '取消',
         type: 'warning'
       })
-      await fetchDeleteAsset(projectId.value, String(row.id))
-      assetList.value = assetList.value.filter((item) => item.id !== row.id)
-      selectedAssets.value = selectedAssets.value.filter((s) => s.id !== row.id)
+      await deleteMutation.mutateAsync({
+        projectId: computedProjectId.value,
+        assetId: String(row.id)
+      })
       ElMessage.success('删除成功')
     } catch (error: any) {
       if (error !== 'cancel') {
@@ -710,8 +699,10 @@
           }
         )
         const ids = selectedAssets.value.map((a) => String(a.id))
-        await fetchBatchDeleteAssets(projectId.value, ids)
-        assetList.value = assetList.value.filter((item) => !ids.includes(String(item.id)))
+        await batchDeleteMutation.mutateAsync({
+          projectId: computedProjectId.value,
+          assetIds: ids
+        })
         selectedAssets.value = []
         ElMessage.success('批量删除成功')
       } catch (error: any) {
@@ -776,7 +767,6 @@
   }
 
   onMounted(() => {
-    loadAssetList()
   })
 </script>
 

@@ -42,6 +42,7 @@
         :data="filteredScripts"
         :columns="columns"
         :pagination="pagination"
+        :loading="isLoading"
         @selection-change="handleSelectionChange"
         @pagination:size-change="handleSizeChange"
         @pagination:current-change="handleCurrentChange"
@@ -222,14 +223,9 @@
   import { ElMessage, ElMessageBox } from 'element-plus'
   import type { FormInstance, FormRules } from 'element-plus'
   import type { ColumnOption } from '@/types/component'
-  import {
-    fetchGetScriptList,
-    fetchCreateScript,
-    fetchUpdateScript,
-    fetchDeleteScript
-  } from '@/api/script'
+  import { useScriptList, useCreateScript, useUpdateScript, useDeleteScript } from '@/api/queries'
   import { useRoute, useRouter } from 'vue-router'
-  import { ref, reactive, computed, watch, onMounted } from 'vue'
+  import { ref, reactive, computed, watch } from 'vue'
   import { logger } from '@/utils/logger'
 
   defineOptions({ name: 'ProjectScripts' })
@@ -291,34 +287,30 @@
     4: '已驳回'
   }
 
-  const scriptList = ref<ScriptItem[]>([])
+  // vue-query: 剧本列表（后端分页/过滤/排序）
+  const projectId = computed(() =>
+    ((route.params.projectId as string) || (route.query.id as string)) as string | undefined
+  )
 
-  const loadScriptList = async () => {
-    try {
-      const projectId = (route.params.projectId as string) || (route.query.id as string) || ''
-      logger.apiRequest('Scripts', 'fetchGetScriptList', projectId)
-      const res = await fetchGetScriptList(projectId)
-      if (res) {
-        const list = Array.isArray(res) ? res : res.records || []
-        scriptList.value = list.map((item: any) => ({
-          id: item.id,
-          title: item.title || '',
-          description: item.description || '',
-          content: item.content || '',
-          status: item.status ?? 1,
-          episodeCount: item.episodeCount || 0,
-          author: item.author || '',
-          updateTime: item.updateTime || '',
-          createTime: item.createTime || ''
-        })) as ScriptItem[]
-        pagination.total = scriptList.value.length
-        logger.apiSuccess('Scripts', 'fetchGetScriptList', `加载 ${scriptList.value.length} 条剧本`)
-      }
-    } catch (err) {
-      logger.apiError('Scripts', 'fetchGetScriptList', err)
-      ElMessage.error('加载剧本列表失败')
-    }
-  }
+  const searchParams = computed<Api.Script.ScriptSearchParams>(() => ({
+    page: pagination.current,
+    pageSize: pagination.size,
+    keyword: searchQuery.value || undefined,
+    status: filterStatus.value !== '' ? (filterStatus.value as number) : undefined
+  }))
+
+  const { data: listResult, isLoading } = useScriptList(projectId, searchParams)
+
+  const scriptList = computed(() => listResult.value?.records ?? [])
+  const paginationTotal = computed(() => listResult.value?.total ?? 0)
+
+  watch(paginationTotal, (val) => {
+    pagination.total = val
+  })
+
+  watch([searchQuery, filterStatus], () => {
+    pagination.current = 1
+  })
 
   const columns: ColumnOption[] = [
     { type: 'selection' },
@@ -330,28 +322,13 @@
     { prop: 'operation', label: '操作', width: 220, fixed: 'right' }
   ]
 
-  const filteredScripts = computed(() => {
-    let result = scriptList.value
+  // 后端分页数据直接使用
+  const filteredScripts = computed(() => scriptList.value)
 
-    if (searchQuery.value) {
-      const q = searchQuery.value.toLowerCase()
-      result = result.filter(
-        (item) => item.title.toLowerCase().includes(q) || item.description.toLowerCase().includes(q)
-      )
-    }
-
-    if (filterStatus.value) {
-      result = result.filter((item) => item.status === filterStatus.value)
-    }
-
-    const start = (pagination.current - 1) * pagination.size
-    const end = start + pagination.size
-    return result.slice(start, end)
-  })
-
-  watch(filteredScripts, (list) => {
-    pagination.total = list.length
-  })
+  // Mutation
+  const createMutation = useCreateScript()
+  const updateMutation = useUpdateScript()
+  const deleteMutation = useDeleteScript()
 
   const handleSelectionChange = (selection: ScriptItem[]) => {
     selectedScripts.value = selection
@@ -388,16 +365,14 @@
     await createFormRef.value.validate(async (valid) => {
       if (valid) {
         try {
-          const projectId = (route.params.projectId as string) || (route.query.id as string) || ''
-          logger.apiRequest('Scripts', 'fetchCreateScript', { projectId, title: createForm.title })
-          await fetchCreateScript(projectId, {
-            title: createForm.title,
-            description: createForm.description
+          const pid = projectId.value
+          if (!pid) return
+          await createMutation.mutateAsync({
+            projectId: pid,
+            params: { title: createForm.title, description: createForm.description }
           })
-          logger.apiSuccess('Scripts', 'fetchCreateScript', `剧本创建成功：${createForm.title}`)
           ElMessage.success('剧本创建成功')
           createDialogVisible.value = false
-          await loadScriptList()
         } catch (err) {
           logger.apiError('Scripts', 'fetchCreateScript', err)
           ElMessage.error('剧本创建失败')
@@ -433,23 +408,14 @@
     await uploadFormRef.value.validate(async (valid) => {
       if (valid) {
         try {
-          const projectId = (route.params.projectId as string) || (route.query.id as string) || ''
-          logger.apiRequest('Scripts', 'fetchCreateScript(上传)', {
-            projectId,
-            name: uploadForm.name
+          const pid = projectId.value
+          if (!pid) return
+          await createMutation.mutateAsync({
+            projectId: pid,
+            params: { title: uploadForm.name, description: '从文件导入' }
           })
-          await fetchCreateScript(projectId, {
-            title: uploadForm.name,
-            description: '从文件导入'
-          })
-          logger.apiSuccess(
-            'Scripts',
-            'fetchCreateScript(上传)',
-            `剧本上传成功：${uploadForm.name}`
-          )
           ElMessage.success('剧本上传成功')
           uploadDialogVisible.value = false
-          await loadScriptList()
         } catch (err) {
           logger.apiError('Scripts', 'fetchCreateScript(上传)', err)
           ElMessage.error('剧本上传失败')
@@ -486,19 +452,16 @@
     await editFormRef.value.validate(async (valid) => {
       if (valid) {
         try {
-          logger.apiRequest('Scripts', 'fetchUpdateScript', {
-            id: editForm.id,
-            title: editForm.title
+          await updateMutation.mutateAsync({
+            scriptId: String(editForm.id),
+            params: {
+              title: editForm.title,
+              status: editForm.status,
+              description: editForm.description
+            }
           })
-          await fetchUpdateScript(String(editForm.id), {
-            title: editForm.title,
-            status: editForm.status,
-            description: editForm.description
-          })
-          logger.apiSuccess('Scripts', 'fetchUpdateScript', `剧本更新成功：${editForm.title}`)
           ElMessage.success('剧本信息已更新')
           editDialogVisible.value = false
-          await loadScriptList()
         } catch (err) {
           logger.apiError('Scripts', 'fetchUpdateScript', err)
           ElMessage.error('剧本更新失败')
@@ -521,11 +484,8 @@
       type: 'warning'
     }).then(async () => {
       try {
-        logger.apiRequest('Scripts', 'fetchDeleteScript', { id: row.id })
-        await fetchDeleteScript(String(row.id))
-        logger.apiSuccess('Scripts', 'fetchDeleteScript', `剧本已删除：${row.title}`)
+        await deleteMutation.mutateAsync({ scriptId: String(row.id) })
         ElMessage.success('删除成功')
-        await loadScriptList()
       } catch (err) {
         logger.apiError('Scripts', 'fetchDeleteScript', err)
         ElMessage.error('删除失败')
@@ -533,9 +493,6 @@
     })
   }
 
-  onMounted(() => {
-    loadScriptList()
-  })
 </script>
 
 <style lang="scss" scoped>

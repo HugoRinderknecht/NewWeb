@@ -50,6 +50,7 @@
         :data="pagedList"
         :columns="columns"
         :pagination="pagination"
+        :loading="isLoading"
         @selection-change="handleSelectionChange"
         @pagination:size-change="handleSizeChange"
         @pagination:current-change="handleCurrentChange"
@@ -192,11 +193,12 @@
   import { ElMessage, ElMessageBox } from 'element-plus'
   import type { ColumnOption } from '@/types/component'
   import {
-    fetchGetReviewList,
-    fetchClaimReview,
-    fetchArchiveReview,
-    fetchDispatchReview
-  } from '@/api/review'
+    useReviewList,
+    usePendingReviewCount,
+    useReviewDecision,
+    useClaimReview,
+    useDispatchReview
+  } from '@/api/queries'
 
   defineOptions({ name: 'ReviewPending' })
 
@@ -293,16 +295,28 @@
     total: 0
   })
 
-  const pendingList = ref<PendingItem[]>([])
+  // Vue Query: 审核列表（后端分页/过滤）
+  const searchParams = computed<Api.Review.ReviewSearchParams>(() => ({
+    page: pagination.current,
+    pageSize: pagination.size,
+    keyword: searchQuery.value || undefined,
+    reviewType: filterType.value || undefined
+  }))
 
-  const loadPendingList = async () => {
-    try {
-      const res = await fetchGetReviewList()
-      pendingList.value = (res.records || []) as unknown as PendingItem[]
-    } catch {
-      pendingList.value = []
-    }
-  }
+  const { data: listResult, isLoading } = useReviewList(searchParams)
+  const { data: pendingCountData } = usePendingReviewCount()
+
+  const pendingList = computed(() => listResult.value?.records ?? [])
+  const paginationTotal = computed(() => listResult.value?.total ?? 0)
+  const pendingCount = computed(() => pendingCountData.value ?? 0)
+
+  watch(paginationTotal, (val) => {
+    pagination.total = val
+  })
+
+  watch([searchQuery, filterType, filterDateRange], () => {
+    pagination.current = 1
+  })
 
   const columns: ColumnOption[] = [
     { type: 'selection' },
@@ -314,8 +328,6 @@
     { prop: 'operation', label: '操作', width: 260, fixed: 'right' }
   ]
 
-  const pendingCount = computed(() => pendingList.value.length)
-
   const isUrgent = (deadline: string) => {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
@@ -324,41 +336,17 @@
     return diff <= 1
   }
 
-  const filteredList = computed(() => {
-    let result = pendingList.value
+  // 后端分页：直接使用 Vue Query 数据
+  const pagedList = pendingList
 
-    if (searchQuery.value) {
-      const q = searchQuery.value.toLowerCase()
-      result = result.filter(
-        (item) => item.title.toLowerCase().includes(q) || item.submitter.toLowerCase().includes(q)
-      )
-    }
-
-    if (filterType.value) {
-      result = result.filter((item) => item.typeValue === filterType.value)
-    }
-
-    if (filterDateRange.value && filterDateRange.value.length === 2) {
-      const [start, end] = filterDateRange.value
-      result = result.filter((item) => {
-        const d = new Date(item.submitTime)
-        return d >= start && d <= end
-      })
-    }
-
-    return result
+  watch(filterDateRange, () => {
+    pagination.current = 1
   })
 
-  const pagedList = computed(() => {
-    const list = filteredList.value
-    const start = (pagination.current - 1) * pagination.size
-    const end = start + pagination.size
-    return list.slice(start, end)
-  })
-
-  watch(filteredList, (list) => {
-    pagination.total = list.length
-  })
+  // Mutations
+  const claimMutation = useClaimReview()
+  const dispatchMutation = useDispatchReview()
+  const decisionMutation = useReviewDecision()
 
   const handleSelectionChange = (selection: PendingItem[]) => {
     selectedItems.value = selection
@@ -384,12 +372,11 @@
       type: 'success'
     }).then(async () => {
       try {
-        await fetchClaimReview(String(row.id))
+        await claimMutation.mutateAsync(String(row.id))
+        ElMessage.success('审批通过')
       } catch {
-        // proceed with local update
+        ElMessage.error('审批失败')
       }
-      pendingList.value = pendingList.value.filter((item) => item.id !== row.id)
-      ElMessage.success('审批通过')
     })
   }
 
@@ -400,14 +387,17 @@
       type: 'error',
       inputType: 'textarea',
       inputPlaceholder: '请输入驳回原因'
-    }).then(async () => {
+    }).then(async ({ value }) => {
       try {
-        await fetchClaimReview(String(row.id))
+        await decisionMutation.mutateAsync({
+          reviewId: String(row.id),
+          decision: 'rejected',
+          comment: value
+        })
+        ElMessage.success('已驳回')
       } catch {
-        // proceed with local update
+        ElMessage.error('驳回失败')
       }
-      pendingList.value = pendingList.value.filter((item) => item.id !== row.id)
-      ElMessage.success('已驳回')
     })
   }
 
@@ -418,19 +408,18 @@
     transferDialogVisible.value = true
   }
 
-  const handleTransferSubmit = () => {
+  const handleTransferSubmit = async () => {
     if (!transferForm.targetUser) {
       ElMessage.warning('请选择转审人')
       return
     }
-    const target = approverOptions.find((o) => o.value === transferForm.targetUser)
+    if (!currentRow.value) return
     try {
-      fetchArchiveReview(String(currentRow.value?.id))
+      await dispatchMutation.mutateAsync(String(currentRow.value.id))
+      ElMessage.success('转审成功')
     } catch {
-      // proceed with local update
+      ElMessage.error('转审失败')
     }
-    pendingList.value = pendingList.value.filter((item) => item.id !== currentRow.value?.id)
-    ElMessage.success(`已转审给 ${target?.label || transferForm.targetUser}`)
     transferDialogVisible.value = false
   }
 
@@ -447,15 +436,13 @@
       ElMessage.warning('请选择加签人')
       return
     }
-    const target = approverOptions.find((o) => o.value === addSignForm.targetUser)
+    if (!currentRow.value) return
     try {
-      await fetchDispatchReview(String(currentRow.value?.id))
+      await dispatchMutation.mutateAsync(String(currentRow.value.id))
+      ElMessage.success('加签成功')
     } catch {
-      // proceed with local update
+      ElMessage.error('加签失败')
     }
-    ElMessage.success(
-      `已向 ${target?.label || addSignForm.targetUser} 发起${addSignForm.mode === 'before' ? '前' : '后'}加签`
-    )
     addSignDialogVisible.value = false
   }
 
@@ -474,21 +461,17 @@
         type: 'success'
       }
     ).then(async () => {
-      const ids = selectedItems.value.map((item) => item.id)
-      for (const id of ids) {
-        try {
-          await fetchClaimReview(String(id))
-        } catch {
-          // proceed with local update
-        }
+      try {
+        await decisionMutation.mutateAsync({
+          reviewId: String(selectedItems.value[0].id),
+          decision: 'approved',
+          comment: '批量审批'
+        })
+        selectedItems.value = []
+        ElMessage.success('批量通过成功')
+      } catch {
+        ElMessage.error('批量通过失败')
       }
-      pendingList.value = pendingList.value.filter((item) => !ids.includes(item.id))
-      selectedItems.value = []
-      ElMessage.success('批量通过成功')
     })
   }
-
-  onMounted(() => {
-    loadPendingList()
-  })
 </script>

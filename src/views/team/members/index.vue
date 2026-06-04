@@ -242,13 +242,8 @@
   import type { FormInstance, FormRules } from 'element-plus'
   import type { ColumnOption } from '@/types/component'
   import { useTeamStore } from '@/store/modules/team'
-  import {
-    fetchGetTeamMembers,
-    fetchUpdateMemberRole,
-    fetchUpdateMemberStatus,
-    fetchRemoveMember,
-    fetchGetTeamRoles
-  } from '@/api/team'
+  import { useRoute } from 'vue-router'
+  import { useTeamMembers, useTeamRoles, useUpdateMemberRole, useUpdateMemberStatus, useRemoveMember } from '@/api/queries'
   import { transformTeamMemberList, transformRoleOptions } from '@/utils/transformers'
 
   defineOptions({ name: 'TeamMembers' })
@@ -267,15 +262,12 @@
   const filterRole = ref('')
   const filterStatus = ref('')
   const selectedMembers = ref<MemberItem[]>([])
-  const loading = ref(false)
 
   const showInviteDialog = ref(false)
   const showEditDialog = ref(false)
   const inviteFormRef = ref<FormInstance>()
   const editFormRef = ref<FormInstance>()
   const generatedCode = ref('')
-
-  const roleOptions = ref<{ label: string; value: string }[]>([])
 
   const roleTagMap: Record<string, 'primary' | 'success' | 'warning' | 'info' | 'danger'> = {
     项目经理: 'primary',
@@ -299,8 +291,6 @@
     disabled: '已禁用'
   }
 
-  const memberList = ref<MemberItem[]>([])
-
   const memberStats = computed(() => {
     const total = memberList.value.length
     const active = memberList.value.filter((m) => m.status === 'active').length
@@ -314,6 +304,29 @@
     ]
   })
 
+  const pagination = reactive({
+    current: 1,
+    size: 10,
+    total: 0
+  })
+
+  // Vue-query: 成员列表
+  const searchParams = computed(() => ({
+    current: pagination.current,
+    size: pagination.size
+  }))
+  const { data: memberData, isLoading: loading } = useTeamMembers(teamId, searchParams)
+  const memberList = computed(() => transformTeamMemberList(memberData.value?.records))
+
+  // Vue-query: 角色列表
+  const { data: rolesData } = useTeamRoles(teamId)
+  const roleOptions = computed(() => transformRoleOptions(rolesData.value))
+
+  // Mutations
+  const updateRoleMutation = useUpdateMemberRole()
+  const updateStatusMutation = useUpdateMemberStatus()
+  const removeMutation = useRemoveMember()
+
   const columns: ColumnOption[] = [
     { type: 'selection' },
     { prop: 'name', label: '成员', minWidth: 220 },
@@ -324,12 +337,6 @@
     { prop: 'status', label: '状态', width: 100 },
     { prop: 'operation', label: '操作', width: 200, fixed: 'right' }
   ]
-
-  const pagination = reactive({
-    current: 1,
-    size: 10,
-    total: 0
-  })
 
   const filteredMembers = computed(() => {
     let result = memberList.value
@@ -348,47 +355,26 @@
     return result
   })
 
-  const loadMemberList = async () => {
-    if (!teamId.value) return
-    loading.value = true
-    try {
-      const res = await fetchGetTeamMembers(teamId.value, {
-        current: pagination.current,
-        size: pagination.size
-      })
-      memberList.value = transformTeamMemberList(res?.records)
-      pagination.total = res?.total || 0
-    } catch {
-      ElMessage.error('获取成员列表失败')
-    } finally {
-      loading.value = false
+  // 同步分页 total
+  watch(
+    () => memberData.value?.total,
+    (total) => {
+      if (total !== undefined) pagination.total = total
     }
-  }
+  )
 
-  const loadRoleOptions = async () => {
-    if (!teamId.value) return
-    try {
-      const roles = await fetchGetTeamRoles(teamId.value)
-      roleOptions.value = transformRoleOptions(roles)
-    } catch {
-      // ignore
-    }
-  }
-
-  onMounted(() => {
-    loadMemberList()
-    loadRoleOptions()
+  // 搜索/筛选变化时重置页码
+  watch([searchQuery, filterRole, filterStatus], () => {
+    pagination.current = 1
   })
 
   const handleSizeChange = (size: number) => {
     pagination.size = size
     pagination.current = 1
-    loadMemberList()
   }
 
   const handleCurrentChange = (current: number) => {
     pagination.current = current
-    loadMemberList()
   }
 
   const handleSelectionChange = (selection: MemberItem[]) => {
@@ -485,11 +471,13 @@
     await editFormRef.value.validate(async (valid) => {
       if (valid) {
         try {
-          await fetchUpdateMemberRole(teamId.value, {
-            memberId: String(editForm.id),
-            role: editForm.roles.join(',')
+          await updateRoleMutation.mutateAsync({
+            teamId: teamId.value,
+            params: {
+              memberId: String(editForm.id),
+              role: editForm.roles.join(',')
+            }
           })
-          await loadMemberList()
           ElMessage.success('成员信息已更新')
           showEditDialog.value = false
         } catch {
@@ -507,11 +495,13 @@
       type: 'warning'
     }).then(async () => {
       try {
-        await fetchUpdateMemberStatus(teamId.value, {
-          memberId: String(row.id),
-          status: row.status === 'active' ? '0' : '1'
+        await updateStatusMutation.mutateAsync({
+          teamId: teamId.value,
+          params: {
+            memberId: String(row.id),
+            status: row.status === 'active' ? '0' : '1'
+          }
         })
-        await loadMemberList()
         ElMessage.success(`已${action}`)
       } catch {
         ElMessage.error(`${action}失败`)
@@ -526,8 +516,7 @@
       type: 'error'
     }).then(async () => {
       try {
-        await fetchRemoveMember(teamId.value, String(row.id))
-        await loadMemberList()
+        await removeMutation.mutateAsync({ teamId: teamId.value, memberId: String(row.id) })
         ElMessage.success('成员已移除')
       } catch {
         ElMessage.error('移除成员失败')
@@ -549,10 +538,9 @@
     ).then(async () => {
       try {
         for (const member of selectedMembers.value) {
-          await fetchRemoveMember(teamId.value, String(member.id))
+          await removeMutation.mutateAsync({ teamId: teamId.value, memberId: String(member.id) })
         }
         selectedMembers.value = []
-        await loadMemberList()
         ElMessage.success('批量移除成功')
       } catch {
         ElMessage.error('批量移除失败')
