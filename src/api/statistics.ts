@@ -8,8 +8,14 @@ export function fetchGetRealtimeData() {
   return getApiAdapter().get<Api.Statistics.RealtimeData>('/api/statistics/realtime')
 }
 
-export function fetchGetTrends(params?: Api.Statistics.TrendParams) {
-  return getApiAdapter().get<Api.Statistics.TrendData>('/api/statistics/trends', params)
+export function fetchGetTrends(
+  teamId: string,
+  params?: Omit<Api.Statistics.TrendParams, 'teamId'>
+) {
+  return getApiAdapter().get<Api.Statistics.TrendData>(
+    `/api/statistics/teams/${teamId}/trends`,
+    params
+  )
 }
 
 export function fetchGetCredits() {

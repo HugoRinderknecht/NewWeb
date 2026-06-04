@@ -2184,6 +2184,7 @@ declare namespace Api {
     }
 
     interface TrendParams {
+      teamId: string
       eventType: string
       startDate?: string
       endDate?: string

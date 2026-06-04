@@ -1,5 +1,15 @@
 <template>
-  <div class="stats-cost-page art-full-height">
+  <div class="stats-cost-page art-full-height" v-loading="isLoading">
+    <!-- 错误提示 -->
+    <ElAlert
+      v-if="hasError"
+      type="error"
+      :title="errorMessage"
+      show-icon
+      :closable="false"
+      class="mb-5"
+    />
+
     <!-- 核心指标卡片 -->
     <ElRow :gutter="20" class="mb-5">
       <ElCol v-for="(item, index) in coreMetrics" :key="index" :sm="12" :md="6" :lg="6">
@@ -186,12 +196,18 @@
 <script setup lang="ts">
   import type { LineDataItem, BarDataItem, PieDataItem } from '@/types/component/chart'
   import type { ColumnOption } from '@/types/component'
-  import { fetchGetCreditTransactions } from '@/api/points'
+  import {
+    useStatsCredits,
+    useMyCredits,
+    useCreditTransactions,
+    useStatsTrends
+  } from '@/api/queries/statistics'
+  import { useTeamStore } from '@/store/modules/team'
 
   defineOptions({ name: 'StatsCost' })
 
   interface CostItem {
-    id: number
+    id: string | number
     feature: string
     icon: string
     projectName: string
@@ -214,93 +230,10 @@
   const filterType = ref('')
   const trendPeriod = ref<'day' | 'week' | 'month'>('day')
 
-  const coreMetrics = reactive<CoreMetric[]>([
-    { label: '总积分消耗', value: 456800, decimals: 0, change: '+15%', icon: 'ri:coin-line' },
-    {
-      label: '总费用(元)',
-      value: 4568.5,
-      decimals: 2,
-      change: '+15%',
-      icon: 'ri:money-cny-circle-line'
-    },
-    { label: '剩余积分', value: 125200, decimals: 0, change: '-8%', icon: 'ri:wallet-3-line' },
-    { label: '日均消耗', value: 15220, decimals: 0, change: '+10%', icon: 'ri:bar-chart-box-line' }
-  ])
+  const teamStore = useTeamStore()
+  const teamId = computed(() => teamStore.currentTeamId || undefined)
 
-  // 趋势数据 - 按日
-  const dayXAxis = Array.from({ length: 15 }, (_, i) => `${i + 1}日`)
-  const dayLineData: LineDataItem[] = [
-    {
-      name: '积分消耗',
-      data: [
-        12000, 13500, 12800, 14200, 15000, 13800, 16000, 15500, 17000, 16500, 18000, 17500, 19000,
-        18500, 20000
-      ]
-    },
-    {
-      name: '费用(元)',
-      data: [120, 135, 128, 142, 150, 138, 160, 155, 170, 165, 180, 175, 190, 185, 200]
-    }
-  ]
-
-  // 趋势数据 - 按周
-  const weekXAxis = ['第1周', '第2周', '第3周', '第4周', '第5周', '第6周', '第7周', '第8周']
-  const weekLineData: LineDataItem[] = [
-    { name: '积分消耗', data: [85000, 92000, 88000, 95000, 102000, 98000, 110000, 105000] },
-    { name: '费用(元)', data: [850, 920, 880, 950, 1020, 980, 1100, 1050] }
-  ]
-
-  // 趋势数据 - 按月
-  const monthXAxis = ['1月', '2月', '3月', '4月', '5月', '6月']
-  const monthLineData: LineDataItem[] = [
-    { name: '积分消耗', data: [320000, 350000, 380000, 360000, 420000, 450000] },
-    { name: '费用(元)', data: [3200, 3500, 3800, 3600, 4200, 4500] }
-  ]
-
-  const trendXAxis = computed(() => {
-    switch (trendPeriod.value) {
-      case 'day':
-        return dayXAxis
-      case 'week':
-        return weekXAxis
-      case 'month':
-        return monthXAxis
-      default:
-        return dayXAxis
-    }
-  })
-
-  const trendLineData = computed<LineDataItem[]>(() => {
-    switch (trendPeriod.value) {
-      case 'day':
-        return dayLineData
-      case 'week':
-        return weekLineData
-      case 'month':
-        return monthLineData
-      default:
-        return dayLineData
-    }
-  })
-
-  // 功能分布
-  const featureDistributionData = ref<PieDataItem[]>([
-    { value: 156000, name: 'AI视频生成' },
-    { value: 98000, name: '语音合成' },
-    { value: 72000, name: 'AI图像生成' },
-    { value: 58000, name: '剧本生成' },
-    { value: 45000, name: '分镜生成' },
-    { value: 27800, name: '其他功能' }
-  ])
-
-  // 成本预测
-  const forecastXAxis = ['7月', '8月', '9月', '10月', '11月', '12月']
-  const forecastBarData: BarDataItem[] = [
-    { name: '预测消耗(万积分)', data: [48, 52, 55, 58, 62, 68] },
-    { name: '实际消耗(万积分)', data: [45, 0, 0, 0, 0, 0] }
-  ]
-
-  // 类型选项
+  // 类型选项（UI 常量）
   const typeOptions = [
     { label: 'AI视频生成', value: 'AI视频生成' },
     { label: '语音合成', value: '语音合成' },
@@ -318,31 +251,170 @@
     其他功能: 'info'
   }
 
-  // 费用明细
-  const costList = ref<CostItem[]>([])
-
-  const loadCostList = async () => {
-    try {
-      const data = await fetchGetCreditTransactions()
-      if (data) {
-        costList.value = (Array.isArray(data) ? data : (data as any).records || []).map(
-          (item: any) => ({
-            id: item.id,
-            feature: item.feature || '',
-            icon: item.icon || '',
-            projectName: item.projectName || '',
-            type: item.type || '',
-            credits: item.credits || 0,
-            amount: item.amount || '',
-            usageCount: item.usageCount || 0,
-            date: item.date || ''
-          })
-        ) as CostItem[]
-      }
-    } catch {
-      ElMessage.error('加载费用明细失败')
-    }
+  // 功能图标映射
+  const featureIconMap: Record<string, string> = {
+    AI视频生成: 'ri:movie-line',
+    语音合成: 'ri:mic-line',
+    AI图像生成: 'ri:image-line',
+    剧本生成: 'ri:file-text-line',
+    分镜生成: 'ri:gallery-line',
+    其他功能: 'ri:apps-line'
   }
+
+  // 数据加载（vue-query）
+  const { data: creditsData, isLoading: creditsLoading, error: creditsError } = useStatsCredits()
+  const { data: myCreditsData, isLoading: myCreditsLoading, error: myCreditsError } = useMyCredits()
+  const {
+    data: transactionsData,
+    isLoading: transactionsLoading,
+    error: transactionsError
+  } = useCreditTransactions()
+  const trendParams = computed(() => ({
+    eventType: 'cost',
+    granularity: trendPeriod.value
+  }))
+  const {
+    data: trendsData,
+    isLoading: trendsLoading,
+    error: trendsError
+  } = useStatsTrends(teamId, trendParams)
+
+  const isLoading = computed(
+    () =>
+      creditsLoading.value ||
+      myCreditsLoading.value ||
+      transactionsLoading.value ||
+      trendsLoading.value
+  )
+
+  const hasError = computed(
+    () =>
+      !!creditsError.value ||
+      !!myCreditsError.value ||
+      !!transactionsError.value ||
+      !!trendsError.value
+  )
+
+  const errorMessage = computed(() => {
+    const err =
+      creditsError.value || myCreditsError.value || transactionsError.value || trendsError.value
+    if (!err) return ''
+    return (err as Error)?.message || '加载费用数据失败，请稍后重试'
+  })
+
+  // 核心指标：基于 useStatsCredits + useMyCredits 派生
+  const coreMetrics = computed<CoreMetric[]>(() => {
+    const credits = creditsData.value as Api.Statistics.CreditsData | null
+    const my = myCreditsData.value as Api.Points.CreditInfo | null
+    const totalSpent = credits?.totalSpent ?? my?.totalSpent ?? 0
+    const balance = credits?.balance ?? my?.balance ?? 0
+    const recent = credits?.recentTransactions ?? []
+    const dailyAvg = recent.length
+      ? Math.round(recent.reduce((sum, t) => sum + (t.amount || 0), 0) / recent.length)
+      : 0
+    return [
+      {
+        label: '总积分消耗',
+        value: totalSpent,
+        decimals: 0,
+        change: '+0%',
+        icon: 'ri:coin-line'
+      },
+      {
+        label: '总费用(元)',
+        value: Number((totalSpent / 100).toFixed(2)),
+        decimals: 2,
+        change: '+0%',
+        icon: 'ri:money-cny-circle-line'
+      },
+      {
+        label: '剩余积分',
+        value: balance,
+        decimals: 0,
+        change: '+0%',
+        icon: 'ri:wallet-3-line'
+      },
+      {
+        label: '日均消耗',
+        value: dailyAvg,
+        decimals: 0,
+        change: '+0%',
+        icon: 'ri:bar-chart-box-line'
+      }
+    ]
+  })
+
+  // 趋势 X 轴
+  const trendXAxis = computed<string[]>(() => {
+    const trends = trendsData.value as Api.Statistics.TrendData | null
+    if (trends?.dates?.length) return trends.dates
+    if (trends?.data?.labels?.length) return trends.data.labels
+    return []
+  })
+
+  // 趋势数据
+  const trendLineData = computed<LineDataItem[]>(() => {
+    const trends = trendsData.value as Api.Statistics.TrendData | null
+    if (trends?.metrics?.length) {
+      return trends.metrics.map((m) => ({ name: m.name, data: m.values || [] }))
+    }
+    if (trends?.data?.values?.length) {
+      return [{ name: '积分消耗', data: trends.data.values }]
+    }
+    return []
+  })
+
+  // 费用明细：基于 useCreditTransactions 派生
+  const costList = computed<CostItem[]>(() => {
+    const data =
+      transactionsData.value as Api.Common.PaginatedResponse<Api.Points.TransactionRecord> | null
+    const records = Array.isArray(data) ? data : data?.records || []
+    return records.map((item: any) => {
+      const feature = item.source || item.feature || item.description || '其他功能'
+      const credits = Math.abs(Number(item.amount ?? item.credits ?? 0))
+      return {
+        id: item.id,
+        feature,
+        icon: item.icon || featureIconMap[feature] || 'ri:apps-line',
+        projectName: item.projectName || '-',
+        type: item.type === 'earn' ? '充值' : feature,
+        credits,
+        amount: item.amount != null ? `¥${(credits / 100).toFixed(2)}` : '-',
+        usageCount: item.usageCount || 1,
+        date: item.createTime || item.date || ''
+      } as CostItem
+    })
+  })
+
+  // 功能分布：由 useCreditTransactions 按类型聚合
+  const featureDistributionData = computed<PieDataItem[]>(() => {
+    const aggMap = new Map<string, number>()
+    costList.value.forEach((item) => {
+      const key = item.feature || '其他功能'
+      aggMap.set(key, (aggMap.get(key) || 0) + (item.credits || 0))
+    })
+    return Array.from(aggMap.entries()).map(([name, value]) => ({ name, value }))
+  })
+
+  // 成本预测：基于趋势历史数据派生
+  const forecastXAxis = computed<string[]>(() => trendXAxis.value)
+  const forecastBarData = computed<BarDataItem[]>(() => {
+    const trends = trendsData.value as Api.Statistics.TrendData | null
+    const values = trends?.metrics?.[0]?.values || trends?.data?.values || []
+    if (!values.length) {
+      return [
+        { name: '预测消耗', data: [] },
+        { name: '实际消耗', data: [] }
+      ]
+    }
+    // 简单线性预测：基于历史均值
+    const avg = values.reduce((a, b) => a + (b || 0), 0) / values.length
+    const forecast = values.map((_, idx) => Math.round(avg * (1 + idx * 0.05)))
+    return [
+      { name: '实际消耗', data: values },
+      { name: '预测消耗', data: forecast }
+    ]
+  })
 
   const columns: ColumnOption[] = [
     { type: 'index' },
@@ -398,10 +470,6 @@
   const handleExport = () => {
     ElMessage.success('费用明细导出成功')
   }
-
-  onMounted(() => {
-    loadCostList()
-  })
 </script>
 
 <style lang="scss" scoped>

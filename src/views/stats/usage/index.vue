@@ -1,5 +1,15 @@
 <template>
-  <div class="stats-usage-page art-full-height">
+  <div class="stats-usage-page art-full-height" v-loading="isLoading">
+    <!-- 错误提示 -->
+    <ElAlert
+      v-if="hasError"
+      type="error"
+      :title="errorMessage"
+      show-icon
+      :closable="false"
+      class="mb-5"
+    />
+
     <!-- 核心指标卡片 -->
     <ElRow :gutter="20" class="mb-5">
       <ElCol v-for="(item, index) in coreMetrics" :key="index" :sm="12" :md="6" :lg="6">
@@ -105,7 +115,9 @@
 
 <script setup lang="ts">
   import type { LineDataItem, BarDataItem } from '@/types/component/chart'
-  import { fetchGetProjectUsage, fetchGetProjectUsageDetail } from '@/api/statistics'
+  import { useProjectUsage, useProjectUsageDetail, useStatsTrends } from '@/api/queries/statistics'
+  import { useProjectStore } from '@/store/modules/project'
+  import { useTeamStore } from '@/store/modules/team'
 
   defineOptions({ name: 'StatsUsage' })
 
@@ -119,149 +131,132 @@
     icon: string
   }
 
-  const coreMetrics = reactive<CoreMetric[]>([
-    { label: '存储使用量(GB)', value: 0, decimals: 1, change: '+5%', icon: 'ri:database-2-line' },
-    { label: 'AI积分已用', value: 0, decimals: 0, change: '+12%', icon: 'ri:coins-line' },
-    { label: '带宽使用量(GB)', value: 0, decimals: 1, change: '+8%', icon: 'ri:wifi-line' },
-    { label: '存储总量(GB)', value: 0, decimals: 0, change: '+3%', icon: 'ri:hard-drive-2-line' }
-  ])
+  const projectStore = useProjectStore()
+  const teamStore = useTeamStore()
+  const projectId = computed(() => projectStore.currentProjectId || '')
+  const teamId = computed(() => teamStore.currentTeamId || undefined)
+
+  /* ========== 数据查询 ========== */
+
+  const { data: usageData, isLoading: usageLoading, error: usageError } = useProjectUsage(projectId)
 
   const trendPeriod = ref<PeriodType>('day')
 
-  const dayXAxis = [
-    '1日',
-    '2日',
-    '3日',
-    '4日',
-    '5日',
-    '6日',
-    '7日',
-    '8日',
-    '9日',
-    '10日',
-    '11日',
-    '12日',
-    '13日',
-    '14日',
-    '15日'
-  ]
-  const dayLineData = ref<LineDataItem[]>([
-    { name: '项目数', data: [12, 15, 18, 14, 20, 22, 25, 18, 24, 28, 30, 26, 32, 35, 38] },
-    { name: '视频数', data: [35, 42, 38, 45, 50, 48, 55, 52, 60, 58, 65, 70, 68, 75, 80] },
-    { name: '时长(小时)', data: [8, 10, 9, 12, 14, 13, 16, 15, 18, 17, 20, 22, 21, 24, 26] }
-  ])
+  const trendParams = computed(() => ({
+    eventType: 'usage',
+    granularity: trendPeriod.value
+  }))
 
-  const weekXAxis = ['第1周', '第2周', '第3周', '第4周', '第5周', '第6周', '第7周', '第8周']
-  const weekLineData = ref<LineDataItem[]>([
-    { name: '项目数', data: [45, 52, 48, 60, 55, 62, 58, 70] },
-    { name: '视频数', data: [120, 135, 128, 150, 140, 160, 155, 175] },
-    { name: '时长(小时)', data: [35, 40, 38, 48, 42, 50, 46, 55] }
-  ])
+  const { data: trendData, isLoading: trendLoading } = useStatsTrends(teamId, trendParams)
 
-  const monthXAxis = [
-    '1月',
-    '2月',
-    '3月',
-    '4月',
-    '5月',
-    '6月',
-    '7月',
-    '8月',
-    '9月',
-    '10月',
-    '11月',
-    '12月'
-  ]
-  const monthLineData = ref<LineDataItem[]>([
-    { name: '项目数', data: [180, 165, 190, 210, 195, 220, 240, 230, 250, 265, 280, 300] },
-    { name: '视频数', data: [450, 420, 480, 520, 490, 550, 580, 560, 600, 640, 680, 720] },
-    { name: '时长(小时)', data: [120, 110, 135, 150, 140, 160, 175, 165, 185, 200, 210, 230] }
-  ])
+  const { data: usageDetailData, isLoading: detailLoading } = useProjectUsageDetail(projectId)
 
-  const trendXAxis = computed(() => {
-    switch (trendPeriod.value) {
-      case 'day':
-        return dayXAxis
-      case 'week':
-        return weekXAxis
-      case 'month':
-        return monthXAxis
-      default:
-        return dayXAxis
-    }
+  /* ========== 加载与错误状态 ========== */
+
+  const isLoading = computed(() => usageLoading.value || trendLoading.value || detailLoading.value)
+
+  const hasError = computed(() => !!usageError.value)
+
+  const errorMessage = computed(() => {
+    if (!usageError.value) return ''
+    return (usageError.value as Error)?.message || '加载使用统计数据失败，请稍后重试'
+  })
+
+  /* ========== 核心指标 ========== */
+
+  const coreMetrics = computed<CoreMetric[]>(() => {
+    const data = usageData.value as Record<string, any> | null
+    return [
+      {
+        label: '存储使用量(GB)',
+        value: data?.storageUsed ?? 0,
+        decimals: 1,
+        change: data?.storageUsedChange ?? '+0%',
+        icon: 'ri:database-2-line'
+      },
+      {
+        label: 'AI积分已用',
+        value: data?.aiCreditsUsed ?? 0,
+        decimals: 0,
+        change: data?.aiCreditsChange ?? '+0%',
+        icon: 'ri:coins-line'
+      },
+      {
+        label: '带宽使用量(GB)',
+        value: data?.bandwidthUsed ?? 0,
+        decimals: 1,
+        change: data?.bandwidthChange ?? '+0%',
+        icon: 'ri:wifi-line'
+      },
+      {
+        label: '存储总量(GB)',
+        value: data?.storageTotal ?? 0,
+        decimals: 0,
+        change: data?.storageTotalChange ?? '+0%',
+        icon: 'ri:hard-drive-2-line'
+      }
+    ]
+  })
+
+  /* ========== 趋势图表 ========== */
+
+  const trendXAxis = computed<string[]>(() => {
+    const d = trendData.value as Api.Statistics.TrendData | null
+    return d?.dates ?? []
   })
 
   const trendLineData = computed<LineDataItem[]>(() => {
-    switch (trendPeriod.value) {
-      case 'day':
-        return dayLineData.value
-      case 'week':
-        return weekLineData.value
-      case 'month':
-        return monthLineData.value
-      default:
-        return dayLineData.value
-    }
+    const d = trendData.value as Api.Statistics.TrendData | null
+    if (!d?.metrics?.length) return []
+    return d.metrics.map((m) => ({
+      name: m.name,
+      data: m.values ?? []
+    }))
   })
 
-  const yoyXAxis = ['项目数', '视频数', '时长', '存储', 'AI使用']
-  const yoyBarData = ref<BarDataItem[]>([
-    { name: '本期', data: [1286, 3456, 186, 2048, 5200] },
-    { name: '去年同期', data: [980, 2800, 145, 1680, 3800] }
-  ])
+  /* ========== 同比环比分析 ========== */
 
-  const momXAxis = ['项目数', '视频数', '时长', '存储', 'AI使用']
-  const momBarData = ref<BarDataItem[]>([
-    { name: '本期', data: [1286, 3456, 186, 2048, 5200] },
-    { name: '上期', data: [1150, 3100, 162, 1890, 4600] }
-  ])
-
-  const loadUsageData = async () => {
-    try {
-      const data = (await fetchGetProjectUsage('1')) as any
-      if (data) {
-        coreMetrics[0].value = data.storageUsed ?? 0
-        coreMetrics[1].value = data.aiCreditsUsed ?? 0
-        coreMetrics[2].value = data.bandwidthUsed ?? 0
-        coreMetrics[3].value = data.storageTotal ?? 0
-        yoyBarData.value[0].data[3] = data.storageUsed ?? 2048
-        yoyBarData.value[0].data[4] = data.aiCreditsUsed ?? 5200
-        momBarData.value[0].data[3] = data.storageUsed ?? 2048
-        momBarData.value[0].data[4] = data.aiCreditsUsed ?? 5200
-      }
-    } catch (error) {
-      console.error('加载使用统计失败:', error)
-    }
+  function aggregateByCategory(
+    records: { category: string; credits: number }[]
+  ): Record<string, number> {
+    const map: Record<string, number> = {}
+    records.forEach((r) => {
+      const cat = r.category || '其他'
+      map[cat] = (map[cat] || 0) + (r.credits || 0)
+    })
+    return map
   }
 
-  const loadUsageDetail = async () => {
-    try {
-      const data = (await fetchGetProjectUsageDetail('1')) as any
-      if (data?.records) {
-        const records = data.records
-        const creditsByDate: Record<string, number> = {}
-        const countByDate: Record<string, number> = {}
-        records.forEach((r: any) => {
-          creditsByDate[r.date] = (creditsByDate[r.date] || 0) + (r.credits || 0)
-          countByDate[r.date] = (countByDate[r.date] || 0) + (r.count || 0)
-        })
-        const dates = Object.keys(creditsByDate).sort()
-        if (dates.length > 0) {
-          dayXAxis.length = 0
-          dates.forEach((d) => dayXAxis.push(d.slice(5)))
-          dayLineData.value = [
-            { name: '积分消耗', data: dates.map((d) => creditsByDate[d]) },
-            { name: '调用次数', data: dates.map((d) => countByDate[d]) }
-          ]
-        }
-      }
-    } catch (error) {
-      console.error('加载使用详情失败:', error)
-    }
-  }
+  const yoyXAxis = computed<string[]>(() => {
+    const records =
+      (usageDetailData.value as Api.Statistics.ProjectUsageDetail | null)?.records ?? []
+    const categories = [...new Set(records.map((r) => r.category))]
+    return categories.length > 0 ? categories : ['项目数', '视频数', '时长', '存储', 'AI使用']
+  })
 
-  onMounted(() => {
-    loadUsageData()
-    loadUsageDetail()
+  const yoyBarData = computed<BarDataItem[]>(() => {
+    const records =
+      (usageDetailData.value as Api.Statistics.ProjectUsageDetail | null)?.records ?? []
+    if (!records.length) return []
+    const byCategory = aggregateByCategory(records)
+    const categories = Object.keys(byCategory)
+    return [
+      { name: '本期', data: categories.map((c) => byCategory[c]) },
+      { name: '去年同期', data: categories.map(() => 0) }
+    ]
+  })
+
+  const momXAxis = computed<string[]>(() => yoyXAxis.value)
+
+  const momBarData = computed<BarDataItem[]>(() => {
+    const records =
+      (usageDetailData.value as Api.Statistics.ProjectUsageDetail | null)?.records ?? []
+    if (!records.length) return []
+    const byCategory = aggregateByCategory(records)
+    const categories = Object.keys(byCategory)
+    return [
+      { name: '本期', data: categories.map((c) => byCategory[c]) },
+      { name: '上期', data: categories.map(() => 0) }
+    ]
   })
 </script>

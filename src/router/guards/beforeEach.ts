@@ -40,6 +40,7 @@ import { nextTick } from 'vue'
 import NProgress from 'nprogress'
 import { useSettingStore } from '@/store/modules/setting'
 import { useUserStore } from '@/store/modules/user'
+import { useTeamStore } from '@/store/modules/team'
 import { useMenuStore } from '@/store/modules/menu'
 import { setWorktab } from '@/utils/navigation'
 import { setPageTitle } from '@/utils/router'
@@ -274,6 +275,10 @@ async function handleDynamicRoutes(
   try {
     // 1. 获取用户信息
     await fetchUserInfo()
+
+    // 1.5 加载用户团队列表，确保 currentTeamId 就绪
+    const teamStore = useTeamStore()
+    await teamStore.loadTeamList()
 
     // 2. 获取菜单数据
     const menuList = await menuProcessor.getMenuList()

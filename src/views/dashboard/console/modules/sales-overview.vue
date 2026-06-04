@@ -18,6 +18,7 @@
 
 <script setup lang="ts">
   import { fetchGetTrends } from '@/api/statistics'
+  import { useTeamStore } from '@/store/modules/team'
 
   /**
    * AI Token 使用量数据
@@ -30,9 +31,13 @@
    */
   const xAxisData = ref<string[]>([])
 
+  const teamStore = useTeamStore()
+
   const loadData = async () => {
+    const teamId = teamStore.currentTeamId
+    if (!teamId) return
     try {
-      const { data: resData } = await fetchGetTrends({
+      const { data: resData } = await fetchGetTrends(teamId, {
         eventType: 'credits',
         granularity: 'day',
         metrics: ['credits']

@@ -1,5 +1,15 @@
 <template>
-  <div class="stats-ai-usage-page art-full-height">
+  <div class="stats-ai-usage-page art-full-height" v-loading="isLoading">
+    <!-- 错误提示 -->
+    <ElAlert
+      v-if="hasError"
+      type="error"
+      :title="errorMessage"
+      show-icon
+      :closable="false"
+      class="mb-5"
+    />
+
     <!-- 核心指标卡片 -->
     <ElRow :gutter="20" class="mb-5">
       <ElCol v-for="(item, index) in coreMetrics" :key="index" :sm="12" :md="6" :lg="6">
@@ -158,7 +168,9 @@
               </ElTableColumn>
               <ElTableColumn label="模型" width="160">
                 <template #default="{ row }">
-                  <ElTag :type="modelTagMap[row.model]" size="small">{{ row.model }}</ElTag>
+                  <ElTag :type="modelTagMap[row.model] || 'info'" size="small">
+                    {{ row.model }}
+                  </ElTag>
                 </template>
               </ElTableColumn>
               <ElTableColumn prop="requestType" label="请求类型" width="140" />
@@ -194,12 +206,13 @@
 <script setup lang="ts">
   import type { LineDataItem, BarDataItem, PieDataItem } from '@/types/component/chart'
   import type { ColumnOption } from '@/types/component'
-  import { fetchGetTokenUsageRecords } from '@/api/points'
+  import { useTokenUsageRecords, useStatsTrends, useStatsDashboard } from '@/api/queries/statistics'
+  import { useTeamStore } from '@/store/modules/team'
 
   defineOptions({ name: 'StatsAiUsage' })
 
   interface TokenItem {
-    id: number
+    id: string | number
     projectName: string
     model: string
     requestType: string
@@ -210,7 +223,6 @@
     requestTime: string
   }
 
-  // 核心指标
   interface CoreMetric {
     label: string
     value: number
@@ -221,111 +233,18 @@
 
   const searchQuery = ref('')
   const filterModel = ref('')
+
+  const teamStore = useTeamStore()
+  const teamId = computed(() => teamStore.currentTeamId || undefined)
   const trendPeriod = ref<'day' | 'week' | 'month'>('day')
 
-  const coreMetrics = reactive<CoreMetric[]>([
-    { label: '总 Token 消耗', value: 2847500, decimals: 0, change: '+18%', icon: 'ri:coins-line' },
-    { label: '总请求次数', value: 12580, decimals: 0, change: '+12%', icon: 'ri:send-plane-line' },
-    {
-      label: 'Input Tokens',
-      value: 1850900,
-      decimals: 0,
-      change: '+15%',
-      icon: 'ri:arrow-down-circle-line'
-    },
-    {
-      label: 'Output Tokens',
-      value: 996600,
-      decimals: 0,
-      change: '+22%',
-      icon: 'ri:arrow-up-circle-line'
-    }
-  ])
-
-  // 趋势数据 - 按日
-  const dayXAxis = Array.from({ length: 15 }, (_, i) => `${i + 1}日`)
-  const dayLineData: LineDataItem[] = [
-    {
-      name: '总 Tokens',
-      data: [
-        120000, 135000, 128000, 142000, 150000, 138000, 160000, 155000, 170000, 165000, 180000,
-        175000, 190000, 185000, 200000
-      ]
-    },
-    {
-      name: '请求次数',
-      data: [520, 580, 550, 620, 650, 600, 700, 680, 750, 720, 800, 780, 850, 820, 900]
-    }
-  ]
-
-  // 趋势数据 - 按周
-  const weekXAxis = ['第1周', '第2周', '第3周', '第4周', '第5周', '第6周', '第7周', '第8周']
-  const weekLineData: LineDataItem[] = [
-    {
-      name: '总 Tokens',
-      data: [850000, 920000, 880000, 950000, 1020000, 980000, 1100000, 1050000]
-    },
-    { name: '请求次数', data: [3500, 3800, 3600, 4000, 4200, 3900, 4500, 4300] }
-  ]
-
-  // 趋势数据 - 按月
-  const monthXAxis = ['1月', '2月', '3月', '4月', '5月', '6月']
-  const monthLineData: LineDataItem[] = [
-    { name: '总 Tokens', data: [3200000, 3500000, 3800000, 3600000, 4200000, 4500000] },
-    { name: '请求次数', data: [12000, 13500, 15000, 14000, 16500, 18000] }
-  ]
-
-  const trendXAxis = computed(() => {
-    switch (trendPeriod.value) {
-      case 'day':
-        return dayXAxis
-      case 'week':
-        return weekXAxis
-      case 'month':
-        return monthXAxis
-      default:
-        return dayXAxis
-    }
+  const pagination = reactive({
+    current: 1,
+    size: 10,
+    total: 0
   })
 
-  const trendLineData = computed<LineDataItem[]>(() => {
-    switch (trendPeriod.value) {
-      case 'day':
-        return dayLineData
-      case 'week':
-        return weekLineData
-      case 'month':
-        return monthLineData
-      default:
-        return dayLineData
-    }
-  })
-
-  // 模型分布
-  const modelDistributionData = ref<PieDataItem[]>([
-    { value: 1250000, name: 'GPT-4o' },
-    { value: 680000, name: 'GPT-4o-mini' },
-    { value: 420000, name: 'Claude 3.5' },
-    { value: 280000, name: 'Midjourney' },
-    { value: 217500, name: '其他模型' }
-  ])
-
-  // 项目分布
-  const projectXAxis = [
-    '品牌宣传片',
-    '产品发布',
-    '企业年会',
-    '培训课程',
-    '社交媒体',
-    '客户案例',
-    '技术演示',
-    '招聘宣传'
-  ]
-  const projectBarData: BarDataItem[] = [
-    { name: 'Token 消耗(万)', data: [45, 38, 52, 68, 35, 28, 42, 18] }
-  ]
-
-  // 模型选项
+  // 模型选项（UI 配置，保持静态）
   const modelOptions = [
     { label: 'GPT-4o', value: 'GPT-4o' },
     { label: 'GPT-4o-mini', value: 'GPT-4o-mini' },
@@ -341,31 +260,156 @@
     其他模型: 'info'
   }
 
-  // Token 明细
-  const tokenList = ref<TokenItem[]>([])
+  // API 数据加载
+  const tokenQueryParams = computed<Api.Common.CommonSearchParams>(() => ({
+    current: pagination.current,
+    size: pagination.size
+  }))
 
-  const loadTokenList = async () => {
-    try {
-      const data = await fetchGetTokenUsageRecords()
-      if (data) {
-        tokenList.value = (Array.isArray(data) ? data : (data as any).records || []).map(
-          (item: any) => ({
-            id: item.id,
-            projectName: item.projectName || '',
-            model: item.model || '',
-            requestType: item.requestType || '',
-            inputTokens: item.inputTokens || 0,
-            outputTokens: item.outputTokens || 0,
-            totalTokens: item.totalTokens || 0,
-            cost: item.cost || '',
-            requestTime: item.requestTime || ''
-          })
-        ) as TokenItem[]
+  const {
+    data: dashboardData,
+    isLoading: dashboardLoading,
+    error: dashboardError
+  } = useStatsDashboard()
+
+  const trendParams = computed(() => ({
+    eventType: 'ai_usage',
+    granularity: trendPeriod.value
+  }))
+
+  const {
+    data: trendsData,
+    isLoading: trendsLoading,
+    error: trendsError
+  } = useStatsTrends(teamId, trendParams)
+
+  const {
+    data: tokenRecordsData,
+    isLoading: tokenLoading,
+    error: tokenError
+  } = useTokenUsageRecords(tokenQueryParams)
+
+  const isLoading = computed(
+    () => dashboardLoading.value || trendsLoading.value || tokenLoading.value
+  )
+
+  const hasError = computed(
+    () => !!dashboardError.value || !!trendsError.value || !!tokenError.value
+  )
+
+  const errorMessage = computed(() => {
+    const err = dashboardError.value || trendsError.value || tokenError.value
+    if (!err) return ''
+    return (err as Error)?.message || '加载 AI 用量数据失败，请稍后重试'
+  })
+
+  // Token 明细列表（基于 API 数据派生）
+  const tokenList = computed<TokenItem[]>(() => {
+    const raw: any = tokenRecordsData.value
+    const records: any[] = Array.isArray(raw) ? raw : raw?.records || []
+    return records.map((item) => ({
+      id: item.id,
+      projectName: item.projectName || item.source || '',
+      model: item.model || '',
+      requestType: item.requestType || '',
+      inputTokens: item.inputTokens || 0,
+      outputTokens: item.outputTokens || 0,
+      totalTokens: item.totalTokens || 0,
+      cost: typeof item.cost === 'number' ? String(item.cost) : item.cost || '',
+      requestTime: item.requestTime || item.createTime || ''
+    }))
+  })
+
+  // 核心指标（从 dashboard + token 记录汇总派生）
+  const coreMetrics = computed<CoreMetric[]>(() => {
+    const dashboard = dashboardData.value as Api.Statistics.DashboardData | null
+    const list = tokenList.value
+    const totalInput = list.reduce((sum, it) => sum + (it.inputTokens || 0), 0)
+    const totalOutput = list.reduce((sum, it) => sum + (it.outputTokens || 0), 0)
+    const totalTokens = list.reduce((sum, it) => sum + (it.totalTokens || 0), 0)
+    const totalRequests = list.length
+    const change = dashboard?.weeklyChange ?? '+0%'
+    return [
+      {
+        label: '总 Token 消耗',
+        value: totalTokens,
+        decimals: 0,
+        change,
+        icon: 'ri:coins-line'
+      },
+      {
+        label: '总请求次数',
+        value: totalRequests,
+        decimals: 0,
+        change,
+        icon: 'ri:send-plane-line'
+      },
+      {
+        label: 'Input Tokens',
+        value: totalInput,
+        decimals: 0,
+        change,
+        icon: 'ri:arrow-down-circle-line'
+      },
+      {
+        label: 'Output Tokens',
+        value: totalOutput,
+        decimals: 0,
+        change,
+        icon: 'ri:arrow-up-circle-line'
       }
-    } catch {
-      ElMessage.error('加载 Token 用量记录失败')
-    }
-  }
+    ]
+  })
+
+  // 趋势图：X 轴
+  const trendXAxis = computed<string[]>(() => {
+    const data = trendsData.value as Api.Statistics.TrendData | null
+    return data?.dates || []
+  })
+
+  // 趋势图：折线数据
+  const trendLineData = computed<LineDataItem[]>(() => {
+    const data = trendsData.value as Api.Statistics.TrendData | null
+    const metrics = data?.metrics || []
+    return metrics.map((m) => ({
+      name: m.name,
+      data: m.values || []
+    }))
+  })
+
+  // 模型分布（基于 token 明细按模型聚合）
+  const modelDistributionData = computed<PieDataItem[]>(() => {
+    const map = new Map<string, number>()
+    tokenList.value.forEach((item) => {
+      if (!item.model) return
+      map.set(item.model, (map.get(item.model) || 0) + (item.totalTokens || 0))
+    })
+    return Array.from(map.entries()).map(([name, value]) => ({ name, value }))
+  })
+
+  // 项目分布（基于 token 明细按项目聚合）
+  const projectXAxis = computed<string[]>(() => {
+    const map = new Map<string, number>()
+    tokenList.value.forEach((item) => {
+      if (!item.projectName) return
+      map.set(item.projectName, (map.get(item.projectName) || 0) + (item.totalTokens || 0))
+    })
+    return Array.from(map.keys())
+  })
+
+  const projectBarData = computed<BarDataItem[]>(() => {
+    const map = new Map<string, number>()
+    tokenList.value.forEach((item) => {
+      if (!item.projectName) return
+      map.set(item.projectName, (map.get(item.projectName) || 0) + (item.totalTokens || 0))
+    })
+    return [
+      {
+        name: 'Token 消耗',
+        data: Array.from(map.values())
+      }
+    ]
+  })
 
   const columns: ColumnOption[] = [
     { type: 'index' },
@@ -378,12 +422,6 @@
     { prop: 'cost', label: '费用', width: 100 },
     { prop: 'requestTime', label: '请求时间', width: 160 }
   ]
-
-  const pagination = reactive({
-    current: 1,
-    size: 10,
-    total: 0
-  })
 
   const filteredTokenList = computed(() => {
     let result = tokenList.value
@@ -415,16 +453,12 @@
   }
 
   const formatNumber = (num: number) => {
-    return num.toLocaleString()
+    return (num || 0).toLocaleString()
   }
 
   const handleExport = () => {
     ElMessage.success('Token 明细导出成功')
   }
-
-  onMounted(() => {
-    loadTokenList()
-  })
 </script>
 
 <style lang="scss" scoped>
