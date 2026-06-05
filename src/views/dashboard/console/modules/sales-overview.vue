@@ -51,6 +51,19 @@
     }
   }
 
+  /**
+   * 监听 currentTeamId 变化
+   * 路由守卫异步加载团队列表后 currentTeamId 才就绪，
+   * onMounted 时可能尚未初始化，通过 watch 确保就绪后触发加载
+   */
+  watch(
+    () => teamStore.currentTeamId,
+    (newId) => {
+      if (newId) loadData()
+    },
+    { immediate: true }
+  )
+
   onMounted(() => {
     loadData()
   })
