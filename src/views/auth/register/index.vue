@@ -107,7 +107,7 @@
 
 <script setup lang="ts">
   import type { FormInstance, FormRules } from 'element-plus'
-  import { fetchRegister, fetchCaptcha, fetchGetUserInfo } from '@/api/auth'
+  import { fetchRegister, fetchGetUserInfo } from '@/api/auth'
   import { useUserStore } from '@/store/modules/user'
   import { BusinessCode } from '@/utils/http/status'
   import { isHttpError, HttpError, showSuccess } from '@/utils/http/error'
@@ -119,10 +119,7 @@
   const formRef = ref<FormInstance>()
 
   const loading = ref(false)
-  const captchaLoading = ref(false)
   const formKey = ref(0)
-  const captchaKey = ref('')
-  const captchaImage = ref('')
   const autoLogin = ref(false)
 
   const formData = reactive({
@@ -194,19 +191,6 @@
       ElMessage.error(errorMap[httpError.code] || httpError.message || '注册失败')
     } else {
       ElMessage.error('网络错误，请检查网络连接')
-    }
-  }
-
-  const refreshCaptcha = async () => {
-    try {
-      captchaLoading.value = true
-      const data = await fetchCaptcha()
-      captchaKey.value = data.key || data.captchaKey || ''
-      captchaImage.value = data.image || data.captchaImage || ''
-    } catch (error) {
-      console.error('获取验证码失败:', error)
-    } finally {
-      captchaLoading.value = false
     }
   }
 

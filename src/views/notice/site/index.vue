@@ -22,64 +22,60 @@
 
 <script setup lang="ts">
   import { ElMessage, ElMessageBox } from 'element-plus'
+  import { useQueryClient } from '@tanstack/vue-query'
   import {
-    fetchGetNotificationList,
-    fetchGetNotificationDetail,
-    fetchDeleteNotification,
-    fetchMarkAsUnread,
-    fetchBatchMarkAsRead,
-    fetchBatchDeleteNotifications,
-    fetchStarNotification,
-    fetchGetStarredNotifications,
-    fetchSearchNotifications
-  } from '@/api/notification'
+    useNotificationList,
+    useSearchNotifications,
+    useDeleteNotification,
+    useMarkAsUnread,
+    useBatchMarkAsRead,
+    useBatchDeleteNotifications,
+    useStarNotification
+  } from '@/api/queries'
+  import { fetchGetNotificationDetail, fetchGetStarredNotifications } from '@/api/notification'
 
   defineOptions({ name: 'NoticeSite' })
 
-  const loading = ref(false)
-  const noticeList = ref<any[]>([])
+  const queryClient = useQueryClient()
 
-  const loadNoticeList = async () => {
-    loading.value = true
-    try {
-      const res = await fetchGetNotificationList()
-      const records = (res as any)?.records || res || []
-      noticeList.value = records.map((item: any) => ({
-        title: item.title || '',
-        content: item.content || '',
-        time: item.createTime || '',
-        status: item.status === 'read' ? '已读' : '未读',
-        id: item.id,
-        type: item.type,
-        starred: item.starred || false,
-        sender: item.sender || '',
-        senderAvatar: item.senderAvatar || item.avatar || ''
-      }))
-    } catch {
-      noticeList.value = [
-        {
-          title: '系统维护通知',
-          content: '系统将于今晚进行维护',
-          time: '2024-01-15',
-          status: '未读',
-          id: '1'
-        },
-        {
-          title: '功能更新',
-          content: '新增AI视频生成功能',
-          time: '2024-01-14',
-          status: '已读',
-          id: '2'
-        }
-      ]
-    } finally {
-      loading.value = false
-    }
-  }
+  // 搜索关键词
+  const searchKeyword = ref<string>()
+
+  // 查询 hooks
+  const { data: notificationListData } = useNotificationList()
+  const { data: searchData } = useSearchNotifications(searchKeyword)
+
+  // 转换通知列表数据
+  const noticeList = computed(() => {
+    const rawData = searchKeyword.value ? searchData.value : notificationListData.value
+    const records = (rawData as any)?.records || rawData || []
+    return records.map((item: any) => ({
+      title: item.title || '',
+      content: item.content || '',
+      time: item.createTime || '',
+      status: item.status === 'read' ? '已读' : '未读',
+      id: item.id,
+      type: item.type,
+      starred: item.starred || false,
+      sender: item.sender || '',
+      senderAvatar: item.senderAvatar || item.avatar || ''
+    }))
+  })
+
+  // 变更 hooks
+  const { mutateAsync: deleteNotification } = useDeleteNotification()
+  const { mutateAsync: markAsUnread } = useMarkAsUnread()
+  const { mutateAsync: batchMarkAsRead } = useBatchMarkAsRead()
+  const { mutateAsync: batchDeleteNotifications } = useBatchDeleteNotifications()
+  const { mutateAsync: starNotification } = useStarNotification()
 
   const handleGetDetail = async (id: string) => {
     try {
-      return await fetchGetNotificationDetail(id)
+      return await queryClient.fetchQuery({
+        queryKey: ['notifications', 'detail', id],
+        queryFn: () => fetchGetNotificationDetail(id),
+        staleTime: 60 * 1000
+      })
     } catch {
       return null
     }
@@ -92,8 +88,7 @@
         cancelButtonText: '取消',
         type: 'warning'
       })
-      await fetchDeleteNotification(id)
-      noticeList.value = noticeList.value.filter((n) => n.id !== id)
+      await deleteNotification(id)
       ElMessage.success('删除成功')
     } catch {
       // 用户取消或删除失败
@@ -102,9 +97,7 @@
 
   const handleMarkAsUnread = async (id: string) => {
     try {
-      await fetchMarkAsUnread(id)
-      const item = noticeList.value.find((n) => n.id === id)
-      if (item) item.status = '未读'
+      await markAsUnread(id)
       ElMessage.success('已标记为未读')
     } catch {
       ElMessage.error('操作失败')
@@ -113,10 +106,7 @@
 
   const handleBatchMarkAsRead = async (ids: string[]) => {
     try {
-      await fetchBatchMarkAsRead(ids)
-      noticeList.value.forEach((n) => {
-        if (ids.includes(n.id)) n.status = '已读'
-      })
+      await batchMarkAsRead(ids)
       ElMessage.success('批量已读成功')
     } catch {
       ElMessage.error('批量已读失败')
@@ -125,8 +115,7 @@
 
   const handleBatchDelete = async (ids: string[]) => {
     try {
-      await fetchBatchDeleteNotifications(ids)
-      noticeList.value = noticeList.value.filter((n) => !ids.includes(n.id))
+      await batchDeleteNotifications(ids)
       ElMessage.success('批量删除成功')
     } catch {
       ElMessage.error('批量删除失败')
@@ -134,11 +123,11 @@
   }
 
   const handleStar = async (id: string) => {
+    const item = noticeList.value.find((n: any) => n.id === id)
+    const wasStarred = item?.starred ?? false
     try {
-      await fetchStarNotification(id)
-      const item = noticeList.value.find((n) => n.id === id)
-      if (item) item.starred = !item.starred
-      ElMessage.success(item?.starred ? '已收藏' : '已取消收藏')
+      await starNotification(id)
+      ElMessage.success(wasStarred ? '已取消收藏' : '已收藏')
     } catch {
       ElMessage.error('收藏操作失败')
     }
@@ -146,8 +135,12 @@
 
   const handleGetStarred = async () => {
     try {
-      const res = await fetchGetStarredNotifications()
-      const records = (res as any)?.records || res || []
+      const data = await queryClient.fetchQuery({
+        queryKey: ['notifications', 'starred'],
+        queryFn: () => fetchGetStarredNotifications(),
+        staleTime: 30 * 1000
+      })
+      const records = (data as any)?.records || data || []
       return records
     } catch {
       return []
@@ -155,35 +148,13 @@
   }
 
   const handleSearch = async (keyword: string) => {
-    if (!keyword) {
-      await loadNoticeList()
-      return
-    }
-    loading.value = true
-    try {
-      const res = await fetchSearchNotifications(keyword)
-      const records = (res as any)?.records || res || []
-      noticeList.value = records.map((item: any) => ({
-        title: item.title || '',
-        content: item.content || '',
-        time: item.createTime || '',
-        status: item.status === 'read' ? '已读' : '未读',
-        id: item.id,
-        type: item.type,
-        starred: item.starred || false,
-        sender: item.sender || '',
-        senderAvatar: item.senderAvatar || item.avatar || ''
-      }))
-    } catch {
-      ElMessage.error('搜索失败')
-    } finally {
-      loading.value = false
-    }
+    searchKeyword.value = keyword || undefined
   }
 
-  onMounted(() => {
-    loadNoticeList()
-  })
+  const loadNoticeList = async () => {
+    searchKeyword.value = undefined
+    await queryClient.invalidateQueries({ queryKey: ['notifications', 'list'] })
+  }
 
   defineExpose({
     handleGetDetail,

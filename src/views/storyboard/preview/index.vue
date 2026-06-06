@@ -13,6 +13,12 @@
         <div class="flex-cb">
           <div class="flex items-center gap-4">
             <span class="text-lg font-medium">分镜预览</span>
+            <ProjectSwitcher
+              v-model="currentProjectId"
+              :project-list="projectOptions"
+              @change="handleProjectChange"
+              @refresh="handleProjectRefresh"
+            />
             <ElSelect v-model="currentStoryboard" placeholder="选择分镜" style="width: 220px">
               <ElOption
                 v-for="sb in storyboardOptions"
@@ -284,7 +290,9 @@
   import { ElMessage } from 'element-plus'
   import { useRoute } from 'vue-router'
   import { useStoryboardList, useStoryboardImages } from '@/api/queries/storyboard'
+  import { useProjectList } from '@/api/queries/project'
   import { useProjectStore } from '@/store/modules/project'
+  import ProjectSwitcher from '@/components/ProjectSwitcher/index.vue'
   defineOptions({ name: 'StoryboardPreview' })
 
   type ShotType = 'closeup' | 'medium' | 'long' | 'full' | 'extreme_closeup' | 'over_shoulder'
@@ -319,6 +327,32 @@
   const projectId = computed(
     () => (route.params.projectId as string) || projectStore.currentProjectId || ''
   )
+
+  // 项目下拉：列表 + 当前项目
+  const { data: projectListResult } = useProjectList(() => undefined)
+  const projectOptions = computed<{ id: string; name: string }[]>(() => {
+    const data = projectListResult.value as any
+    if (!data) return []
+    const list = Array.isArray(data) ? data : data.records || []
+    return list.map((p: any) => ({ id: String(p.id), name: p.name || p.projectName || '' }))
+  })
+  const currentProjectId = computed<string>({
+    get: () => projectId.value,
+    set: (val) => {
+      if (val && val !== projectStore.currentProjectId) {
+        projectStore.setCurrentProject(val)
+      }
+    }
+  })
+
+  function handleProjectChange() {
+    currentIndex.value = 0
+    if (isPlaying.value) handlePause()
+  }
+
+  function handleProjectRefresh() {
+    // vue-query 自动随 projectId 变化重新拉取
+  }
 
   const {
     data: storyboardListData,

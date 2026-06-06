@@ -199,7 +199,7 @@
   import { ElMessage } from 'element-plus'
   import type { FormInstance, FormRules } from 'element-plus'
   import type { ColumnOption } from '@/types/component'
-  import { fetchGetPricingList } from '@/api/points'
+  import { usePricingList } from '@/api/queries'
 
   defineOptions({ name: 'PointsPricing' })
 
@@ -266,31 +266,26 @@
     alibaba: 'ri:ali-baba-line'
   }
 
-  const list = ref<PricingItem[]>([])
+  const { data: pricingData } = usePricingList()
 
-  const loadList = async () => {
-    try {
-      const data = await fetchGetPricingList()
-      if (data) {
-        list.value = (Array.isArray(data) ? data : (data as any).list || []).map((item: any) => ({
-          id: item.id,
-          modelName: item.modelName || '',
-          modelCode: item.modelCode || '',
-          vendor: item.vendor || 'openai',
-          inputPrice: item.inputPrice || '',
-          outputPrice: item.outputPrice || '',
-          imagePrice: item.imagePrice || '-',
-          unit: item.unit || '',
-          currency: item.currency || '',
-          enabled: item.enabled ?? true,
-          updateTime: item.updateTime || '',
-          score: item.score || 0
-        })) as PricingItem[]
-      }
-    } catch {
-      ElMessage.error('加载定价列表失败')
-    }
-  }
+  const list = computed<PricingItem[]>(() => {
+    const data = pricingData.value
+    if (!data) return []
+    return (Array.isArray(data) ? data : (data as any).list || []).map((item: any) => ({
+      id: item.id,
+      modelName: item.modelName || '',
+      modelCode: item.modelCode || '',
+      vendor: item.vendor || 'openai',
+      inputPrice: item.inputPrice || '',
+      outputPrice: item.outputPrice || '',
+      imagePrice: item.imagePrice || '-',
+      unit: item.unit || '',
+      currency: item.currency || '',
+      enabled: item.enabled ?? true,
+      updateTime: item.updateTime || '',
+      score: item.score || 0
+    })) as PricingItem[]
+  })
 
   const columns: ColumnOption[] = [
     { type: 'index' },
@@ -397,10 +392,6 @@
       }
     })
   }
-
-  onMounted(() => {
-    loadList()
-  })
 </script>
 
 <style lang="scss" scoped>

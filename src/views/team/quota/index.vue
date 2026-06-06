@@ -217,7 +217,7 @@
   import type { ColumnOption } from '@/types/component'
   import { useTeamStore } from '@/store/modules/team'
   import { useRoute } from 'vue-router'
-  import { fetchGetTeamDetail } from '@/api/team'
+  import { useTeamDetail } from '@/api/queries'
 
   defineOptions({ name: 'TeamQuota' })
 
@@ -280,7 +280,6 @@
   }
 
   const quotaList = ref<QuotaItem[]>([])
-  const loading = ref(false)
 
   const defaultQuotaList: QuotaItem[] = [
     {
@@ -357,49 +356,41 @@
     }
   ]
 
-  const loadQuotaData = async () => {
-    loading.value = true
-    try {
-      if (teamId.value) {
-        const detail = await fetchGetTeamDetail(teamId.value)
-        if (detail) {
-          const teamName = (detail as any).teamName || (detail as any).name || ''
-          const quotas = (detail as any).quotas
-          if (Array.isArray(quotas) && quotas.length > 0) {
-            quotaList.value = quotas.map((q: any, index: number) => ({
-              id: q.id || index + 1,
-              targetType: q.targetType || 'team',
-              targetName: q.targetName || teamName,
-              resourceType: q.resourceType || 'ai_calls',
-              limit: q.limit || 0,
-              used: q.used || 0,
-              unit: q.unit || '次',
-              alertThreshold: q.alertThreshold || 80,
-              resetCycle: q.resetCycle || 'monthly',
-              enabled: q.enabled !== undefined ? q.enabled : true
-            }))
-          } else {
-            quotaList.value = defaultQuotaList.map((item) => ({
-              ...item,
-              targetName: item.targetType === 'team' ? teamName : item.targetName
-            }))
-          }
-        } else {
-          quotaList.value = [...defaultQuotaList]
-        }
-      } else {
-        quotaList.value = [...defaultQuotaList]
-      }
-    } catch {
-      quotaList.value = [...defaultQuotaList]
-    } finally {
-      loading.value = false
-    }
-  }
+  // Vue Query: 团队详情（含配额数据）
+  const { data: teamDetailData, isLoading: loading } = useTeamDetail(teamId)
 
-  onMounted(() => {
-    loadQuotaData()
-  })
+  // 同步配额数据
+  watch(
+    () => teamDetailData.value,
+    (detail) => {
+      if (!detail) {
+        quotaList.value = [...defaultQuotaList]
+        return
+      }
+      const teamName = (detail as any).teamName || (detail as any).name || ''
+      const quotas = (detail as any).quotas
+      if (Array.isArray(quotas) && quotas.length > 0) {
+        quotaList.value = quotas.map((q: any, index: number) => ({
+          id: q.id || index + 1,
+          targetType: q.targetType || 'team',
+          targetName: q.targetName || teamName,
+          resourceType: q.resourceType || 'ai_calls',
+          limit: q.limit || 0,
+          used: q.used || 0,
+          unit: q.unit || '次',
+          alertThreshold: q.alertThreshold || 80,
+          resetCycle: q.resetCycle || 'monthly',
+          enabled: q.enabled !== undefined ? q.enabled : true
+        }))
+      } else {
+        quotaList.value = defaultQuotaList.map((item) => ({
+          ...item,
+          targetName: item.targetType === 'team' ? teamName : item.targetName
+        }))
+      }
+    },
+    { immediate: true }
+  )
 
   const quotaCards = computed(() => {
     const ai = quotaList.value.find((q) => q.targetType === 'team' && q.resourceType === 'ai_calls')

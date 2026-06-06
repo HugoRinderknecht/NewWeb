@@ -302,6 +302,12 @@ export enum BusinessCode {
 
 export function getBusinessErrorMessage(code: number): string {
   if (code === BusinessCode.SUCCESS) return '操作成功'
+
+  // 优先从精确映射表查找
+  const exact = BUSINESS_ERROR_MAP[code]
+  if (exact) return exact
+
+  // 兜底：按范围返回分类提示
   if (code >= 1001 && code <= 1017) return '认证错误'
   if (code >= 2001 && code <= 2024) return '团队管理错误'
   if (code >= 3001 && code <= 3018) return '项目管理错误'
@@ -311,6 +317,201 @@ export function getBusinessErrorMessage(code: number): string {
   if (code >= 9001 && code <= 9034) return '通知系统错误'
   if (code >= 9401 && code <= 9429) return '工作流错误'
   return '未知错误'
+}
+
+/**
+ * 精确业务码 → 用户可读错误消息
+ * 通过 BusinessCode 枚举 key 自动生成（去掉前缀并转为中文）
+ */
+const BUSINESS_ERROR_MAP: Record<number, string> = {
+  [BusinessCode.PARAM_VALIDATION_FAILED]: '参数校验失败',
+  [BusinessCode.UNAUTHORIZED]: '未登录或登录已过期',
+  [BusinessCode.FORBIDDEN]: '没有权限访问',
+  [BusinessCode.NOT_FOUND]: '资源不存在',
+  [BusinessCode.TOO_MANY_REQUESTS]: '请求过于频繁，请稍后重试',
+  [BusinessCode.INTERNAL_ERROR]: '服务器内部错误',
+
+  // 认证错误
+  [BusinessCode.AUTH_INVALID_CREDENTIALS]: '账号或密码错误',
+  [BusinessCode.AUTH_ACCOUNT_LOCKED]: '账号已被锁定，请稍后再试',
+  [BusinessCode.AUTH_ACCOUNT_DISABLED]: '账号已被禁用',
+  [BusinessCode.AUTH_TOKEN_EXPIRED]: '登录已过期，请重新登录',
+  [BusinessCode.AUTH_TOKEN_INVALID]: '登录凭证无效',
+  [BusinessCode.AUTH_CAPTCHA_INVALID]: '图形验证码错误',
+  [BusinessCode.AUTH_CAPTCHA_EXPIRED]: '图形验证码已过期',
+  [BusinessCode.AUTH_EMAIL_CODE_INVALID]: '邮箱验证码错误',
+  [BusinessCode.AUTH_EMAIL_CODE_EXPIRED]: '邮箱验证码已过期',
+  [BusinessCode.AUTH_USER_EXISTS]: '用户已存在',
+  [BusinessCode.AUTH_EMAIL_EXISTS]: '邮箱已被注册',
+  [BusinessCode.AUTH_PHONE_EXISTS]: '手机号已被注册',
+  [BusinessCode.AUTH_PASSWORD_WEAK]: '密码强度不够，请使用更复杂的密码',
+  [BusinessCode.AUTH_REGISTER_FAILED]: '注册失败，请重试',
+  [BusinessCode.AUTH_LOGIN_FAILED]: '登录失败，请检查账号密码',
+  [BusinessCode.AUTH_REFRESH_TOKEN_INVALID]: '刷新令牌无效',
+  [BusinessCode.AUTH_REFRESH_TOKEN_EXPIRED]: '刷新令牌已过期',
+
+  // 团队错误
+  [BusinessCode.TEAM_NOT_FOUND]: '团队不存在',
+  [BusinessCode.TEAM_NAME_EXISTS]: '团队名称已存在',
+  [BusinessCode.TEAM_MEMBER_EXISTS]: '成员已在团队中',
+  [BusinessCode.TEAM_MEMBER_NOT_FOUND]: '团队成员不存在',
+  [BusinessCode.TEAM_ROLE_EXISTS]: '角色已存在',
+  [BusinessCode.TEAM_PERMISSION_DENIED]: '没有团队操作权限',
+  [BusinessCode.TEAM_INVITE_CODE_INVALID]: '邀请码无效',
+  [BusinessCode.TEAM_INVITE_CODE_EXPIRED]: '邀请码已过期',
+  [BusinessCode.TEAM_INVITE_CODE_USED_UP]: '邀请码已被使用完',
+  [BusinessCode.TEAM_MAX_MEMBERS_REACHED]: '团队成员数已达上限',
+  [BusinessCode.TEAM_OWNER_CANNOT_LEAVE]: '团队所有者不能退出',
+  [BusinessCode.TEAM_ALREADY_MEMBER]: '已是团队成员',
+  [BusinessCode.TEAM_APPLICATION_EXISTS]: '已存在申请记录',
+  [BusinessCode.TEAM_APPLICATION_NOT_FOUND]: '申请记录不存在',
+  [BusinessCode.TEAM_ROLE_IN_USE]: '角色正在使用中',
+  [BusinessCode.TEAM_CANNOT_TRANSFER_TO_SELF]: '不能转让给自己',
+  [BusinessCode.TEAM_NOT_CURRENT_MEMBER]: '不是当前团队成员',
+  [BusinessCode.TEAM_ROLE_NOT_FOUND]: '角色不存在',
+  [BusinessCode.TEAM_CANNOT_REMOVE_OWNER]: '不能移除团队所有者',
+  [BusinessCode.TEAM_DISABLED]: '团队已被禁用',
+  [BusinessCode.TEAM_MEMBER_QUOTA_EXCEEDED]: '团队成员配额超限',
+  [BusinessCode.TEAM_OWNER_NOT_FOUND]: '团队所有者不存在',
+  [BusinessCode.TEAM_TRANSFER_FAILED]: '团队转让失败',
+  [BusinessCode.TEAM_INVITE_CODE_NOT_FOUND]: '邀请码不存在',
+
+  // 项目错误
+  [BusinessCode.PROJECT_NOT_FOUND]: '项目不存在',
+  [BusinessCode.PROJECT_NAME_EXISTS]: '项目名称已存在',
+  [BusinessCode.PROJECT_MEMBER_EXISTS]: '成员已在项目中',
+  [BusinessCode.PROJECT_MEMBER_NOT_FOUND]: '项目成员不存在',
+  [BusinessCode.PROJECT_PERMISSION_DENIED]: '没有项目操作权限',
+  [BusinessCode.PROJECT_ARCHIVED]: '项目已归档',
+  [BusinessCode.PROJECT_DELETED]: '项目已删除',
+  [BusinessCode.PROJECT_CONFIG_NOT_FOUND]: '项目配置不存在',
+  [BusinessCode.PROJECT_REVIEW_CONFIG_NOT_FOUND]: '项目审核配置不存在',
+  [BusinessCode.PROJECT_ALREADY_ARCHIVED]: '项目已归档',
+  [BusinessCode.PROJECT_NOT_ARCHIVED]: '项目未归档',
+  [BusinessCode.PROJECT_CANNOT_DELETE_WITH_MEMBERS]: '存在项目成员，无法删除',
+  [BusinessCode.PROJECT_COPY_FAILED]: '项目复制失败',
+  [BusinessCode.PROJECT_COVER_UPLOAD_FAILED]: '封面上传失败',
+  [BusinessCode.PROJECT_STATUS_INVALID]: '项目状态无效',
+  [BusinessCode.PROJECT_QUOTA_EXCEEDED]: '项目配额超限',
+  [BusinessCode.PROJECT_MEMBER_ROLE_INVALID]: '项目成员角色无效',
+  [BusinessCode.PROJECT_OPERATION_NOT_ALLOWED]: '不允许的操作',
+
+  // 分镜错误
+  [BusinessCode.STORYBOARD_NOT_FOUND]: '分镜不存在',
+  [BusinessCode.STORYBOARD_STATUS_INVALID]: '分镜状态无效',
+  [BusinessCode.STORYBOARD_ALREADY_SUBMITTED]: '分镜已提交',
+  [BusinessCode.STORYBOARD_NOT_SUBMITTED]: '分镜未提交',
+  [BusinessCode.STORYBOARD_REVIEW_IN_PROGRESS]: '分镜审核中',
+  [BusinessCode.STORYBOARD_VERSION_NOT_FOUND]: '分镜版本不存在',
+  [BusinessCode.STORYBOARD_IMAGE_NOT_FOUND]: '分镜图片不存在',
+  [BusinessCode.STORYBOARD_ASSET_NOT_LINKED]: '资产未关联',
+  [BusinessCode.STORYBOARD_DECOMPOSE_FAILED]: '分镜拆解失败',
+  [BusinessCode.STORYBOARD_REBUILD_FAILED]: '分镜重构失败',
+  [BusinessCode.STORYBOARD_SCENE_NOT_FOUND]: '分镜场景不存在',
+  [BusinessCode.STORYBOARD_BATCH_DELETE_PARTIAL]: '批量删除部分失败',
+  [BusinessCode.STORYBOARD_REORDER_FAILED]: '分镜排序失败',
+  [BusinessCode.STORYBOARD_REVIEW_CANNOT_WITHDRAW]: '审核中的分镜不能撤回',
+  [BusinessCode.STORYBOARD_ASSET_ALREADY_LINKED]: '资产已关联',
+  [BusinessCode.STORYBOARD_IMAGE_LIMIT_EXCEEDED]: '分镜图片数量超限',
+  [BusinessCode.STORYBOARD_DECOMPOSE_IN_PROGRESS]: '分镜拆解进行中',
+  [BusinessCode.STORYBOARD_REBUILD_IN_PROGRESS]: '分镜重构进行中',
+
+  // 审核错误
+  [BusinessCode.REVIEW_TASK_NOT_FOUND]: '审核任务不存在',
+  [BusinessCode.REVIEW_ALREADY_CLAIMED]: '审核任务已被认领',
+  [BusinessCode.REVIEW_NOT_CLAIMED]: '审核任务未被认领',
+  [BusinessCode.REVIEW_ALREADY_DECIDED]: '审核已处理',
+  [BusinessCode.REVIEW_CANNOT_REVIEW_OWN]: '不能审核自己提交的内容',
+  [BusinessCode.REVIEW_ROUTE_NOT_FOUND]: '审核路由不存在',
+  [BusinessCode.REVIEW_REJECT_REASON_NOT_FOUND]: '驳回原因不存在',
+  [BusinessCode.REVIEW_REJECT_REASON_IN_USE]: '驳回原因正在使用中',
+  [BusinessCode.REVIEW_STATISTICS_NOT_FOUND]: '审核统计不存在',
+  [BusinessCode.REVIEW_EXPORT_FAILED]: '审核导出失败',
+  [BusinessCode.REVIEW_BATCH_DECISION_PARTIAL]: '批量处理部分失败',
+  [BusinessCode.REVIEW_CANNOT_WITHDRAW]: '不能撤回',
+  [BusinessCode.REVIEW_ALREADY_ARCHIVED]: '审核已归档',
+  [BusinessCode.REVIEW_NOT_APPROVED]: '审核未通过',
+  [BusinessCode.REVIEW_ALREADY_DISPATCHED]: '审核已分派',
+  [BusinessCode.REVIEW_DISPATCH_FAILED]: '审核分派失败',
+  [BusinessCode.REVIEW_ROUTE_CONFIG_INVALID]: '审核路由配置无效',
+  [BusinessCode.REVIEW_REJECT_REASON_EXISTS]: '驳回原因已存在',
+  [BusinessCode.REVIEW_CANNOT_ARCHIVE]: '不能归档',
+  [BusinessCode.REVIEW_CANNOT_DISPATCH]: '不能分派',
+
+  // 资产错误（关键错误）
+  [BusinessCode.ASSET_NOT_FOUND]: '资产不存在',
+  [BusinessCode.ASSET_UPLOAD_FAILED]: '资产上传失败',
+  [BusinessCode.ASSET_DOWNLOAD_FAILED]: '资产下载失败',
+  [BusinessCode.ASSET_VERSION_NOT_FOUND]: '资产版本不存在',
+  [BusinessCode.ASSET_CHUNK_UPLOAD_FAILED]: '分片上传失败',
+  [BusinessCode.ASSET_CHUNK_MERGE_FAILED]: '分片合并失败',
+  [BusinessCode.ASSET_CHUNK_INIT_FAILED]: '分片初始化失败',
+  [BusinessCode.ASSET_TYPE_NOT_SUPPORTED]: '资产类型不支持',
+  [BusinessCode.ASSET_SIZE_EXCEEDED]: '资产大小超限',
+  [BusinessCode.ASSET_NAME_EXISTS]: '资产名称已存在',
+  [BusinessCode.ASSET_BATCH_DELETE_PARTIAL]: '批量删除资产部分失败',
+  [BusinessCode.ASSET_BATCH_TAG_PARTIAL]: '批量打标签部分失败',
+  [BusinessCode.ASSET_BATCH_MOVE_PARTIAL]: '批量移动资产部分失败',
+  [BusinessCode.ASSET_AI_GENERATE_FAILED]: 'AI 生成资产失败',
+  [BusinessCode.ASSET_REFERENCE_NOT_FOUND]: '资产引用不存在',
+  [BusinessCode.ASSET_IMPORT_FROM_TEAM_FAILED]: '从团队导入资产失败',
+  [BusinessCode.ASSET_TEAM_NOT_FOUND]: '团队资产不存在',
+  [BusinessCode.ASSET_TEAM_UPLOAD_FAILED]: '团队资产上传失败',
+  [BusinessCode.ASSET_CHUNK_CANCEL_FAILED]: '分片取消失败',
+  [BusinessCode.ASSET_ROLLBACK_FAILED]: '资产回滚失败',
+  [BusinessCode.ASSET_BATCH_UPLOAD_PARTIAL]: '批量上传资产部分失败',
+  [BusinessCode.ASSET_REFERENCE_DELETE_FAILED]: '资产引用删除失败',
+  [BusinessCode.ASSET_PERMISSION_DENIED]: '没有资产操作权限',
+
+  // 通知错误（关键错误）
+  [BusinessCode.NOTIFICATION_NOT_FOUND]: '通知不存在',
+  [BusinessCode.NOTIFICATION_ALREADY_READ]: '通知已读',
+  [BusinessCode.NOTIFICATION_SEND_FAILED]: '通知发送失败',
+  [BusinessCode.NOTIFICATION_SUBSCRIBE_FAILED]: '通知订阅失败',
+  [BusinessCode.NOTIFICATION_UNSUBSCRIBE_FAILED]: '通知取消订阅失败',
+  [BusinessCode.NOTIFICATION_PREFERENCE_INVALID]: '通知偏好设置无效',
+  [BusinessCode.NOTIFICATION_DND_INVALID]: '免打扰设置无效',
+  [BusinessCode.NOTIFICATION_BATCH_DELETE_PARTIAL]: '批量删除通知部分失败',
+  [BusinessCode.NOTIFICATION_EXPORT_FAILED]: '通知导出失败',
+  [BusinessCode.NOTIFICATION_WS_TOKEN_FAILED]: 'WebSocket 令牌获取失败',
+  [BusinessCode.NOTIFICATION_ALREADY_STARRED]: '通知已收藏',
+  [BusinessCode.NOTIFICATION_NOT_STARRED]: '通知未收藏',
+  [BusinessCode.NOTIFICATION_CLEAR_FAILED]: '通知清空失败',
+  [BusinessCode.NOTIFICATION_SEARCH_FAILED]: '通知搜索失败',
+  [BusinessCode.NOTIFICATION_SUBSCRIPTION_EXISTS]: '订阅已存在',
+  [BusinessCode.NOTIFICATION_SUBSCRIPTION_NOT_FOUND]: '订阅不存在',
+  [BusinessCode.NOTIFICATION_RATE_LIMITED]: '通知频率受限',
+
+  // 工作流错误（关键错误）
+  [BusinessCode.DIFY_WORKFLOW_NOT_FOUND]: '工作流不存在',
+  [BusinessCode.DIFY_WORKFLOW_EXECUTE_FAILED]: '工作流执行失败',
+  [BusinessCode.DIFY_WORKFLOW_TIMEOUT]: '工作流执行超时',
+  [BusinessCode.DIFY_WORKFLOW_CONNECTION_FAILED]: '工作流连接失败',
+  [BusinessCode.DIFY_WORKFLOW_API_KEY_INVALID]: '工作流 API 密钥无效',
+  [BusinessCode.DIFY_WORKFLOW_PARAM_INVALID]: '工作流参数无效',
+  [BusinessCode.DIFY_WORKFLOW_RESULT_PARSE_FAILED]: '工作流结果解析失败',
+  [BusinessCode.DIFY_WORKFLOW_STREAM_ERROR]: '工作流流式响应错误',
+  [BusinessCode.DIFY_WORKFLOW_STOP_FAILED]: '工作流停止失败',
+  [BusinessCode.DIFY_WORKFLOW_STATUS_UNKNOWN]: '工作流状态未知',
+  [BusinessCode.DIFY_WORKFLOW_FILE_UPLOAD_FAILED]: '工作流文件上传失败',
+  [BusinessCode.DIFY_WORKFLOW_FILE_TOO_LARGE]: '工作流文件过大',
+  [BusinessCode.DIFY_WORKFLOW_FILE_TYPE_NOT_SUPPORTED]: '工作流文件类型不支持',
+  [BusinessCode.DIFY_WORKFLOW_CHAIN_STEP_FAILED]: '工作流链式步骤失败',
+  [BusinessCode.DIFY_WORKFLOW_CHAIN_ROLLBACK_FAILED]: '工作流链式回滚失败',
+  [BusinessCode.DIFY_WORKFLOW_MULTIMODAL_DETECT_FAILED]: '多模态检测失败',
+  [BusinessCode.DIFY_WORKFLOW_RATE_LIMITED]: '工作流频率受限',
+  [BusinessCode.DIFY_WORKFLOW_QUOTA_EXCEEDED]: '工作流配额超限',
+  [BusinessCode.DIFY_WORKFLOW_MAINTENANCE]: '工作流维护中',
+  [BusinessCode.DIFY_WORKFLOW_VERSION_CONFLICT]: '工作流版本冲突',
+  [BusinessCode.DIFY_WORKFLOW_CONFIG_INVALID]: '工作流配置无效',
+  [BusinessCode.DIFY_WORKFLOW_DEPENDENCY_FAILED]: '工作流依赖失败',
+  [BusinessCode.DIFY_WORKFLOW_OUTPUT_VALIDATION_FAILED]: '工作流输出校验失败',
+  [BusinessCode.DIFY_WORKFLOW_SECURITY_VIOLATION]: '工作流安全校验失败',
+  [BusinessCode.DIFY_WORKFLOW_RESOURCE_EXHAUSTED]: '工作流资源耗尽',
+  [BusinessCode.DIFY_WORKFLOW_CALLBACK_FAILED]: '工作流回调失败',
+  [BusinessCode.DIFY_WORKFLOW_RETRY_EXHAUSTED]: '工作流重试次数已用完',
+  [BusinessCode.DIFY_WORKFLOW_CIRCUIT_BREAKER_OPEN]: '工作流熔断器已打开',
+  [BusinessCode.DIFY_WORKFLOW_SERVICE_UNAVAILABLE]: '工作流服务不可用'
 }
 
 export function isBusinessError(code: number): boolean {

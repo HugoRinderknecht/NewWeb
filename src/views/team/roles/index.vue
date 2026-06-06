@@ -167,14 +167,14 @@
   import { useTeamStore } from '@/store/modules/team'
   import { useRoute } from 'vue-router'
   import {
-    fetchGetTeamRoles,
-    fetchCreateTeamRole,
-    fetchUpdateTeamRole,
-    fetchDeleteTeamRole,
-    fetchSetRolePermissions,
-    fetchGetRolePermissions,
-    fetchGetAvailablePermissions
-  } from '@/api/team'
+    useTeamRoles,
+    useAvailablePermissions,
+    useCreateTeamRole,
+    useUpdateTeamRole,
+    useDeleteTeamRole,
+    useSetRolePermissions
+  } from '@/api/queries'
+  import { fetchGetRolePermissions } from '@/api/team'
 
   defineOptions({ name: 'TeamRoles' })
 
@@ -196,7 +196,6 @@
   const teamId = computed(() =>
     String((route.query.id || route.query.teamId || teamStore.currentTeamId) as string)
   )
-  const loading = ref(false)
   const searchQuery = ref('')
   const dialogVisible = ref(false)
   const permissionDialogVisible = ref(false)
@@ -219,49 +218,35 @@
     custom: '自定义'
   }
 
-  const allPermissions = ref<{ label: string; value: string }[]>([])
+  // Vue Query: 角色列表
+  const { data: rolesData, isLoading: loading } = useTeamRoles(teamId)
+  const roleList = computed<RoleItem[]>(() =>
+    (rolesData.value || []).map((role: any) => ({
+      id: role.id,
+      name: role.name,
+      type: 'custom' as RoleType,
+      description: role.description || '',
+      memberCount: role.memberCount || 0,
+      permissions: [],
+      updateTime: role.createTime || '',
+      createTime: role.createTime || ''
+    }))
+  )
 
-  const roleList = ref<RoleItem[]>([])
+  // Vue Query: 可用权限列表
+  const { data: availablePermissionsData } = useAvailablePermissions(teamId)
+  const allPermissions = computed<{ label: string; value: string }[]>(() =>
+    (availablePermissionsData.value || []).map((p: any) => ({
+      label: p.name,
+      value: p.code
+    }))
+  )
 
-  const loadRoleList = async () => {
-    if (!teamId.value) return
-    loading.value = true
-    try {
-      const res = await fetchGetTeamRoles(teamId.value)
-      roleList.value = (res || []).map((role) => ({
-        id: role.id,
-        name: role.name,
-        type: 'custom' as RoleType,
-        description: role.description || '',
-        memberCount: role.memberCount || 0,
-        permissions: [],
-        updateTime: role.createTime || '',
-        createTime: role.createTime || ''
-      }))
-    } catch {
-      ElMessage.error('加载角色列表失败')
-    } finally {
-      loading.value = false
-    }
-  }
-
-  const loadAvailablePermissions = async () => {
-    if (!teamId.value) return
-    try {
-      const res = await fetchGetAvailablePermissions(teamId.value)
-      allPermissions.value = (res || []).map((p) => ({
-        label: p.name,
-        value: p.code
-      }))
-    } catch {
-      // silent
-    }
-  }
-
-  onMounted(() => {
-    loadRoleList()
-    loadAvailablePermissions()
-  })
+  // Mutations
+  const createRoleMutation = useCreateTeamRole()
+  const updateRoleMutation = useUpdateTeamRole()
+  const deleteRoleMutation = useDeleteTeamRole()
+  const setRolePermissionsMutation = useSetRolePermissions()
 
   const roleStats = computed(() => {
     const types: RoleType[] = ['system', 'custom']
@@ -358,21 +343,27 @@
     }
     try {
       if (isEdit.value && currentId.value) {
-        await fetchUpdateTeamRole(teamId.value, currentId.value, {
-          name: form.name,
-          description: form.description
+        await updateRoleMutation.mutateAsync({
+          teamId: teamId.value,
+          roleId: currentId.value,
+          params: {
+            name: form.name,
+            description: form.description
+          }
         })
         ElMessage.success('编辑成功')
       } else {
-        await fetchCreateTeamRole(teamId.value, {
-          name: form.name!,
-          code: form.name!.toLowerCase().replace(/\s+/g, '_'),
-          description: form.description
+        await createRoleMutation.mutateAsync({
+          teamId: teamId.value,
+          params: {
+            name: form.name!,
+            code: form.name!.toLowerCase().replace(/\s+/g, '_'),
+            description: form.description
+          }
         })
         ElMessage.success('创建成功')
       }
       dialogVisible.value = false
-      loadRoleList()
     } catch {
       ElMessage.error(isEdit.value ? '编辑失败' : '创建失败')
     }
@@ -395,10 +386,13 @@
 
   const handlePermissionSubmit = async () => {
     try {
-      await fetchSetRolePermissions(teamId.value, permissionForm.id, permissionForm.permissions)
+      await setRolePermissionsMutation.mutateAsync({
+        teamId: teamId.value,
+        roleId: permissionForm.id,
+        permissionCodes: permissionForm.permissions
+      })
       ElMessage.success('权限配置已保存')
       permissionDialogVisible.value = false
-      loadRoleList()
     } catch {
       ElMessage.error('保存权限失败')
     }
@@ -415,9 +409,8 @@
       type: 'warning'
     }).then(async () => {
       try {
-        await fetchDeleteTeamRole(teamId.value, row.id)
+        await deleteRoleMutation.mutateAsync({ teamId: teamId.value, roleId: row.id })
         ElMessage.success('删除成功')
-        loadRoleList()
       } catch {
         ElMessage.error('删除失败')
       }

@@ -195,7 +195,7 @@
   import { ElMessage } from 'element-plus'
   import type { LineDataItem, BarDataItem, PieDataItem } from '@/types/component/chart'
   import type { ColumnOption } from '@/types/component'
-  import { fetchGetTokenUsageRecords } from '@/api/points'
+  import { useTokenUsageRecords } from '@/api/queries'
 
   defineOptions({ name: 'PointsTokenUsage' })
 
@@ -341,30 +341,23 @@
     其他模型: 'info'
   }
 
-  const tokenList = ref<TokenItem[]>([])
+  const { data: tokenUsageData } = useTokenUsageRecords()
 
-  const loadTokenList = async () => {
-    try {
-      const data = await fetchGetTokenUsageRecords()
-      if (data) {
-        tokenList.value = (Array.isArray(data) ? data : (data as any).records || []).map(
-          (item: any) => ({
-            id: item.id,
-            projectName: item.projectName || '',
-            model: item.model || '',
-            requestType: item.requestType || '',
-            inputTokens: item.inputTokens || 0,
-            outputTokens: item.outputTokens || 0,
-            totalTokens: item.totalTokens || 0,
-            cost: item.cost || '',
-            requestTime: item.requestTime || ''
-          })
-        ) as TokenItem[]
-      }
-    } catch {
-      ElMessage.error('加载 Token 用量记录失败')
-    }
-  }
+  const tokenList = computed<TokenItem[]>(() => {
+    const data = tokenUsageData.value
+    if (!data) return []
+    return (Array.isArray(data) ? data : (data as any).records || []).map((item: any) => ({
+      id: item.id,
+      projectName: item.projectName || '',
+      model: item.model || '',
+      requestType: item.requestType || '',
+      inputTokens: item.inputTokens || 0,
+      outputTokens: item.outputTokens || 0,
+      totalTokens: item.totalTokens || 0,
+      cost: item.cost || '',
+      requestTime: item.requestTime || ''
+    })) as TokenItem[]
+  })
 
   const columns: ColumnOption[] = [
     { type: 'index' },
@@ -420,10 +413,6 @@
   const handleExport = () => {
     ElMessage.success('Token 用量明细导出成功')
   }
-
-  onMounted(() => {
-    loadTokenList()
-  })
 </script>
 
 <style lang="scss" scoped>

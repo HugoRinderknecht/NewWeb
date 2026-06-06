@@ -1,70 +1,39 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import {
-  fetchGetReviewList,
-  fetchGetPendingReviewCount,
-  fetchGetMySubmissions
-} from '@/api/review'
 
+/**
+ * 审核 Store（轻量版）
+ *
+ * 本 store 仅负责追踪待审核数量等 UI 相关状态。
+ * 所有服务端数据（审核列表、我的提交等）统一通过
+ * `useReviewList`、`usePendingReviewCount` 等 Vue Query Hook 获取。
+ */
 export const useReviewStore = defineStore(
   'review',
   () => {
+    /** 待审核数量（持久化用于即时展示，实际数据由 usePendingReviewCount 提供） */
     const pendingCount = ref(0)
-    const reviewList = ref<any[]>([])
-    const mySubmissions = ref<any[]>([])
-    const loading = ref(false)
 
     const hasPending = computed(() => pendingCount.value > 0)
 
-    const loadPendingCount = async () => {
-      try {
-        const res = await fetchGetPendingReviewCount()
-        pendingCount.value = typeof res === 'number' ? res : 0
-      } catch {
-        pendingCount.value = 0
-      }
+    /** 更新待审核数量（由 Vue Query 数据同步调用） */
+    const setPendingCount = (count: number) => {
+      pendingCount.value = count
     }
 
-    const loadReviewList = async (params?: any) => {
-      loading.value = true
-      try {
-        const res = await fetchGetReviewList(params)
-        reviewList.value = (res as any)?.records || res || []
-      } catch {
-        reviewList.value = []
-      } finally {
-        loading.value = false
-      }
-    }
-
-    const loadMySubmissions = async (params?: any) => {
-      try {
-        const res = await fetchGetMySubmissions(params)
-        mySubmissions.value = (res as any)?.records || res || []
-      } catch {
-        mySubmissions.value = []
-      }
-    }
-
+    /** 乐观减少待审核数量（用户完成审核后立即反馈） */
     const decrementPending = () => {
       pendingCount.value = Math.max(0, pendingCount.value - 1)
     }
 
     const clearAll = () => {
       pendingCount.value = 0
-      reviewList.value = []
-      mySubmissions.value = []
     }
 
     return {
       pendingCount,
-      reviewList,
-      mySubmissions,
-      loading,
       hasPending,
-      loadPendingCount,
-      loadReviewList,
-      loadMySubmissions,
+      setPendingCount,
       decrementPending,
       clearAll
     }

@@ -153,7 +153,7 @@
 <script setup lang="ts">
   import { ElMessage, ElMessageBox } from 'element-plus'
   import type { ColumnOption } from '@/types/component'
-  import { fetchGetReviewList, fetchReviewDecision, fetchWithdrawReview } from '@/api/review'
+  import { useReviewList, useReviewDecision, useWithdrawReview } from '@/api/queries'
 
   defineOptions({ name: 'ReviewContent' })
 
@@ -255,30 +255,28 @@
     total: 0
   })
 
-  const reviewList = ref<ReviewItem[]>([])
+  const { data: listResult } = useReviewList()
+  const decisionMutation = useReviewDecision()
+  const withdrawMutation = useWithdrawReview()
 
-  const loadReviewList = async () => {
-    try {
-      const res = await fetchGetReviewList()
-      if (res && res.records) {
-        const list = res.records
-        reviewList.value = list.map((item: any) => ({
-          id: item.id,
-          title: item.title,
-          type: item.type,
-          typeValue: item.typeValue,
-          submitter: item.submitter,
-          submitTime: item.submitTime,
-          status: item.status,
-          approver: item.approver,
-          isMyTask: item.isMyTask,
-          isMySubmit: item.isMySubmit
-        }))
-      }
-    } catch {
-      ElMessage.error('加载审核列表失败')
+  const reviewList = computed<ReviewItem[]>(() => {
+    const res = listResult.value
+    if (res && (res as any).records) {
+      return ((res as any).records || []).map((item: any) => ({
+        id: item.id,
+        title: item.title,
+        type: item.type,
+        typeValue: item.typeValue,
+        submitter: item.submitter,
+        submitTime: item.submitTime,
+        status: item.status,
+        approver: item.approver,
+        isMyTask: item.isMyTask,
+        isMySubmit: item.isMySubmit
+      }))
     }
-  }
+    return []
+  })
 
   const columns: ColumnOption[] = [
     { prop: 'title', label: '内容标题', minWidth: 200 },
@@ -368,12 +366,11 @@
       type: 'success'
     }).then(async () => {
       try {
-        await fetchReviewDecision({
+        await decisionMutation.mutateAsync({
           id: String(row.id),
           decision: 'approved'
         })
         ElMessage.success('审批通过')
-        await loadReviewList()
       } catch {
         ElMessage.error('审批失败')
       }
@@ -389,13 +386,12 @@
       inputPlaceholder: '请输入驳回原因'
     }).then(async ({ value }) => {
       try {
-        await fetchReviewDecision({
+        await decisionMutation.mutateAsync({
           id: String(row.id),
           decision: 'rejected',
           reason: value
         })
         ElMessage.success('已驳回: ' + (value || '无原因'))
-        await loadReviewList()
       } catch {
         ElMessage.error('驳回失败')
       }
@@ -415,7 +411,7 @@
       return
     }
     try {
-      await fetchReviewDecision({
+      await decisionMutation.mutateAsync({
         id: String(currentRow.value?.id),
         decision: 'transfer',
         targetUser: transferForm.targetUser,
@@ -424,7 +420,6 @@
       const target = approverOptions.find((o) => o.value === transferForm.targetUser)
       ElMessage.success(`已转审给 ${target?.label || transferForm.targetUser}`)
       transferDialogVisible.value = false
-      await loadReviewList()
     } catch {
       ElMessage.error('转审失败')
     }
@@ -437,18 +432,15 @@
       type: 'warning'
     }).then(async () => {
       try {
-        await fetchWithdrawReview(String(row.id))
+        await withdrawMutation.mutateAsync(String(row.id))
         ElMessage.success('撤回成功')
-        await loadReviewList()
       } catch {
         ElMessage.error('撤回失败')
       }
     })
   }
 
-  onMounted(() => {
-    loadReviewList()
-  })
+  // Vue Query 自动获取数据，无需 onMounted 手动加载
 </script>
 
 <style lang="scss" scoped>

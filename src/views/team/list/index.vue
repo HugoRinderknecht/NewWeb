@@ -111,10 +111,6 @@
                   <ArtSvgIcon icon="ri:exchange-line" class="mr-1" />
                   切换
                 </ElButton>
-                <ElButton type="primary" link size="small" @click="handleGoSettings(row)">
-                  <ArtSvgIcon icon="ri:settings-3-line" class="mr-1" />
-                  设置
-                </ElButton>
                 <ElButton type="primary" link size="small" @click="handleGoMembers(row)">
                   <ArtSvgIcon icon="ri:team-line" class="mr-1" />
                   成员
@@ -190,7 +186,7 @@
   import { ElMessage, ElMessageBox } from 'element-plus'
   import type { FormInstance, FormRules } from 'element-plus'
   import type { ColumnOption } from '@/types/component'
-  import { fetchGetMyTeams, fetchSwitchTeam, fetchLeaveTeam } from '@/api/team'
+  import { useMyTeams, useSwitchTeam, useLeaveTeam } from '@/api/queries'
 
   defineOptions({ name: 'TeamList' })
 
@@ -214,7 +210,6 @@
   const filterRole = ref('')
   const showCreateDialog = ref(false)
   const createFormRef = ref<FormInstance>()
-  const loading = ref(false)
 
   const roleTagMap: Record<TeamRole, 'danger' | 'warning' | 'info'> = {
     owner: 'danger',
@@ -227,6 +222,30 @@
     admin: '管理员',
     member: '成员'
   }
+
+  const { data: teamsData } = useMyTeams()
+  const switchTeamMutation = useSwitchTeam()
+  const leaveTeamMutation = useLeaveTeam()
+
+  const locallyCreatedTeams = ref<TeamItem[]>([])
+
+  const teamList = computed<TeamItem[]>(() => {
+    const res = teamsData.value
+    const remote = res
+      ? (res || []).map((item: any) => ({
+          id: item.teamId,
+          name: item.teamName || '',
+          description: item.description || '',
+          myRole: item.role || 'member',
+          memberCount: item.memberCount || 0,
+          projectCount: item.projectCount || 0,
+          createTime: item.createTime || '',
+          status: (item.status === 1 ? 'active' : 'archived') as TeamItem['status'],
+          isCurrent: item.isCurrent || false
+        }))
+      : []
+    return [...remote, ...locallyCreatedTeams.value]
+  })
 
   const statsCards = computed(() => {
     const list = teamList.value
@@ -251,34 +270,6 @@
         icon: 'ri:folder-3-line'
       }
     ]
-  })
-
-  const teamList = ref<TeamItem[]>([])
-
-  const loadTeamList = async () => {
-    loading.value = true
-    try {
-      const res = await fetchGetMyTeams()
-      teamList.value = (res || []).map((item: any) => ({
-        id: item.teamId,
-        name: item.teamName || '',
-        description: item.description || '',
-        myRole: item.role || 'member',
-        memberCount: item.memberCount || 0,
-        projectCount: item.projectCount || 0,
-        createTime: item.createTime || '',
-        status: item.status === 1 ? 'active' : 'archived',
-        isCurrent: item.isCurrent || false
-      }))
-    } catch {
-      ElMessage.error('获取团队列表失败')
-    } finally {
-      loading.value = false
-    }
-  }
-
-  onMounted(() => {
-    loadTeamList()
   })
 
   const columns: ColumnOption[] = [
@@ -367,7 +358,7 @@
           status: 'active',
           isCurrent: false
         }
-        teamList.value.push(newTeam)
+        locallyCreatedTeams.value.push(newTeam)
         ElMessage.success('团队创建成功')
         showCreateDialog.value = false
         createFormRef.value?.resetFields()
@@ -377,18 +368,11 @@
 
   const handleSwitchTeam = async (row: TeamItem) => {
     try {
-      await fetchSwitchTeam(String(row.id))
-      teamList.value.forEach((t) => (t.isCurrent = false))
-      const team = teamList.value.find((t) => t.id === row.id)
-      if (team) team.isCurrent = true
+      await switchTeamMutation.mutateAsync(String(row.id))
       ElMessage.success(`已切换到「${row.name}」`)
     } catch {
       ElMessage.error('切换团队失败')
     }
-  }
-
-  const handleGoSettings = (row: TeamItem) => {
-    router.push(`/team/settings?id=${row.id}`)
   }
 
   const handleGoMembers = (row: TeamItem) => {
@@ -406,8 +390,7 @@
       }
     ).then(async () => {
       try {
-        await fetchLeaveTeam(String(row.id))
-        teamList.value = teamList.value.filter((t) => t.id !== row.id)
+        await leaveTeamMutation.mutateAsync(String(row.id))
         ElMessage.success('已退出团队')
       } catch {
         ElMessage.error('退出团队失败')

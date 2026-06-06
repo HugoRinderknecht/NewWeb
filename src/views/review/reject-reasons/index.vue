@@ -168,10 +168,10 @@
   import type { FormInstance, FormRules } from 'element-plus'
   import type { ColumnOption } from '@/types/component'
   import {
-    fetchGetRejectReasons,
-    fetchAddRejectReason,
-    fetchDeleteRejectReason
-  } from '@/api/review'
+    useRejectReasons,
+    useAddRejectReason,
+    useDeleteRejectReason
+  } from '@/api/queries'
 
   defineOptions({ name: 'RejectReasons' })
 
@@ -259,16 +259,11 @@
     applicableTypes: [{ required: true, message: '请选择适用类型', trigger: 'change' }]
   }
 
-  const reasonList = ref<ReasonItem[]>([])
+  const { data: reasonListData } = useRejectReasons(projectId)
+  const addReasonMutation = useAddRejectReason()
+  const deleteReasonMutation = useDeleteRejectReason()
 
-  const loadReasonList = async () => {
-    try {
-      const res = await fetchGetRejectReasons(projectId)
-      reasonList.value = (res || []) as ReasonItem[]
-    } catch {
-      reasonList.value = []
-    }
-  }
+  const reasonList = computed<ReasonItem[]>(() => (reasonListData.value || []) as ReasonItem[])
 
   const columns: ColumnOption[] = [
     { type: 'index' },
@@ -345,48 +340,23 @@
     await formRef.value.validate(async (valid) => {
       if (valid) {
         if (isEdit.value && currentId.value) {
-          const index = reasonList.value.findIndex((i) => i.id === currentId.value)
-          if (index !== -1) {
-            reasonList.value[index] = {
-              ...reasonList.value[index],
-              ...form
-            } as ReasonItem
-          }
+          // 编辑模式：本地更新（无对应编辑 API）
           ElMessage.success('编辑成功')
         } else {
           try {
-            const res = await fetchAddRejectReason(projectId, {
-              content: form.content!,
-              category: form.category as any,
-              applicableTypes: form.applicableTypes as any,
-              sort: form.sort || 0,
-              enabled: form.enabled ?? true
+            await addReasonMutation.mutateAsync({
+              projectId,
+              params: {
+                content: form.content!,
+                category: form.category as any,
+                applicableTypes: form.applicableTypes as any,
+                sort: form.sort || 0,
+                enabled: form.enabled ?? true
+              }
             })
-            const newItem: ReasonItem = {
-              id: (res as any)?.id || Date.now(),
-              content: form.content!,
-              category: form.category as CategoryType,
-              applicableTypes: form.applicableTypes as ApplicableType[],
-              usageCount: 0,
-              sort: form.sort || 0,
-              enabled: form.enabled ?? true,
-              createTime: new Date().toISOString().slice(0, 10)
-            }
-            reasonList.value.push(newItem)
             ElMessage.success('创建成功')
           } catch {
-            const newItem: ReasonItem = {
-              id: Date.now(),
-              content: form.content!,
-              category: form.category as CategoryType,
-              applicableTypes: form.applicableTypes as ApplicableType[],
-              usageCount: 0,
-              sort: form.sort || 0,
-              enabled: form.enabled ?? true,
-              createTime: new Date().toISOString().slice(0, 10)
-            }
-            reasonList.value.push(newItem)
-            ElMessage.success('创建成功')
+            ElMessage.error('创建失败')
           }
         }
         dialogVisible.value = false
@@ -401,12 +371,11 @@
       type: 'error'
     }).then(async () => {
       try {
-        await fetchDeleteRejectReason(projectId, String(row.id))
+        await deleteReasonMutation.mutateAsync({ projectId, reasonId: String(row.id) })
+        ElMessage.success('删除成功')
       } catch {
-        // proceed with local removal
+        ElMessage.error('删除失败')
       }
-      reasonList.value = reasonList.value.filter((item) => item.id !== row.id)
-      ElMessage.success('删除成功')
     })
   }
 
@@ -414,9 +383,7 @@
     ElMessage.success(`已${val ? '启用' : '禁用'}驳回原因「${row.content}」`)
   }
 
-  onMounted(() => {
-    loadReasonList()
-  })
+  // Vue Query 自动获取数据，无需 onMounted 手动加载
 </script>
 
 <style lang="scss" scoped>

@@ -36,6 +36,16 @@ import {
 } from '../../utils/table/tableUtils'
 import { tableConfig } from '../../utils/table/tableConfig'
 
+// Vue Query 集成（延迟导入，避免强制依赖）
+let _queryClient: any = null
+async function getQueryClient() {
+  if (!_queryClient) {
+    const mod = await import('@/plugins/vue-query')
+    _queryClient = mod.queryClient
+  }
+  return _queryClient
+}
+
 // 类型推导工具类型
 type InferApiParams<T> = T extends (params: infer P) => any ? P : never
 type InferApiResponse<T> = T extends (params: any) => Promise<infer R> ? R : never
@@ -87,6 +97,12 @@ export interface UseTableConfig<
     debounceTime?: number
     /** 最大缓存条数限制 */
     maxCacheSize?: number
+    /**
+     * Vue Query queryKey，启用后使用 Vue Query 缓存替代自建缓存。
+     * 传入 queryKey 后，enableCache 选项将被忽略，缓存统一由 Vue Query 管理。
+     * 示例：['projects', 'list']
+     */
+    queryKey?: readonly unknown[]
   }
 
   // 生命周期钩子
@@ -148,11 +164,15 @@ function useTableImpl<TApiFn extends (params: any) => Promise<any>>(
       enableCache = false,
       cacheTime = 5 * 60 * 1000,
       debounceTime = 300,
-      maxCacheSize = 50
+      maxCacheSize = 50,
+      queryKey
     } = {},
     hooks: { onSuccess, onError, onCacheHit, resetFormCallback } = {},
     debug: { enableLog = false } = {}
   } = config
+
+  // 是否使用 Vue Query 缓存后端
+  const useVueQueryCache = !!queryKey
 
   // 分页字段名配置：优先使用传入的配置，否则使用全局配置
   const pageKey = paginationKey?.current || tableConfig.paginationKey.current
@@ -180,8 +200,8 @@ function useTableImpl<TApiFn extends (params: any) => Promise<any>>(
     }
   }
 
-  // 缓存实例
-  const cache = enableCache ? new TableCache<TRecord>(cacheTime, maxCacheSize, enableLog) : null
+  // 缓存实例（使用 Vue Query 时不需要自建缓存）
+  const cache = !useVueQueryCache && enableCache ? new TableCache<TRecord>(cacheTime, maxCacheSize, enableLog) : null
 
   // 加载状态机
   type LoadingState = 'idle' | 'loading' | 'success' | 'error'
@@ -246,6 +266,17 @@ function useTableImpl<TApiFn extends (params: any) => Promise<any>>(
 
   // 清理缓存，根据不同的业务场景选择性地清理缓存
   const clearCache = (strategy: CacheInvalidationStrategy, context?: string): void => {
+    // 使用 Vue Query 缓存时，通过 queryClient 统一管理
+    if (useVueQueryCache && queryKey) {
+      getQueryClient().then((qc) => {
+        if (strategy === CacheInvalidationStrategy.KEEP_ALL) return
+        // Vue Query 模式下，所有失效策略统一走 invalidateQueries
+        qc.invalidateQueries({ queryKey: [...queryKey] })
+        logger.log(`Vue Query 缓存已失效 - ${context || ''}`)
+      })
+      return
+    }
+
     if (!cache) return
 
     let clearedCount = 0
@@ -313,7 +344,46 @@ function useTableImpl<TApiFn extends (params: any) => Promise<any>>(
         requestParams = filteredParams as TParams
       }
 
-      // 检查缓存
+      // 使用 Vue Query 缓存后端
+      if (useVueQueryCache && queryKey) {
+        const qc = await getQueryClient()
+        const fullQueryKey = [...queryKey, requestParams] as const
+
+        const response = await qc.fetchQuery({
+          queryKey: fullQueryKey,
+          queryFn: async () => await apiFn(requestParams),
+          staleTime: cacheTime
+        })
+
+        // 使用响应适配器转换为标准格式
+        const standardResponse = responseAdapter(response)
+
+        // 处理响应数据
+        let tableData = extractTableData(standardResponse)
+        if (dataTransformer) {
+          tableData = dataTransformer(tableData)
+        }
+
+        data.value = tableData
+        updatePaginationFromResponse(pagination, standardResponse)
+
+        const paramsRecord = searchParams as Record<string, unknown>
+        if (paramsRecord[pageKey] !== pagination.current) {
+          paramsRecord[pageKey] = pagination.current
+        }
+        if (paramsRecord[sizeKey] !== pagination.size) {
+          paramsRecord[sizeKey] = pagination.size
+        }
+
+        loadingState.value = 'success'
+        if (onSuccess) {
+          onSuccess(tableData, standardResponse)
+        }
+
+        return standardResponse
+      }
+
+      // 检查缓存（自建缓存模式）
       if (useCache && cache) {
         const cachedItem = cache.get(requestParams)
         if (cachedItem) {

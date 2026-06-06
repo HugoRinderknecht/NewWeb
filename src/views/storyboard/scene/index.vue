@@ -13,6 +13,12 @@
         <div class="flex-cb">
           <div class="flex items-center gap-4">
             <span class="text-lg font-medium">场景编排</span>
+            <ProjectSwitcher
+              v-model="currentProjectId"
+              :project-list="projectOptions"
+              @change="handleProjectChange"
+              @refresh="handleProjectRefresh"
+            />
             <ElSelect v-model="currentStoryboard" placeholder="选择分镜" style="width: 220px">
               <ElOption
                 v-for="sb in storyboardOptions"
@@ -264,7 +270,9 @@
     useUpdateScene,
     useReorderStoryboards
   } from '@/api/queries/storyboard'
+  import { useProjectList } from '@/api/queries/project'
   import { useProjectStore } from '@/store/modules/project'
+  import ProjectSwitcher from '@/components/ProjectSwitcher/index.vue'
 
   defineOptions({ name: 'StoryboardScene' })
 
@@ -306,6 +314,31 @@
   const projectId = computed(
     () => (route.params.projectId as string) || projectStore.currentProjectId || ''
   )
+
+  // 项目下拉：列表 + 当前项目
+  const { data: projectListResult } = useProjectList(() => undefined)
+  const projectOptions = computed<{ id: string; name: string }[]>(() => {
+    const data = projectListResult.value as any
+    if (!data) return []
+    const list = Array.isArray(data) ? data : data.records || []
+    return list.map((p: any) => ({ id: String(p.id), name: p.name || p.projectName || '' }))
+  })
+  const currentProjectId = computed<string>({
+    get: () => projectId.value,
+    set: (val) => {
+      if (val && val !== projectStore.currentProjectId) {
+        projectStore.setCurrentProject(val)
+      }
+    }
+  })
+
+  function handleProjectChange() {
+    selectedScenes.value = []
+  }
+
+  function handleProjectRefresh() {
+    refetchSceneList()
+  }
 
   const {
     data: storyboardListData,

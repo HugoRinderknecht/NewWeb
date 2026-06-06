@@ -493,11 +493,6 @@
           path: '/team/quota',
           meta: { title: '资源配额', icon: 'ri:database-2-line' },
           component: ''
-        },
-        {
-          path: '/team/settings',
-          meta: { title: '团队设置', icon: 'ri:settings-3-line' },
-          component: ''
         }
       ]
     },

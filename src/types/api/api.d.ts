@@ -59,6 +59,16 @@ declare namespace Api {
       targetId: string
       status: number
       statusText: string
+      taskId?: string
+      id?: string
+      reviewer?: string
+      assigneeName?: string
+      note?: string
+      submitNote?: string
+      comment?: string
+      rejectReason?: string
+      submitTime?: string
+      reviewTime?: string
     }
 
     /** 分页配置 */
@@ -784,14 +794,17 @@ declare namespace Api {
       assetCount: number
       imageCount: number
       versionCount: number
-      createdBy: string
-      creatorName: string
-      createTime: string
-      updateTime: string
+      shotType?: string
+      aiGenerated?: boolean
+      creatorName?: string
+      createdBy?: string
+      createTime?: string
+      updateTime?: string
       name?: string
       type?: string
       duration?: number
       focalLength?: string
+      images?: StoryboardImage[]
     }
 
     /** 分镜搜索参数 */
@@ -829,6 +842,8 @@ declare namespace Api {
       source?: string
       status?: number | string
       thumbnail?: string
+      shotType?: string
+      storyboardNo?: number
     }
 
     /** 更新分镜参数 (StoryboardUpdateRequest) */
@@ -2025,9 +2040,10 @@ declare namespace Api {
     }
 
     /** 历史查询参数 */
-    interface HistorySearchParams extends Api.Common.CommonSearchParams {
-      scriptId?: string
-      processType?: string
+    interface HistorySearchParams {
+      projectId: string
+      type: string
+      businessId: string
       status?: string
     }
 
@@ -2062,8 +2078,10 @@ declare namespace Api {
   namespace DataHistory {
     /** 历史搜索参数 */
     interface HistorySearchParams {
-      targetType: string
-      targetId: string
+      projectId: string
+      type: string
+      businessId: string
+      status?: string
     }
 
     /** 历史版本 */

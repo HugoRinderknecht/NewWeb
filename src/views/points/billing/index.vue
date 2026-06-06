@@ -17,43 +17,34 @@
 </template>
 
 <script setup lang="ts">
-  import { fetchGetMyCredits } from '@/api/points'
+  import { useMyCredits } from '@/api/queries'
 
   defineOptions({ name: 'PointsBilling' })
 
-  const billingList = ref<Array<{ service: string; usage: string; unit: string; cost: string }>>([])
+  const { data: creditsData } = useMyCredits()
 
-  const loadBillingData = async () => {
-    try {
-      const data = await fetchGetMyCredits()
-      if (data) {
-        billingList.value = [
-          {
-            service: '积分余额',
-            usage: String(data.balance),
-            unit: '积分',
-            cost: `¥${data.balance}`
-          },
-          {
-            service: '累计获得',
-            usage: String(data.totalEarned),
-            unit: '积分',
-            cost: `¥${data.totalEarned}`
-          },
-          {
-            service: '累计消费',
-            usage: String(data.totalSpent),
-            unit: '积分',
-            cost: `¥${data.totalSpent}`
-          }
-        ]
+  const billingList = computed(() => {
+    const data = creditsData.value
+    if (!data) return []
+    return [
+      {
+        service: '积分余额',
+        usage: String(data.balance),
+        unit: '积分',
+        cost: `¥${data.balance}`
+      },
+      {
+        service: '累计获得',
+        usage: String(data.totalEarned),
+        unit: '积分',
+        cost: `¥${data.totalEarned}`
+      },
+      {
+        service: '累计消费',
+        usage: String(data.totalSpent),
+        unit: '积分',
+        cost: `¥${data.totalSpent}`
       }
-    } catch {
-      // ignore
-    }
-  }
-
-  onMounted(() => {
-    loadBillingData()
+    ]
   })
 </script>

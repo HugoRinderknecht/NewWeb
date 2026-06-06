@@ -105,8 +105,17 @@ export class DataFlowBus {
   /**
    * 初始化数据流转平台
    *
-   * 注册项目内置的数据通道，建立模块间的数据流转关系。
+   * 建立 Store 与 Vue Query 之间的桥接，用于跨模块数据变更通知。
    * 应在应用启动时调用。
+   *
+   * ## 使用场景
+   *
+   * DataFlowBus 定位为**轻量级跨模块事件总线**，仅用于：
+   * - Store 状态变更的跨模块通知（如团队切换后刷新统计数据）
+   * - WebSocket 推送事件的广播（如新通知到达）
+   *
+   * **不应替代 Vue Query 的缓存失效机制**。组件内的数据刷新应优先使用
+   * `queryClient.invalidateQueries()`，而非通过 DataFlowBus 中转。
    */
   async init(): Promise<void> {
     if (this.initialized) {
@@ -119,8 +128,7 @@ export class DataFlowBus {
       return
     }
 
-    this.registerBuiltinChannels()
-
+    // 桥接 Store 状态变更到数据流通道
     try {
       const [{ useTeamStore }, { useNotificationStore }, { useReviewStore }, { useProjectStore }] =
         await Promise.all([
@@ -147,7 +155,7 @@ export class DataFlowBus {
 
     if (import.meta.env.DEV) {
       console.info(
-        '%c[DataFlow] 统一数据流转平台已初始化 ✅',
+        '%c[DataFlow] 轻量级数据流总线已初始化 ✅',
         'color: #4CAF50; font-weight: bold;'
       )
     }
@@ -381,166 +389,9 @@ export class DataFlowBus {
   }
 
   // ============================================================
-  // 内置通道注册
+  // 内部方法
   // ============================================================
 
-  /** 注册项目内置的数据通道 */
-  private registerBuiltinChannels(): void {
-    // API -> 页面 的数据流通道
-    const apiToPageChannels: DataChannelConfig[] = [
-      {
-        id: 'flow:api->project-list',
-        name: '项目列表数据流',
-        description: '项目API -> 项目列表页',
-        source: { type: 'api' as DataModuleType, id: 'api:project', name: '项目API服务' },
-        target: { type: 'page' as DataModuleType, id: 'page:project-list', name: '项目列表页' },
-        direction: DataFlowDirection.ONE_WAY,
-        transformerId: 'builtin:pagination-response',
-        monitorEnabled: true
-      },
-      {
-        id: 'flow:api->script-list',
-        name: '剧本列表数据流',
-        description: '剧本API -> 剧本列表页',
-        source: { type: 'api' as DataModuleType, id: 'api:script', name: '剧本API服务' },
-        target: { type: 'page' as DataModuleType, id: 'page:script-list', name: '剧本列表页' },
-        direction: DataFlowDirection.ONE_WAY,
-        transformerId: 'builtin:pagination-response',
-        monitorEnabled: true
-      },
-      {
-        id: 'flow:api->asset-list',
-        name: '资产列表数据流',
-        description: '资产API -> 资产库页',
-        source: { type: 'api' as DataModuleType, id: 'api:asset', name: '资产API服务' },
-        target: { type: 'page' as DataModuleType, id: 'page:asset-library', name: '资产库页' },
-        direction: DataFlowDirection.ONE_WAY,
-        transformerId: 'builtin:pagination-response',
-        monitorEnabled: true
-      },
-      {
-        id: 'flow:api->review-list',
-        name: '审核列表数据流',
-        description: '审核API -> 审核列表页',
-        source: { type: 'api' as DataModuleType, id: 'api:review', name: '审核API服务' },
-        target: { type: 'page' as DataModuleType, id: 'page:review-pending', name: '待审核页' },
-        direction: DataFlowDirection.ONE_WAY,
-        transformerId: 'builtin:pagination-response',
-        monitorEnabled: true
-      },
-      {
-        id: 'flow:api->workflow-list',
-        name: '工作流列表数据流',
-        description: '工作流API -> 工作流列表页',
-        source: { type: 'api' as DataModuleType, id: 'api:workflow', name: '工作流API服务' },
-        target: { type: 'page' as DataModuleType, id: 'page:workflow-list', name: '工作流列表页' },
-        direction: DataFlowDirection.ONE_WAY,
-        transformerId: 'builtin:pagination-response',
-        monitorEnabled: true
-      },
-      {
-        id: 'flow:api->team-list',
-        name: '团队列表数据流',
-        description: '团队API -> 团队列表页',
-        source: { type: 'api' as DataModuleType, id: 'api:team', name: '团队API服务' },
-        target: { type: 'page' as DataModuleType, id: 'page:team-list', name: '团队列表页' },
-        direction: DataFlowDirection.ONE_WAY,
-        transformerId: 'builtin:pagination-response',
-        monitorEnabled: true
-      }
-    ]
-
-    // Store -> 页面 的数据流通道
-    const storeToPageChannels: DataChannelConfig[] = [
-      {
-        id: 'flow:store->user-info',
-        name: '用户信息数据流',
-        description: '用户Store -> 需要用户信息的页面',
-        source: { type: 'store' as DataModuleType, id: 'store:user', name: '用户Store' },
-        target: { type: 'page' as DataModuleType, id: 'page:*', name: '全局页面' },
-        direction: DataFlowDirection.BROADCAST,
-        monitorEnabled: true
-      },
-      {
-        id: 'flow:store->settings',
-        name: '设置数据流',
-        description: '设置Store -> 需要设置的组件',
-        source: { type: 'store' as DataModuleType, id: 'store:setting', name: '设置Store' },
-        target: { type: 'component' as DataModuleType, id: 'component:*', name: '全局组件' },
-        direction: DataFlowDirection.BROADCAST,
-        monitorEnabled: true
-      },
-      {
-        id: 'flow:store->project-data',
-        name: '项目数据流',
-        description: '项目数据Store -> 项目相关页面',
-        source: { type: 'store' as DataModuleType, id: 'store:project-data', name: '项目数据Store' },
-        target: { type: 'page' as DataModuleType, id: 'page:project-*', name: '项目相关页面' },
-        direction: DataFlowDirection.TWO_WAY,
-        monitorEnabled: true
-      }
-    ]
-
-    // 页面 -> API 的数据流通道（表单提交等）
-    const pageToApiChannels: DataChannelConfig[] = [
-      {
-        id: 'flow:page->api:form-submit',
-        name: '表单提交数据流',
-        description: '页面表单 -> API服务（通用）',
-        source: { type: 'page' as DataModuleType, id: 'page:*', name: '页面' },
-        target: { type: 'api' as DataModuleType, id: 'api:*', name: 'API服务' },
-        direction: DataFlowDirection.ONE_WAY,
-        transformerId: 'builtin:sanitize-empty',
-        monitorEnabled: true
-      }
-    ]
-
-    // 事件总线通道
-    const eventBusChannels: DataChannelConfig[] = [
-      {
-        id: 'flow:event-bus:global',
-        name: '全局事件总线',
-        description: 'mitt 事件总线的全局命令通道',
-        source: { type: 'event-bus' as DataModuleType, id: 'mitt:global', name: '全局事件总线' },
-        target: { type: 'component' as DataModuleType, id: 'component:*', name: '全局组件' },
-        direction: DataFlowDirection.BROADCAST,
-        monitorEnabled: false
-      }
-    ]
-
-    const allChannels = [
-      ...apiToPageChannels,
-      ...storeToPageChannels,
-      ...pageToApiChannels,
-      ...eventBusChannels
-    ]
-
-    for (const config of allChannels) {
-      this.registerChannel(config)
-    }
-
-    for (const config of allChannels) {
-      this.subscribe(config.id, (data) => {
-        if (import.meta.env.DEV) {
-          console.info(
-            `%c[DataFlow] 通道 "${config.id}" 收到数据:`,
-            'color: #2196F3;',
-            data
-          )
-        }
-        dataFlowMonitor.recordTransfer({
-          id: `${config.id}-${Date.now()}`,
-          channelId: config.id,
-          status: DataFlowStatus.SUCCESS,
-          inputSummary: { type: 'auto', size: 1 },
-          startTime: Date.now(),
-          endTime: Date.now(),
-          duration: 0,
-          transformed: false
-        })
-      })
-    }
-  }
   bridgeStoreToChannel(storeName: string, channelId: string, getter: () => any) {
     import('vue').then(({ watch }) => {
       watch(getter, (newVal, oldVal) => {

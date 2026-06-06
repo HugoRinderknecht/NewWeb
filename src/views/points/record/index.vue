@@ -18,30 +18,22 @@
 </template>
 
 <script setup lang="ts">
-  import { fetchGetCreditTransactions } from '@/api/points'
+  import { useCreditTransactionList } from '@/api/queries'
 
   defineOptions({ name: 'PointsRecord' })
 
-  const recordList = ref<any[]>([])
+  const { data: transactionData } = useCreditTransactionList({ current: 1, size: 20 })
 
-  const loadRecords = async () => {
-    try {
-      const data = await fetchGetCreditTransactions({ current: 1, size: 20 })
-      if (data) {
-        recordList.value = data.records.map((record) => ({
-          time: record.createTime,
-          type: record.type === 'earn' ? '充值' : '消费',
-          amount: record.type === 'earn' ? `+¥${record.amount}` : `-¥${record.amount}`,
-          balance: `¥${record.balance}`,
-          remark: record.description
-        }))
-      }
-    } catch {
-      // ignore
-    }
-  }
-
-  onMounted(() => {
-    loadRecords()
+  const recordList = computed(() => {
+    const data = transactionData.value
+    if (!data) return []
+    const records = Array.isArray(data) ? data : (data as any).records || []
+    return records.map((record: any) => ({
+      time: record.createTime,
+      type: record.type === 'earn' ? '充值' : '消费',
+      amount: record.type === 'earn' ? `+¥${record.amount}` : `-¥${record.amount}`,
+      balance: `¥${record.balance}`,
+      remark: record.description
+    }))
   })
 </script>

@@ -437,7 +437,7 @@
   import type { FormInstance, FormRules } from 'element-plus'
   import { useRoute } from 'vue-router'
   import { useTeamStore } from '@/store/modules/team'
-  import { fetchGetTeamAssets } from '@/api/asset'
+  import { useTeamAssetList } from '@/api/queries'
 
   defineOptions({ name: 'AssetReuse' })
 
@@ -480,7 +480,6 @@
   const searchQuery = ref('')
   const filterType = ref<AssetType | ''>('')
   const activeTab = ref('shared')
-  const loading = ref(false)
   const reuseDialogVisible = ref(false)
   const referenceDialogVisible = ref(false)
   const detailVisible = ref(false)
@@ -561,9 +560,17 @@
   const route = useRoute()
   const teamId = computed(() => (route.params.teamId as string) || teamStore.currentTeamId || '')
 
-  const sharedList = ref<SharedAsset[]>([])
+  // Vue Query: 团队资产列表
+  const { data: sharedAssetData, isLoading: loading } = useTeamAssetList(teamId)
+  const { data: referenceAssetData } = useTeamAssetList(teamId, { category: 'reference' } as any)
 
-  const referenceList = ref<AssetReference[]>([])
+  const sharedList = computed<SharedAsset[]>(() =>
+    ((sharedAssetData.value as any)?.records || []) as unknown as SharedAsset[]
+  )
+
+  const referenceList = computed<AssetReference[]>(() =>
+    ((referenceAssetData.value as any)?.records || []) as unknown as AssetReference[]
+  )
 
   const projectShareList = ref<ProjectShare[]>([
     {
@@ -636,27 +643,6 @@
     }
     return result
   })
-
-  const loadSharedList = async () => {
-    loading.value = true
-    try {
-      const res = await fetchGetTeamAssets(teamId.value)
-      sharedList.value = (res.records || []) as unknown as SharedAsset[]
-    } catch {
-      sharedList.value = []
-    } finally {
-      loading.value = false
-    }
-  }
-
-  const loadReferenceList = async () => {
-    try {
-      const res = await fetchGetTeamAssets(teamId.value, { category: 'reference' } as any)
-      referenceList.value = (res.records || []) as unknown as AssetReference[]
-    } catch {
-      referenceList.value = []
-    }
-  }
 
   const formatSize = (bytes: number): string => {
     if (bytes === 0) return '0 B'
@@ -761,11 +747,6 @@
   const handleViewProjectAssets = (proj: ProjectShare) => {
     ElMessage.info(`查看项目「${proj.name}」的共享资产`)
   }
-
-  onMounted(() => {
-    loadSharedList()
-    loadReferenceList()
-  })
 </script>
 
 <style lang="scss" scoped>

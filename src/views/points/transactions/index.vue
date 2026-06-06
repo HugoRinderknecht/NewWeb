@@ -138,7 +138,7 @@
 <script setup lang="ts">
   import { ElMessage } from 'element-plus'
   import type { ColumnOption } from '@/types/component'
-  import { fetchGetCreditTransactions } from '@/api/points'
+  import { useCreditTransactionList } from '@/api/queries'
 
   defineOptions({ name: 'PointsTransactions' })
 
@@ -190,30 +190,23 @@
     gift: '赠送'
   }
 
-  const list = ref<TransactionItem[]>([])
+  const { data: transactionData } = useCreditTransactionList()
 
-  const loadList = async () => {
-    try {
-      const data = await fetchGetCreditTransactions()
-      if (data) {
-        list.value = (Array.isArray(data) ? data : (data as any).records || []).map(
-          (item: any) => ({
-            id: item.id,
-            tradeNo: item.tradeNo || '',
-            type: item.type || 'recharge',
-            amount: item.amount || '',
-            balance: item.balance || '',
-            channel: item.channel || '',
-            remark: item.remark || '',
-            createTime: item.createTime || '',
-            status: item.status || 'success'
-          })
-        ) as TransactionItem[]
-      }
-    } catch {
-      ElMessage.error('加载交易记录失败')
-    }
-  }
+  const list = computed<TransactionItem[]>(() => {
+    const data = transactionData.value
+    if (!data) return []
+    return (Array.isArray(data) ? data : (data as any).records || []).map((item: any) => ({
+      id: item.id,
+      tradeNo: item.tradeNo || '',
+      type: item.type || 'recharge',
+      amount: item.amount || '',
+      balance: item.balance || '',
+      channel: item.channel || '',
+      remark: item.remark || '',
+      createTime: item.createTime || '',
+      status: item.status || 'success'
+    })) as TransactionItem[]
+  })
 
   const columns: ColumnOption[] = [
     { type: 'selection' },
@@ -285,10 +278,6 @@
   const handleExport = () => {
     ElMessage.success('交易记录导出成功')
   }
-
-  onMounted(() => {
-    loadList()
-  })
 </script>
 
 <style lang="scss" scoped>

@@ -117,8 +117,11 @@ export function useCreateScript() {
 export function useUpdateScript() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (payload: { scriptId: string; params: Api.Script.UpdateScriptParams; projectId?: string }) =>
-      fetchUpdateScript(payload.scriptId, payload.params),
+    mutationFn: (payload: {
+      scriptId: string
+      params: Api.Script.UpdateScriptParams
+      projectId?: string
+    }) => fetchUpdateScript(payload.scriptId, payload.params),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'detail', variables.scriptId] })
       if (variables.projectId) {
@@ -225,10 +228,16 @@ export function useCreateEpisode() {
 export function useUpdateEpisode() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (payload: { scriptId: string; episodeId: string; params: Api.Script.EpisodeParams; projectId?: string }) =>
-      fetchUpdateEpisode(payload.scriptId, payload.episodeId, payload.params),
+    mutationFn: (payload: {
+      scriptId: string
+      episodeId: string
+      params: Api.Script.EpisodeParams
+      projectId?: string
+    }) => fetchUpdateEpisode(payload.scriptId, payload.episodeId, payload.params),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'episode', variables.scriptId, variables.episodeId] })
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEY, 'episode', variables.scriptId, variables.episodeId]
+      })
       if (variables.projectId) {
         queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'episodes', variables.projectId] })
       }
@@ -243,9 +252,15 @@ export function useDeleteEpisode() {
     mutationFn: (payload: { scriptId: string; episodeId: string; projectId?: string }) =>
       fetchDeleteEpisode(payload.scriptId, payload.episodeId),
     onSuccess: (_data, variables) => {
+      // 失效分集列表
       if (variables.projectId) {
         queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'episodes', variables.projectId] })
       }
+      // 失效分集详情（之前缺失，导致详情页缓存了已删除的分集）
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEY, 'episode', variables.scriptId, variables.episodeId]
+      })
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'episode', variables.episodeId] })
     }
   })
 }
@@ -261,9 +276,19 @@ export function useGenerateCharacterProfiles() {
       scriptId: string
       episodeIds?: string[]
       force?: boolean
-    }) => fetchGenerateCharacterProfiles(payload.projectId, payload.scriptId, payload.episodeIds, payload.force),
+    }) =>
+      fetchGenerateCharacterProfiles(
+        payload.projectId,
+        payload.scriptId,
+        payload.episodeIds,
+        payload.force
+      ),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'detail', variables.scriptId] })
+      // 生成完成后失效人物小传缓存，使列表自动刷新
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEY, 'character-profiles', variables.scriptId]
+      })
     }
   })
 }
@@ -275,10 +300,19 @@ export function useCharacterProfiles(scriptId: MaybeRefOrGetter<string | undefin
     queryFn: async () => {
       const id = toValue(scriptId)
       if (!id) return null
-      return await fetchGetCharacterProfiles(id)
+      try {
+        const res = await fetchGetCharacterProfiles(id)
+        // Vue Query 不允许 queryFn 返回 undefined，统一 ?? null
+        return res ?? null
+      } catch (err: any) {
+        // 后端 404 / 业务码 404 时降级为"无数据"，避免 query 进入 error 态导致 data 为 undefined
+        if (err?.code === 404 || err?.response?.status === 404) return null
+        throw err
+      }
     },
     enabled: () => !!toValue(scriptId),
-    staleTime: 30 * 1000
+    staleTime: 30 * 1000,
+    retry: false
   })
 }
 
@@ -291,7 +325,8 @@ export function useExtractAssets() {
       scriptId: string
       episodeIds?: string[]
       force?: boolean
-    }) => fetchExtractAssets(payload.projectId, payload.scriptId, payload.episodeIds, payload.force),
+    }) =>
+      fetchExtractAssets(payload.projectId, payload.scriptId, payload.episodeIds, payload.force),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'detail', variables.scriptId] })
     }
@@ -321,7 +356,13 @@ export function useReviewScriptContent() {
       scriptId: string
       episodeIds?: string[]
       force?: boolean
-    }) => fetchReviewScriptContent(payload.projectId, payload.scriptId, payload.episodeIds, payload.force),
+    }) =>
+      fetchReviewScriptContent(
+        payload.projectId,
+        payload.scriptId,
+        payload.episodeIds,
+        payload.force
+      ),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'detail', variables.scriptId] })
     }
@@ -395,12 +436,13 @@ export function useGenerateVoicePrompts() {
       scriptId: string
       characterProfileId?: string
       force?: boolean
-    }) => fetchGenerateVoicePrompts(
-      payload.projectId,
-      payload.scriptId,
-      payload.characterProfileId,
-      payload.force
-    ),
+    }) =>
+      fetchGenerateVoicePrompts(
+        payload.projectId,
+        payload.scriptId,
+        payload.characterProfileId,
+        payload.force
+      ),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'detail', variables.scriptId] })
     }
@@ -505,13 +547,14 @@ export function useGenerateVideoPrompts() {
       episodeId: string
       styleConfigId?: string
       force?: boolean
-    }) => fetchGenerateVideoPrompts(
-      payload.projectId,
-      payload.scriptId,
-      payload.episodeId,
-      payload.styleConfigId,
-      payload.force
-    ),
+    }) =>
+      fetchGenerateVideoPrompts(
+        payload.projectId,
+        payload.scriptId,
+        payload.episodeId,
+        payload.styleConfigId,
+        payload.force
+      ),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
         queryKey: [QUERY_KEY, 'episode', variables.scriptId, variables.episodeId]

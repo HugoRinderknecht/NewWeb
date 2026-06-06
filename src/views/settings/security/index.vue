@@ -247,7 +247,8 @@
   import { ElMessage, ElMessageBox } from 'element-plus'
   import type { FormInstance, FormRules } from 'element-plus'
   import type { ColumnOption } from '@/types/component'
-  import { fetchResetPassword, fetchGetUserInfo } from '@/api/auth'
+  import { useCurrentUser } from '@/api/queries'
+  import { fetchResetPassword } from '@/api/auth'
 
   defineOptions({ name: 'SettingsSecurity' })
 
@@ -272,26 +273,7 @@
   const passwordFormRef = ref<FormInstance>()
   const bindFormRef = ref<FormInstance>()
 
-  const userInfo = ref<Api.Auth.UserInfo>({
-    buttons: [],
-    roles: [],
-    userId: 0,
-    username: '',
-    userName: '',
-    email: '',
-    avatar: ''
-  })
-
-  const loadUserInfo = async () => {
-    try {
-      const data = await fetchGetUserInfo()
-      if (data) {
-        userInfo.value = data
-      }
-    } catch (error) {
-      console.error('加载用户信息失败:', error)
-    }
-  }
+  const { data: userInfo } = useCurrentUser()
 
   const passwordForm = reactive({
     oldPassword: '',
@@ -449,7 +431,7 @@
       if (valid) {
         try {
           await fetchResetPassword({
-            email: userInfo.value.email || '',
+            email: userInfo.value?.email || '',
             captchaCode: '',
             newPassword: passwordForm.newPassword
           })
@@ -533,10 +515,6 @@
 
   onUnmounted(() => {
     if (timer) clearInterval(timer)
-  })
-
-  onMounted(() => {
-    loadUserInfo()
   })
 </script>
 

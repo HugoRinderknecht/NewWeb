@@ -222,7 +222,7 @@
 <script setup lang="ts">
   import { ElMessage, ElMessageBox } from 'element-plus'
   import type { ColumnOption } from '@/types/component'
-  import { fetchGetReviewRouteConfig, fetchUpdateReviewRouteConfig } from '@/api/review'
+  import { useReviewRouteConfig, useUpdateReviewRouteConfig } from '@/api/queries'
 
   defineOptions({ name: 'ReviewFlow' })
 
@@ -296,16 +296,10 @@
     total: 0
   })
 
-  const flowList = ref<FlowItem[]>([])
+  const { data: routeConfigData } = useReviewRouteConfig(projectId)
+  const updateRouteConfigMutation = useUpdateReviewRouteConfig()
 
-  const loadFlowList = async () => {
-    try {
-      const res = await fetchGetReviewRouteConfig(projectId)
-      flowList.value = (res.flows || []) as FlowItem[]
-    } catch {
-      flowList.value = []
-    }
-  }
+  const flowList = computed<FlowItem[]>(() => (routeConfigData.value as any)?.flows || [])
 
   const columns: ColumnOption[] = [
     { prop: 'name', label: '流程名称', minWidth: 180 },
@@ -402,68 +396,47 @@
       return
     }
     try {
-      await fetchUpdateReviewRouteConfig(projectId, {
-        flows: [
-          ...(isEdit.value && form.id
-            ? flowList.value.map((i) =>
-                i.id === form.id
-                  ? {
-                      ...i,
-                      name: form.name,
-                      steps: form.steps.map((s) => ({ ...s })),
-                      approverList: form.steps.map((s, idx) => ({
-                        name: s.approver,
-                        done: idx < i.activeStep,
-                        current: idx === i.activeStep
-                      }))
-                    }
-                  : i
-              )
-            : [
-                ...flowList.value,
-                {
-                  id: Date.now(),
-                  name: form.name,
-                  steps: form.steps.map((s) => ({ ...s })),
-                  approverList: form.steps.map((s) => ({
-                    name: s.approver,
-                    done: false,
-                    current: false
-                  })),
-                  createTime: new Date().toISOString().slice(0, 16).replace('T', ' '),
-                  status: 'active',
-                  activeStep: 0
-                }
-              ])
-        ]
-      } as any)
+      await updateRouteConfigMutation.mutateAsync({
+        projectId,
+        params: {
+          flows: [
+            ...(isEdit.value && form.id
+              ? flowList.value.map((i) =>
+                  i.id === form.id
+                    ? {
+                        ...i,
+                        name: form.name,
+                        steps: form.steps.map((s) => ({ ...s })),
+                        approverList: form.steps.map((s, idx) => ({
+                          name: s.approver,
+                          done: idx < i.activeStep,
+                          current: idx === i.activeStep
+                        }))
+                      }
+                    : i
+                )
+              : [
+                  ...flowList.value,
+                  {
+                    id: Date.now(),
+                    name: form.name,
+                    steps: form.steps.map((s) => ({ ...s })),
+                    approverList: form.steps.map((s) => ({
+                      name: s.approver,
+                      done: false,
+                      current: false
+                    })),
+                    createTime: new Date().toISOString().slice(0, 16).replace('T', ' '),
+                    status: 'active',
+                    activeStep: 0
+                  }
+                ])
+          ]
+        } as any
+      })
+      ElMessage.success(isEdit.value ? '流程更新成功' : '流程创建成功')
     } catch {
-      // proceed with local update
-    }
-    if (isEdit.value && form.id) {
-      const item = flowList.value.find((i) => i.id === form.id)
-      if (item) {
-        item.name = form.name
-        item.steps = form.steps.map((s) => ({ ...s }))
-        item.approverList = form.steps.map((s, idx) => ({
-          name: s.approver,
-          done: idx < item.activeStep,
-          current: idx === item.activeStep
-        }))
-      }
-      ElMessage.success('流程更新成功')
-    } else {
-      const newFlow: FlowItem = {
-        id: Date.now(),
-        name: form.name,
-        steps: form.steps.map((s) => ({ ...s })),
-        approverList: form.steps.map((s) => ({ name: s.approver, done: false, current: false })),
-        createTime: new Date().toISOString().slice(0, 16).replace('T', ' '),
-        status: 'active',
-        activeStep: 0
-      }
-      flowList.value.unshift(newFlow)
-      ElMessage.success('流程创建成功')
+      ElMessage.error(isEdit.value ? '流程更新失败' : '流程创建失败')
     }
     editDialogVisible.value = false
   }
@@ -473,15 +446,22 @@
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'error'
-    }).then(() => {
-      flowList.value = flowList.value.filter((item) => item.id !== row.id)
-      ElMessage.success('删除成功')
+    }).then(async () => {
+      try {
+        await updateRouteConfigMutation.mutateAsync({
+          projectId,
+          params: {
+            flows: flowList.value.filter((item) => item.id !== row.id)
+          } as any
+        })
+        ElMessage.success('删除成功')
+      } catch {
+        ElMessage.error('删除失败')
+      }
     })
   }
 
-  onMounted(() => {
-    loadFlowList()
-  })
+  // Vue Query 自动获取数据，无需 onMounted 手动加载
 </script>
 
 <style lang="scss" scoped>

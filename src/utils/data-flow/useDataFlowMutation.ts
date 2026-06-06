@@ -76,15 +76,13 @@ export function useDataFlowMutation<TData, TVariables>(
  * 订阅数据变更并在 Vue Query cache 上执行 invalidation
  *
  * @param channelId DataFlowBus 通道 ID
- * @param queryClient TanStack QueryClient 实例
  * @param invalidateMap key: queryKey 前缀，value: 是否精确匹配
  *
  * @example
  * ```typescript
- * import { queryClient } from '@/plugins/vue-query'
  * import { useDataFlowInvalidation } from '@/utils/data-flow'
  *
- * useDataFlowInvalidation(queryClient, 'flow:project-update', [
+ * useDataFlowInvalidation('flow:project-update', [
  *   { queryKey: ['projects'], exact: false },
  *   { queryKey: ['projects', 'detail'], exact: true }
  * ])
@@ -94,9 +92,8 @@ export function useDataFlowInvalidation(
   channelId: string,
   invalidateMap: Array<{ queryKey: any[]; exact?: boolean }>
 ) {
-  dataFlowBus.subscribe(channelId, () => {
-    const queryClient = (window as any).__QUERY_CLIENT__
-    if (!queryClient) return
+  dataFlowBus.subscribe(channelId, async () => {
+    const { queryClient } = await import('@/plugins/vue-query')
 
     for (const { queryKey, exact } of invalidateMap) {
       queryClient.invalidateQueries({

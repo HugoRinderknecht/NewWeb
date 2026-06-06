@@ -132,12 +132,66 @@ export function useSubscriptions() {
 
 // ==================== Mutations ====================
 
-/** 标记已读 */
+/** 标记已读（带乐观更新） */
 export function useMarkAsRead() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (id: string) => fetchMarkAsRead(id),
-    onSuccess: () => {
+    // 乐观更新：立即把该项标记为已读，无需等待服务端响应
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: [QUERY_KEY] })
+      await queryClient.cancelQueries({ queryKey: [QUERY_KEY, 'unread-count'] })
+
+      // 快照所有相关列表查询以便回滚
+      const previousListEntries = queryClient.getQueriesData<any>({
+        queryKey: [QUERY_KEY, 'list']
+      })
+      const previousUnread = queryClient.getQueryData<any>([QUERY_KEY, 'unread-count'])
+
+      // 乐观更新列表：将目标项标记为已读
+      queryClient.setQueriesData<any>({ queryKey: [QUERY_KEY, 'list'] }, (old: any) => {
+        if (!old) return old
+        const markRead = (item: any) => (item?.id === id || item?.noticeId === id
+          ? { ...item, read: true, isRead: true, readTime: Date.now() }
+          : item)
+        if (Array.isArray(old)) return old.map(markRead)
+        if (old.records && Array.isArray(old.records)) {
+          return { ...old, records: old.records.map(markRead) }
+        }
+        if (old.data && Array.isArray(old.data)) {
+          return { ...old, data: old.data.map(markRead) }
+        }
+        return old
+      })
+
+      // 乐观更新未读数：减 1
+      queryClient.setQueryData<any>([QUERY_KEY, 'unread-count'], (old: any) => {
+        if (!old) return old
+        const cur = old.count ?? old.data?.count ?? old.unreadCount ?? old
+        const next = Math.max(0, (typeof cur === 'number' ? cur : 0) - 1)
+        if (typeof old === 'number') return next
+        if (old.count !== undefined) return { ...old, count: next }
+        if (old.data?.count !== undefined) return { ...old, data: { ...old.data, count: next } }
+        if (old.unreadCount !== undefined) return { ...old, unreadCount: next }
+        return next
+      })
+
+      return { previousListEntries, previousUnread }
+    },
+    onError: (_err, _id, context) => {
+      // 失败回滚
+      const ctx = context as { previousListEntries?: any[]; previousUnread?: any } | undefined
+      if (ctx?.previousListEntries) {
+        ctx.previousListEntries.forEach(([key, data]) => {
+          queryClient.setQueryData(key, data)
+        })
+      }
+      if (ctx?.previousUnread !== undefined) {
+        queryClient.setQueryData([QUERY_KEY, 'unread-count'], ctx.previousUnread)
+      }
+    },
+    onSettled: () => {
+      // 无论成功失败都重新拉取以确保与服务端一致
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY] })
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'unread-count'] })
     }

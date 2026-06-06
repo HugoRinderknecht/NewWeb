@@ -531,7 +531,8 @@
   import type { FormInstance, FormRules, UploadFile, UploadInstance } from 'element-plus'
   import { storeToRefs } from 'pinia'
   import { useScriptProjectStore } from '@/store/modules/script-project'
-  import { fetchExtractAssets } from '@/api/script'
+  import { useExtractAssets, useProjectList } from '@/api/queries'
+  // 以下 fetch 函数暂无对应 Vue Query hook，保留直接调用
   import {
     fetchGetScriptAssetList,
     fetchCreateScriptAsset,
@@ -582,7 +583,25 @@
 
   // ==================== Store ====================
   const scriptProjectStore = useScriptProjectStore()
-  const { currentProjectId, projectList } = storeToRefs(scriptProjectStore)
+  const { currentProjectId } = storeToRefs(scriptProjectStore)
+
+  // ==================== Vue Query Hooks ====================
+  const extractAssetsMutation = useExtractAssets()
+
+  // ==================== 统一数据层：项目列表 ====================
+  // store 中已废弃的 projectList 不再使用，改走 useProjectList Vue Query Hook
+  const projectListQuery = useProjectList({
+    current: 1,
+    size: 100
+  } as Api.Project.ProjectSearchParams)
+  const projectList = computed(() => {
+    const records = projectListQuery.data.value?.records || []
+    return records.map((p) => ({
+      id: p.id,
+      name: p.projectName,
+      scriptCount: undefined
+    }))
+  })
 
   // ==================== 列表状态 ====================
   const searchKeyword = ref('')
@@ -700,7 +719,7 @@
     ).then(async () => {
       try {
         loading.value = true
-        await fetchExtractAssets(projectId, scriptId)
+        await extractAssetsMutation.mutateAsync({ projectId, scriptId })
         ElMessage.success('资产提取任务已提交，请稍后刷新查看结果')
         setTimeout(() => {
           loadAssetList()

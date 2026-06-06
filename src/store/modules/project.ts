@@ -8,7 +8,8 @@ import { ref, computed } from 'vue'
  * 所有服务端数据（项目列表、详情、成员等）统一通过
  * `useProjectList`、`useProjectDetail` 等 Vue Query Hook 获取。
  *
- * 保留对 project-data store 的引用，用于跨模块同步当前选中项目。
+ * currentProjectId 的唯一真实来源在本 store（带 sessionStorage 持久化），
+ * project-data store 通过 computed 引用本 store，不再维护独立副本。
  */
 export const useProjectStore = defineStore(
   'project',
@@ -18,15 +19,9 @@ export const useProjectStore = defineStore(
 
     const currentProjectName = computed(() => '')
 
-    /** 设置当前项目（同时通知 project-data store 同步） */
+    /** 设置当前项目 */
     const setCurrentProject = (projectId: string) => {
       currentProjectId.value = projectId
-      import('./project-data').then(({ useProjectDataStore }) => {
-        const dataStore = useProjectDataStore()
-        if (dataStore.currentProjectId !== projectId) {
-          dataStore.$patch({ currentProjectId: projectId })
-        }
-      })
     }
 
     const clearCurrentProject = () => {

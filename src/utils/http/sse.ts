@@ -1,13 +1,42 @@
 import { useUserStore } from '@/store/modules/user'
 import { showError, HttpError } from '@/utils/http/error'
+import { ApiStatus } from './status'
+import { extractResponseMessage } from '@/types'
 
 interface SSEOptions {
   url: string
   body?: Record<string, any>
   onMessage: (data: any) => void
-  onError?: (error: Error) => void
+  onError?: (error: HttpError) => void
   onComplete?: () => void
   signal?: AbortSignal
+}
+
+/**
+ * 创建 SSE 错误对象
+ * 统一使用 HttpError 保持与 HTTP 层错误处理一致
+ */
+function createSSEError(message: string, code: number = ApiStatus.error): HttpError {
+  return new HttpError(message, code)
+}
+
+/** 业务事件 data 行也可能包含 code 字段（错误事件），用于触发错误处理 */
+function processSSEDataLine(dataStr: string): { event: string; data: any } | { error: HttpError } {
+  try {
+    const parsed = JSON.parse(dataStr)
+    // 如果 data 中包含 code 字段且不是 200，视为错误事件
+    if (parsed && typeof parsed === 'object' && 'code' in parsed && parsed.code !== ApiStatus.success) {
+      return {
+        error: createSSEError(
+          extractResponseMessage(parsed) || 'SSE 业务错误',
+          typeof parsed.code === 'number' ? parsed.code : ApiStatus.error
+        )
+      }
+    }
+    return { event: '', data: parsed }
+  } catch {
+    return { event: '', data: dataStr }
+  }
 }
 
 export async function createSSEConnection(options: SSEOptions): Promise<AbortController> {
@@ -24,6 +53,15 @@ export async function createSSEConnection(options: SSEOptions): Promise<AbortCon
   const baseUrl = import.meta.env.VITE_API_URL || ''
   const fullUrl = `${baseUrl}${options.url}`
 
+  // 累积的错误数组：流结束后统一提示
+  const sseErrors: HttpError[] = []
+
+  const reportError = (error: HttpError, silent: boolean = false) => {
+    sseErrors.push(error)
+    options.onError?.(error)
+    if (!silent) showError(error, true)
+  }
+
   try {
     const response = await fetch(fullUrl, {
       method: 'POST',
@@ -36,16 +74,20 @@ export async function createSSEConnection(options: SSEOptions): Promise<AbortCon
     })
 
     if (!response.ok) {
-      if (response.status === 401) {
+      // 401 与 HTTP 层一致：触发登出
+      if (response.status === ApiStatus.unauthorized) {
         userStore.logOut()
         return controller
       }
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      throw createSSEError(
+        `HTTP ${response.status}: ${response.statusText}`,
+        response.status
+      )
     }
 
     const reader = response.body?.getReader()
     if (!reader) {
-      throw new Error('Response body is not readable')
+      throw createSSEError('Response body is not readable')
     }
 
     const decoder = new TextDecoder()
@@ -56,7 +98,10 @@ export async function createSSEConnection(options: SSEOptions): Promise<AbortCon
         while (true) {
           const { done, value } = await reader.read()
           if (done) {
-            options.onComplete?.()
+            // 流正常结束，避免重复 onComplete
+            if (sseErrors.length === 0) {
+              options.onComplete?.()
+            }
             break
           }
 
@@ -71,11 +116,22 @@ export async function createSSEConnection(options: SSEOptions): Promise<AbortCon
             } else if (line.startsWith('data:')) {
               const dataStr = line.slice(5).trim()
               if (dataStr) {
-                try {
-                  const data = JSON.parse(dataStr)
-                  options.onMessage({ event: currentEvent, data })
-                } catch {
-                  options.onMessage({ event: currentEvent, data: dataStr })
+                const result = processSSEDataLine(dataStr)
+                if ('error' in result) {
+                  // 业务错误：仅记录不立即弹错，避免在长连接中频繁打扰
+                  reportError(result.error, true)
+                } else {
+                  try {
+                    options.onMessage({ event: currentEvent, data: result.data })
+                  } catch (cbErr) {
+                    reportError(
+                      createSSEError(
+                        cbErr instanceof Error ? cbErr.message : 'SSE 回调执行失败',
+                        ApiStatus.error
+                      ),
+                      true
+                    )
+                  }
                 }
               }
               currentEvent = ''
@@ -84,18 +140,29 @@ export async function createSSEConnection(options: SSEOptions): Promise<AbortCon
         }
       } catch (error: any) {
         if (error.name === 'AbortError') {
-          options.onComplete?.()
+          // 用户主动取消
+          if (sseErrors.length === 0) options.onComplete?.()
         } else {
-          options.onError?.(error)
-          showError(new HttpError(error.message, 500))
+          reportError(
+            createSSEError(
+              error?.message || 'SSE 流处理失败',
+              ApiStatus.internalServerError
+            )
+          )
         }
       }
     }
 
     processChunk()
   } catch (error: any) {
-    if (error.name !== 'AbortError') {
-      options.onError?.(error)
+    if (error?.name === 'AbortError') {
+      // 静默
+    } else if (error instanceof HttpError) {
+      reportError(error)
+    } else {
+      reportError(
+        createSSEError(error?.message || 'SSE 连接失败', ApiStatus.internalServerError)
+      )
     }
   }
 

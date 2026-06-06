@@ -1,83 +1,29 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import {
-  fetchGetNotificationList,
-  fetchGetUnreadCount,
-  fetchMarkAsRead,
-  fetchMarkAllAsRead,
-  fetchUpdateNotificationPreference,
-  fetchGetNotificationPreference
-} from '@/api/notification'
 
+/**
+ * 通知 Store（轻量版）
+ *
+ * 本 store 仅负责追踪未读数量、WebSocket 连接状态等 UI 相关状态。
+ * 所有服务端数据（通知列表、偏好设置等）统一通过
+ * `useNotificationList`、`useUnreadCount` 等 Vue Query Hook 获取。
+ */
 export const useNotificationStore = defineStore(
   'notification',
   () => {
+    /** 未读数量（持久化用于即时展示，实际数据由 useUnreadCount 提供） */
     const unreadCount = ref(0)
-    const notifications = ref<any[]>([])
-    const preference = ref<any>(null)
-    const loading = ref(false)
+    /** WebSocket 连接状态 */
     const wsConnected = ref(false)
 
     const hasUnread = computed(() => unreadCount.value > 0)
 
-    const loadUnreadCount = async () => {
-      try {
-        const res = await fetchGetUnreadCount()
-        unreadCount.value = typeof res === 'number' ? res : 0
-      } catch {
-        unreadCount.value = 0
-      }
+    /** 更新未读数量（由 Vue Query 数据同步调用） */
+    const setUnreadCount = (count: number) => {
+      unreadCount.value = count
     }
 
-    const loadNotifications = async (params?: any) => {
-      loading.value = true
-      try {
-        const res = await fetchGetNotificationList(params)
-        notifications.value = (res as any)?.records || res || []
-      } catch {
-        notifications.value = []
-      } finally {
-        loading.value = false
-      }
-    }
-
-    const markAsRead = async (id: string) => {
-      try {
-        await fetchMarkAsRead(id)
-        const notification = notifications.value.find((n: any) => n.id === id)
-        if (notification && !notification.read) {
-          notification.read = true
-          unreadCount.value = Math.max(0, unreadCount.value - 1)
-        }
-      } catch {}
-    }
-
-    const markAllAsRead = async () => {
-      try {
-        await fetchMarkAllAsRead()
-        notifications.value.forEach((n: any) => {
-          n.read = true
-        })
-        unreadCount.value = 0
-      } catch {}
-    }
-
-    const loadPreference = async () => {
-      try {
-        const res = await fetchGetNotificationPreference()
-        preference.value = res
-      } catch {
-        preference.value = null
-      }
-    }
-
-    const updatePreference = async (params: any) => {
-      try {
-        await fetchUpdateNotificationPreference(params)
-        preference.value = { ...preference.value, ...params }
-      } catch {}
-    }
-
+    /** WebSocket 推送新通知时递增未读数 */
     const incrementUnread = () => {
       unreadCount.value++
     }
@@ -88,24 +34,14 @@ export const useNotificationStore = defineStore(
 
     const clearAll = () => {
       unreadCount.value = 0
-      notifications.value = []
-      preference.value = null
       wsConnected.value = false
     }
 
     return {
       unreadCount,
-      notifications,
-      preference,
-      loading,
       wsConnected,
       hasUnread,
-      loadUnreadCount,
-      loadNotifications,
-      markAsRead,
-      markAllAsRead,
-      loadPreference,
-      updatePreference,
+      setUnreadCount,
       incrementUnread,
       setWsConnected,
       clearAll

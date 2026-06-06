@@ -10,9 +10,15 @@ import {
   fetchSubmitStoryboardReview,
   fetchBatchSubmitStoryboardReview,
   fetchWithdrawStoryboardReview,
+  fetchGetStoryboardReviewStatus,
   fetchGetStoryboardVersions,
   fetchRollbackStoryboardVersion,
   fetchGetStoryboardImages,
+  fetchAddStoryboardImage,
+  fetchDeleteStoryboardImage,
+  fetchGetStoryboardAssets,
+  fetchLinkAssetToStoryboard,
+  fetchUnlinkAssetFromStoryboard,
   fetchReorderStoryboards,
   fetchGetSceneList,
   fetchCreateScene,
@@ -39,6 +45,7 @@ export function useStoryboardList(
       return res ?? null
     },
     enabled: () => !!toValue(projectId),
+    retry: false,
     staleTime: 30 * 1000
   })
 }
@@ -54,7 +61,7 @@ export function useStoryboardDetail(storyboardId: MaybeRefOrGetter<string | unde
       return res ?? null
     },
     enabled: () => !!toValue(storyboardId),
-    staleTime: 60 * 1000
+    staleTime: 30 * 1000
   })
 }
 
@@ -115,8 +122,8 @@ export function useDeleteStoryboard() {
 export function useBatchDeleteStoryboards() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (payload: { storyboardIds: string[]; projectId?: string }) =>
-      fetchBatchDeleteStoryboards(payload.storyboardIds),
+    mutationFn: (payload: { storyboardIds: string[]; projectId?: string; hardDelete?: boolean }) =>
+      fetchBatchDeleteStoryboards(payload.storyboardIds, payload.hardDelete),
     onSuccess: (_data, variables) => {
       if (variables.projectId) {
         queryClient.invalidateQueries({
@@ -131,11 +138,14 @@ export function useBatchDeleteStoryboards() {
 export function useSubmitStoryboardReview() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (payload: { storyboardId: string; projectId?: string }) =>
+    mutationFn: (payload: { storyboardId: string; note?: string; projectId?: string }) =>
       fetchSubmitStoryboardReview(payload.storyboardId),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
         queryKey: [QUERY_KEY, 'detail', variables.storyboardId]
+      })
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEY, 'review-status', variables.storyboardId]
       })
       if (variables.projectId) {
         queryClient.invalidateQueries({
@@ -166,11 +176,14 @@ export function useBatchSubmitStoryboardReview() {
 export function useWithdrawStoryboardReview() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (payload: { storyboardId: string; projectId?: string }) =>
+    mutationFn: (payload: { storyboardId: string; reason?: string; projectId?: string }) =>
       fetchWithdrawStoryboardReview(payload.storyboardId),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
         queryKey: [QUERY_KEY, 'detail', variables.storyboardId]
+      })
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEY, 'review-status', variables.storyboardId]
       })
       if (variables.projectId) {
         queryClient.invalidateQueries({
@@ -178,6 +191,21 @@ export function useWithdrawStoryboardReview() {
         })
       }
     }
+  })
+}
+
+/** 分镜审核状态 */
+export function useStoryboardReviewStatus(storyboardId: MaybeRefOrGetter<string | undefined>) {
+  return useQuery({
+    queryKey: [QUERY_KEY, 'review-status', storyboardId] as const,
+    queryFn: async () => {
+      const id = toValue(storyboardId)
+      if (!id) return null
+      const res = await fetchGetStoryboardReviewStatus(id)
+      return res ?? null
+    },
+    enabled: () => !!toValue(storyboardId),
+    staleTime: 30 * 1000
   })
 }
 
@@ -218,7 +246,7 @@ export function useRollbackStoryboardVersion() {
   })
 }
 
-/** 分镜图片列表 */
+/** 分镜配图列表 */
 export function useStoryboardImages(storyboardId: MaybeRefOrGetter<string | undefined>) {
   return useQuery({
     queryKey: [QUERY_KEY, 'images', storyboardId] as const,
@@ -230,6 +258,90 @@ export function useStoryboardImages(storyboardId: MaybeRefOrGetter<string | unde
     },
     enabled: () => !!toValue(storyboardId),
     staleTime: 60 * 1000
+  })
+}
+
+/** 添加分镜配图 */
+export function useAddStoryboardImage() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: {
+      storyboardId: string
+      params: { imageUrl: string; imageType?: 'main' | 'reference' | 'thumbnail' }
+    }) => fetchAddStoryboardImage(payload.storyboardId, payload.params),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEY, 'images', variables.storyboardId]
+      })
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEY, 'detail', variables.storyboardId]
+      })
+    }
+  })
+}
+
+/** 删除分镜配图 */
+export function useDeleteStoryboardImage() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: { imageId: string; storyboardId?: string }) =>
+      fetchDeleteStoryboardImage(payload.imageId),
+    onSuccess: (_data, variables) => {
+      if (variables.storyboardId) {
+        queryClient.invalidateQueries({
+          queryKey: [QUERY_KEY, 'images', variables.storyboardId]
+        })
+        queryClient.invalidateQueries({
+          queryKey: [QUERY_KEY, 'detail', variables.storyboardId]
+        })
+      }
+    }
+  })
+}
+
+/** 分镜关联资产列表 */
+export function useStoryboardAssets(storyboardId: MaybeRefOrGetter<string | undefined>) {
+  return useQuery({
+    queryKey: [QUERY_KEY, 'assets', storyboardId] as const,
+    queryFn: async () => {
+      const id = toValue(storyboardId)
+      if (!id) return []
+      const res = await fetchGetStoryboardAssets(id)
+      return res ?? []
+    },
+    enabled: () => !!toValue(storyboardId),
+    staleTime: 60 * 1000
+  })
+}
+
+/** 关联资产到分镜 */
+export function useLinkAssetToStoryboard() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: { storyboardId: string; assetId: string; assetType: string }) =>
+      fetchLinkAssetToStoryboard(payload.storyboardId, payload.assetId, payload.assetType),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEY, 'assets', variables.storyboardId]
+      })
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEY, 'detail', variables.storyboardId]
+      })
+    }
+  })
+}
+
+/** 解绑分镜资产 */
+export function useUnlinkAssetFromStoryboard() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: { storyboardId: string; assetId: string }) =>
+      fetchUnlinkAssetFromStoryboard(payload.storyboardId, payload.assetId),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEY, 'assets', variables.storyboardId]
+      })
+    }
   })
 }
 
@@ -314,7 +426,7 @@ export function useReorderStoryboards() {
   })
 }
 
-/** 剧本分镜拆解 */
+/** 剧本分镜拆解（AI） */
 export function useDecomposeStoryboard() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -323,6 +435,7 @@ export function useDecomposeStoryboard() {
       scriptId: string
       episodeId: string
       styleConfigId?: string
+      force?: boolean
     }) =>
       fetchDecomposeStoryboard(
         payload.projectId,
@@ -338,7 +451,7 @@ export function useDecomposeStoryboard() {
   })
 }
 
-/** 剧本分镜重建 */
+/** 剧本分镜重建（AI） */
 export function useRebuildStoryboard() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -346,7 +459,7 @@ export function useRebuildStoryboard() {
       projectId: string
       scriptId: string
       episodeId: string
-      params: Api.Storyboard.RebuildParams
+      params: Api.Storyboard.RebuildParams & { force?: boolean }
     }) =>
       fetchRebuildStoryboard(
         payload.projectId,

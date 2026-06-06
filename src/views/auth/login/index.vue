@@ -86,7 +86,7 @@
   import { useMenuStore } from '@/store/modules/menu'
   import { HttpError, isHttpError } from '@/utils/http/error'
   import { BusinessCode } from '@/utils/http/status'
-  import { fetchLogin, fetchCaptcha, fetchGetUserInfo } from '@/api/auth'
+  import { fetchLogin, fetchGetUserInfo } from '@/api/auth'
   import { getFirstMenuPath } from '@/utils'
   import { HOME_PAGE_PATH } from '@/router'
   import { type FormInstance, type FormRules } from 'element-plus'
@@ -102,9 +102,6 @@
   const formRef = ref<FormInstance>()
 
   const loading = ref(false)
-  const captchaLoading = ref(false)
-  const captchaKey = ref('')
-  const captchaImage = ref('')
 
   const formData = reactive({
     account: '',
@@ -121,21 +118,8 @@
     password: [
       { required: true, message: '请输入密码', trigger: 'blur' },
       { min: 8, max: 100, message: '密码长度在 8 到 100 个字符', trigger: 'blur' }
-    ],
+    ]
     // captchaCode: [{ required: true, message: '请输入验证码', trigger: 'blur' }]
-  }
-
-  const refreshCaptcha = async () => {
-    try {
-      captchaLoading.value = true
-      const data = await fetchCaptcha()
-      captchaKey.value = data.captchaKey || data.key || ''
-      captchaImage.value = data.captchaImage || data.image || ''
-    } catch {
-      captchaImage.value = ''
-    } finally {
-      captchaLoading.value = false
-    }
   }
 
   const showBusinessError = (error: Error) => {

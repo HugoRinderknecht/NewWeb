@@ -37,9 +37,14 @@
                 <ArtSvgIcon icon="ri:search-line" class="text-g-400" />
               </template>
             </ElInput>
-            <ElButton type="primary" @click="handleGenerate">
+            <ElButton
+              type="primary"
+              :loading="generateRecordId !== ''"
+              :disabled="generateRecordId !== ''"
+              @click="handleGenerate"
+            >
               <ArtSvgIcon icon="ri:ai-generate" class="mr-1" />
-              AI生成小传
+              {{ generateRecordId !== '' ? 'AI小传生成中...' : 'AI生成小传' }}
             </ElButton>
           </ElSpace>
         </div>
@@ -53,7 +58,24 @@
               <span class="font-medium">人物列表</span>
               <span class="text-xs text-g-400">共 {{ profileList.length }} 人</span>
             </div>
-            <div v-if="filteredProfiles.length > 0" class="profile-items">
+            <div v-if="characterProfilesQuery.isLoading.value" class="py-6 text-center">
+              <ElIcon class="is-loading"><i class="ri:loader-4-line" /></ElIcon>
+              <span class="ml-2 text-g-400">人物小传加载中...</span>
+            </div>
+            <div
+              v-else-if="characterProfilesQuery.isError.value"
+              class="py-6 text-center text-g-400"
+            >
+              <ElEmpty
+                :description="`人物小传加载失败：${
+                  (characterProfilesQuery.error.value as Error)?.message || '未知错误'
+                }`"
+              />
+              <ElButton type="primary" link @click="characterProfilesQuery.refetch()">
+                重新加载
+              </ElButton>
+            </div>
+            <div v-else-if="filteredProfiles.length > 0" class="profile-items">
               <div
                 v-for="item in filteredProfiles"
                 :key="item.name"
@@ -167,11 +189,13 @@
   import { storeToRefs } from 'pinia'
   import { useScriptProjectStore } from '@/store/modules/script-project'
   import {
-    fetchGetScriptList,
-    fetchGenerateCharacterProfiles,
-    fetchGetCharacterProfiles,
-    fetchGetScriptEpisodes
-  } from '@/api/script'
+    useScriptList,
+    useCharacterProfiles,
+    useProjectEpisodes,
+    useGenerateCharacterProfiles,
+    useProjectList,
+    useAiProcessStatus
+  } from '@/api/queries'
   import ProjectSwitcher from '@/components/ProjectSwitcher/index.vue'
 
   defineOptions({ name: 'ScriptProfiles' })
@@ -201,15 +225,54 @@
 
   // ==================== Store ====================
   const scriptProjectStore = useScriptProjectStore()
-  const { currentProjectId, projectList } = storeToRefs(scriptProjectStore)
+  const { currentProjectId } = storeToRefs(scriptProjectStore)
 
   // ==================== 响应式状态 ====================
   const currentScriptId = ref('')
-  const scriptOptions = ref<ScriptOption[]>([])
   const searchQuery = ref('')
-  const profileList = ref<CharacterProfileItem[]>([])
   const currentProfile = ref<CharacterProfileItem | null>(null)
   const activeTab = ref('basic')
+  /** AI 生成记录 ID，非空时触发状态轮询 */
+  const generateRecordId = ref('')
+
+  // ==================== Vue Query Hooks ====================
+  // 与其他页面保持一致：scriptId 使用 computed 包装，确保 queryKey 响应式更新
+  const scriptListQuery = useScriptList(currentProjectId)
+  const characterProfilesQuery = useCharacterProfiles(
+    computed(() => currentScriptId.value || undefined)
+  )
+  const episodesQuery = useProjectEpisodes(currentProjectId)
+  const generateMutation = useGenerateCharacterProfiles()
+  /**
+   * AI 处理状态轮询（统一数据层）：
+   * 当用户提交生成后，按 scriptId 轮询处理状态，
+   * 完成时自动失效人物小传缓存并停止轮询。
+   */
+  const aiStatusQuery = useAiProcessStatus(
+    computed<Api.AiProcess.StatusSearchParams | undefined>(() =>
+      generateRecordId.value && currentScriptId.value
+        ? {
+            scriptId: currentScriptId.value,
+            processType: 'CHARACTER_PROFILE'
+          }
+        : undefined
+    )
+  )
+
+  // ==================== 统一数据层：项目列表 ====================
+  // store 中已废弃的 projectList 不再使用，改走 useProjectList Vue Query Hook
+  const projectListQuery = useProjectList({
+    current: 1,
+    size: 100
+  } as Api.Project.ProjectSearchParams)
+  const projectList = computed(() => {
+    const records = projectListQuery.data.value?.records || []
+    return records.map((p) => ({
+      id: p.id,
+      name: p.projectName,
+      scriptCount: undefined
+    }))
+  })
 
   // ==================== 验证状态映射 ====================
   const verificationTagType = (status: string): 'success' | 'warning' | 'info' => {
@@ -237,6 +300,57 @@
   }
 
   // ==================== 计算属性 ====================
+  const scriptOptions = computed<ScriptOption[]>(() => {
+    const res = scriptListQuery.data.value
+    if (!res) return []
+    const arr = res.records || []
+    return arr.map((s: Api.Script.ScriptListItem) => ({
+      id: String(s.id),
+      title: s.title ?? '未命名剧本'
+    }))
+  })
+
+  const profileList = computed<CharacterProfileItem[]>(() => {
+    const res = characterProfilesQuery.data.value as any
+    if (!res) return []
+
+    // 兼容三种响应结构：
+    // 1. 直接的 CharacterProfileResult：{ scriptId, profiles, ... }
+    // 2. 包装在 AiProcessResult 中：{ status, result: { scriptId, profiles, ... } }
+    // 3. data 直接是 CharacterProfileItem[] 数组（后端文档 description 形态）
+    let rawList: any[] = []
+    if (Array.isArray(res)) {
+      rawList = res
+    } else if (res && typeof res === 'object') {
+      if (res.result && typeof res.result === 'object') {
+        // AiProcessResult 包装
+        rawList = Array.isArray(res.result.profiles)
+          ? res.result.profiles
+          : Array.isArray(res.result)
+            ? res.result
+            : []
+      } else if (Array.isArray(res.profiles)) {
+        rawList = res.profiles
+      }
+    }
+    if (rawList.length === 0) return []
+
+    return rawList.map((p: any) => ({
+      name: p.name ?? p.姓名 ?? '',
+      identity: p.identity ?? p.身份 ?? '',
+      appearance: p.appearance ?? p.外貌 ?? '',
+      personality: p.personality ?? p.性格 ?? '',
+      background: p.background ?? p.背景 ?? '',
+      voiceRef: p.voiceRef ?? p.音色参考 ?? '',
+      appearanceSpan: p.appearanceSpan ?? p.出场跨度 ?? '',
+      verificationStatus: p.verificationStatus ?? p.验证状态 ?? '',
+      relations: (p.relations ?? p.人物关系 ?? []).map((r: any) => ({
+        target: r.role ?? r.target ?? r.角色 ?? '',
+        relation: r.relation ?? r.关系 ?? ''
+      }))
+    })) as CharacterProfileItem[]
+  })
+
   const filteredProfiles = computed(() => {
     if (!searchQuery.value) return profileList.value
     const q = searchQuery.value.toLowerCase()
@@ -245,91 +359,47 @@
     )
   })
 
-  // ==================== 数据加载 ====================
-  const loadScriptList = async (projectId: string) => {
-    if (!projectId) {
-      scriptOptions.value = []
-      return
+  // ==================== 自动选择剧本 ====================
+  watch(scriptOptions, (options) => {
+    if (options.length === 0) return
+    const idsInCurrentProject = new Set(options.map((s) => s.id))
+    let sid = ''
+    if (
+      scriptProjectStore.currentScriptId &&
+      idsInCurrentProject.has(scriptProjectStore.currentScriptId)
+    ) {
+      sid = scriptProjectStore.currentScriptId
+    } else if (options.length > 0) {
+      sid = options[0].id
     }
-    try {
-      const res = await fetchGetScriptList(projectId)
-      const arr = res?.records || []
-      scriptOptions.value = arr.map((s: Api.Script.ScriptListItem) => ({
-        id: String(s.id),
-        title: s.title ?? '未命名剧本'
-      }))
-      let sid = scriptProjectStore.currentScriptId
-      if (!sid && scriptOptions.value.length > 0) {
-        sid = scriptOptions.value[0].id
-      }
-      if (sid) {
-        currentScriptId.value = sid
-        scriptProjectStore.setCurrentScript(sid)
-        await loadProfiles(sid)
-      }
-    } catch (err) {
-      console.error('[Profiles] 加载剧本列表失败:', err)
-      scriptOptions.value = []
+    if (sid && sid !== currentScriptId.value) {
+      currentScriptId.value = sid
+      scriptProjectStore.setCurrentScript(sid)
     }
-  }
+  })
 
-  const loadProfiles = async (scriptId: string) => {
-    if (!scriptId) {
-      profileList.value = []
+  // ==================== 自动选择人物 ====================
+  watch(profileList, (list) => {
+    if (list.length > 0) {
+      currentProfile.value = list[0]
+    } else {
       currentProfile.value = null
-      activeTab.value = 'basic'
-      return
     }
-    try {
-      const res = await fetchGetCharacterProfiles(scriptId)
-      // 兼容两种响应格式：扁平数组 或 包装对象 { profiles: [...] }
-      const rawList: Api.Script.CharacterProfileItem[] = Array.isArray(res)
-        ? (res as Api.Script.CharacterProfileItem[])
-        : ((res as Api.Script.CharacterProfileResult | null)?.profiles ?? [])
-      if (rawList.length > 0) {
-        profileList.value = rawList.map((p: any) => ({
-          // 兼容中文字段名（后端实际返回）和英文字段名
-          name: p.name ?? p.姓名 ?? '',
-          identity: p.identity ?? p.身份 ?? '',
-          appearance: p.appearance ?? p.外貌 ?? '',
-          personality: p.personality ?? p.性格 ?? '',
-          background: p.background ?? p.背景 ?? '',
-          voiceRef: p.voiceRef ?? p.音色参考 ?? '',
-          appearanceSpan: p.appearanceSpan ?? p.出场跨度 ?? '',
-          verificationStatus: p.verificationStatus ?? p.验证状态 ?? '',
-          relations: (p.relations ?? p.人物关系 ?? []).map((r: any) => ({
-            target: r.role ?? r.target ?? r.角色 ?? '',
-            relation: r.relation ?? r.关系 ?? ''
-          }))
-        })) as CharacterProfileItem[]
-        currentProfile.value = profileList.value[0] || null
-        activeTab.value = 'basic'
-      } else {
-        profileList.value = []
-        currentProfile.value = null
-        activeTab.value = 'basic'
-      }
-    } catch {
-      profileList.value = []
-      currentProfile.value = null
-      activeTab.value = 'basic'
-    }
-  }
+    activeTab.value = 'basic'
+  })
 
   // ==================== 事件处理 ====================
   const handleProjectChange = (projectId: string) => {
     scriptProjectStore.setCurrentProject(projectId)
-    // 状态清理和数据加载由 watch(currentProjectId) 统一处理
   }
 
   const handleProjectRefresh = () => {
-    loadScriptList(currentProjectId.value)
+    scriptListQuery.refetch()
     ElMessage.success('数据已刷新')
   }
 
   const handleScriptChange = (scriptId: string) => {
     scriptProjectStore.setCurrentScript(scriptId)
-    loadProfiles(scriptId)
   }
 
   const handleProfileSelect = (item: CharacterProfileItem) => {
@@ -343,18 +413,11 @@
       return
     }
     try {
-      // 获取分集列表供用户选择
-      let episodeOptions: EpisodeOption[] = []
-      try {
-        const res = await fetchGetScriptEpisodes(currentProjectId.value, currentScriptId.value)
-        const arr = res ?? []
-        episodeOptions = arr.map((ep: Api.Script.Episode) => ({
-          id: String(ep.id),
-          episodeName: ep.episodeName ?? ''
-        }))
-      } catch {
-        // 获取分集失败不影响主流程
-      }
+      const episodeData = episodesQuery.data.value
+      const episodeOptions: EpisodeOption[] = (episodeData ?? []).map((ep: Api.Script.Episode) => ({
+        id: String(ep.id),
+        episodeName: ep.episodeName ?? ''
+      }))
 
       const hasEpisodes = episodeOptions.length > 0
       const episodeHint = hasEpisodes
@@ -373,34 +436,52 @@
 
     try {
       ElMessage.info('AI人物小传生成中，请稍候...')
-      const res = await fetchGenerateCharacterProfiles(
-        currentProjectId.value,
-        currentScriptId.value
-      )
+      const res = await generateMutation.mutateAsync({
+        projectId: currentProjectId.value,
+        scriptId: currentScriptId.value
+      })
       if (res?.status === 'PROCESSING') {
-        ElMessage.success('AI生成任务已提交，请稍后刷新查看结果')
+        ElMessage.success('AI生成任务已提交，正在轮询进度...')
+        // 触发统一数据层的 useAiProcessStatus 轮询（recordId 不为空即启用）
+        generateRecordId.value = res?.recordId || `pending-${Date.now()}`
       } else {
         ElMessage.success('人物小传生成完成')
-        await loadProfiles(currentScriptId.value)
+        // 已有 useGenerateCharacterProfiles 失效缓存，这里仅显式刷新一次
+        await characterProfilesQuery.refetch()
       }
     } catch {
       ElMessage.error('人物小传生成失败')
     }
   }
 
-  // ==================== 初始化 ====================
-  onMounted(() => {
-    loadScriptList(currentProjectId.value)
-  })
+  // ==================== AI 处理进度监听 ====================
+  // 仅依赖统一数据层 useAiProcessStatus 的轮询结果，避免手动 setInterval
+  watch(
+    () => aiStatusQuery.data.value,
+    (status) => {
+      if (!generateRecordId.value || !status) return
+      const s = status as Api.AiProcess.ProcessStatus | null as any
+      const stage = s?.status
+      if (stage === 'COMPLETED') {
+        generateRecordId.value = ''
+        ElMessage.success('人物小传生成完成')
+        characterProfilesQuery.refetch()
+      } else if (stage === 'FAILED') {
+        generateRecordId.value = ''
+        ElMessage.error(s?.message || '人物小传生成失败')
+      }
+    }
+  )
 
-  // 监听项目切换（包括异步加载完成后首次设置）
+  // ==================== 监听项目切换 ====================
   watch(currentProjectId, (newId) => {
     if (newId) {
       currentScriptId.value = ''
-      profileList.value = []
+      scriptProjectStore.setCurrentScript('')
       currentProfile.value = null
       activeTab.value = 'basic'
-      loadScriptList(newId)
+      // 项目切换时停止旧的轮询
+      generateRecordId.value = ''
     }
   })
 </script>

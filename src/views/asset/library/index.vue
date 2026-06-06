@@ -106,7 +106,7 @@
           <div class="asset-card-cover">
             <ElImage
               v-if="item.type === 'image'"
-              :src="item.url"
+              :src="item.thumbnailUrl || item.url"
               fit="cover"
               class="cover-image"
               preview-teleported
@@ -122,7 +122,18 @@
               class="cover-placeholder video-placeholder flex-cc"
               @click.stop="handlePreview(item)"
             >
-              <ArtSvgIcon icon="ri:play-circle-line" class="text-4xl" />
+              <ElImage
+                v-if="item.thumbnailUrl"
+                :src="item.thumbnailUrl"
+                fit="cover"
+                class="cover-image"
+                preview-teleported
+              >
+                <template #error>
+                  <ArtSvgIcon icon="ri:play-circle-line" class="text-4xl" />
+                </template>
+              </ElImage>
+              <ArtSvgIcon v-else icon="ri:play-circle-line" class="text-4xl" />
             </div>
             <div
               v-else-if="item.type === 'audio'"
@@ -132,7 +143,21 @@
               <ArtSvgIcon icon="ri:music-2-line" class="text-3xl" />
             </div>
             <div v-else class="cover-placeholder flex-cc">
-              <ArtSvgIcon :icon="typeIconMap[item.type]" class="text-3xl" />
+              <ElImage
+                v-if="item.thumbnailUrl"
+                :src="item.thumbnailUrl"
+                fit="cover"
+                class="cover-image"
+              >
+                <template #error>
+                  <ArtSvgIcon :icon="typeIconMap[item.type] || 'ri:file-line'" class="text-3xl" />
+                </template>
+              </ElImage>
+              <ArtSvgIcon
+                v-else
+                :icon="typeIconMap[item.type] || 'ri:file-line'"
+                class="text-3xl"
+              />
             </div>
             <ElTag :type="typeTagMap[item.type]" size="small" class="cover-type">
               {{ typeLabelMap[item.type] }}
@@ -241,48 +266,157 @@
     <!-- 预览弹窗 -->
     <ElDialog
       v-model="previewVisible"
-      :title="currentAsset?.name"
-      width="800px"
+      :title="previewAsset?.name || currentAsset?.name"
+      width="880px"
       align-center
       destroy-on-close
+      :close-on-press-escape="!previewLoading"
     >
-      <div v-if="currentAsset" class="preview-content">
-        <ElImage
-          v-if="currentAsset.type === 'image'"
-          :src="currentAsset.url"
-          fit="contain"
-          class="preview-image"
-        />
-        <div v-else-if="currentAsset.type === 'video'" class="preview-video flex-cc">
-          <ArtSvgIcon icon="ri:video-line" class="text-6xl text-g-400" />
-          <p class="mt-4 text-g-400">视频播放组件占位</p>
+      <div v-if="previewAsset || currentAsset" v-loading="previewLoading" class="preview-wrapper">
+        <div class="preview-content">
+          <!-- 图片：ElImage 内嵌预览 + 灯箱放大 -->
+          <ElImage
+            v-if="(previewAsset || currentAsset)?.type === 'image'"
+            :src="(previewAsset || currentAsset)?.url"
+            :preview-src-list="[(previewAsset || currentAsset)?.url].filter(Boolean) as string[]"
+            fit="contain"
+            class="preview-image"
+            preview-teleported
+          >
+            <template #error>
+              <div class="preview-error flex-cc">
+                <ArtSvgIcon icon="ri:image-broken-line" class="text-5xl text-g-400" />
+                <p class="mt-2 text-g-400">图片加载失败</p>
+              </div>
+            </template>
+          </ElImage>
+
+          <!-- 视频：HTML5 原生 video，带控制条、海报图、下载入口 -->
+          <div v-else-if="(previewAsset || currentAsset)?.type === 'video'" class="preview-video">
+            <video
+              v-if="(previewAsset || currentAsset)?.url"
+              :src="(previewAsset || currentAsset)?.url"
+              :poster="(previewAsset || currentAsset)?.thumbnailUrl"
+              controls
+              preload="metadata"
+              playsinline
+              class="preview-video-el"
+            />
+            <div v-else class="preview-error flex-cc">
+              <ArtSvgIcon icon="ri:video-off-line" class="text-5xl text-g-400" />
+              <p class="mt-2 text-g-400">视频地址不可用</p>
+            </div>
+          </div>
+
+          <!-- 音频：HTML5 原生 audio -->
+          <div v-else-if="(previewAsset || currentAsset)?.type === 'audio'" class="preview-audio">
+            <div class="audio-art flex-cc">
+              <ElImage
+                v-if="(previewAsset || currentAsset)?.thumbnailUrl"
+                :src="(previewAsset || currentAsset)?.thumbnailUrl"
+                fit="cover"
+                class="audio-cover"
+              />
+              <ArtSvgIcon v-else icon="ri:music-2-line" class="text-6xl" />
+            </div>
+            <audio
+              v-if="(previewAsset || currentAsset)?.url"
+              :src="(previewAsset || currentAsset)?.url"
+              controls
+              preload="metadata"
+              class="preview-audio-el"
+            />
+            <p v-else class="text-g-400 mt-2">音频地址不可用</p>
+          </div>
+
+          <!-- 文档/AI生成：文本类用 iframe 内嵌预览，其他提供占位+下载 -->
+          <div v-else class="preview-doc">
+            <template
+              v-if="
+                ['txt', 'md', 'json', 'xml', 'html', 'csv', 'log'].includes(
+                  ((previewAsset || currentAsset)?.format || '').toLowerCase()
+                )
+              "
+            >
+              <iframe
+                v-if="(previewAsset || currentAsset)?.url"
+                :src="(previewAsset || currentAsset)?.url"
+                class="preview-doc-iframe"
+                frameborder="0"
+                sandbox="allow-same-origin"
+              />
+              <div v-else class="preview-error flex-cc">
+                <ArtSvgIcon icon="ri:file-warning-line" class="text-5xl text-g-400" />
+                <p class="mt-2 text-g-400">文档地址不可用</p>
+              </div>
+            </template>
+            <div v-else class="preview-doc-placeholder flex-cc">
+              <ArtSvgIcon
+                :icon="
+                  (previewAsset || currentAsset)?.type === 'ai-generated'
+                    ? 'ri:sparkling-line'
+                    : 'ri:file-text-line'
+                "
+                class="text-6xl text-g-400"
+              />
+              <p class="mt-4 text-g-400">
+                {{
+                  (previewAsset || currentAsset)?.type === 'ai-generated'
+                    ? 'AI 生成资产暂不支持在线预览'
+                    : '该格式文档暂不支持在线预览，请下载后查看'
+                }}
+              </p>
+            </div>
+          </div>
         </div>
-        <div v-else-if="currentAsset.type === 'audio'" class="preview-audio flex-cc">
-          <ArtSvgIcon icon="ri:music-2-line" class="text-6xl text-g-400" />
-          <p class="mt-4 text-g-400">音频播放组件占位</p>
-        </div>
-        <div v-else class="preview-doc flex-cc">
-          <ArtSvgIcon icon="ri:file-text-line" class="text-6xl text-g-400" />
-          <p class="mt-4 text-g-400">文档预览组件占位</p>
+
+        <div class="preview-meta mt-4">
+          <ElDescriptions :column="2" border>
+            <ElDescriptionsItem label="资产名称">{{
+              (previewAsset || currentAsset)?.name
+            }}</ElDescriptionsItem>
+            <ElDescriptionsItem label="类型">{{
+              typeLabelMap[(previewAsset || currentAsset)?.type as AssetType] ||
+              (previewAsset || currentAsset)?.type
+            }}</ElDescriptionsItem>
+            <ElDescriptionsItem label="分类">{{
+              (previewAsset || currentAsset)?.categoryName || '-'
+            }}</ElDescriptionsItem>
+            <ElDescriptionsItem label="格式">{{
+              (previewAsset || currentAsset)?.format || '-'
+            }}</ElDescriptionsItem>
+            <ElDescriptionsItem label="大小">{{
+              formatSize((previewAsset || currentAsset)?.size || 0)
+            }}</ElDescriptionsItem>
+            <ElDescriptionsItem label="更新时间">{{
+              (previewAsset || currentAsset)?.updateTime || '-'
+            }}</ElDescriptionsItem>
+            <ElDescriptionsItem label="标签" :span="2">
+              <ElTag
+                v-for="tag in (previewAsset || currentAsset)?.tags || []"
+                :key="tag"
+                size="small"
+                class="mr-1"
+              >
+                {{ tag }}
+              </ElTag>
+              <span v-if="!((previewAsset || currentAsset)?.tags || []).length" class="text-g-400"
+                >-</span
+              >
+            </ElDescriptionsItem>
+            <ElDescriptionsItem label="描述" :span="2">
+              {{ (previewAsset || currentAsset)?.description || '-' }}
+            </ElDescriptionsItem>
+          </ElDescriptions>
         </div>
       </div>
-      <div v-if="currentAsset" class="preview-meta mt-4">
-        <ElDescriptions :column="2" border>
-          <ElDescriptionsItem label="类型">{{
-            typeLabelMap[currentAsset.type]
-          }}</ElDescriptionsItem>
-          <ElDescriptionsItem label="分类">{{ currentAsset.categoryName }}</ElDescriptionsItem>
-          <ElDescriptionsItem label="大小">{{ formatSize(currentAsset.size) }}</ElDescriptionsItem>
-          <ElDescriptionsItem label="格式">{{ currentAsset.format }}</ElDescriptionsItem>
-          <ElDescriptionsItem label="标签">{{
-            currentAsset.tags.join('、') || '-'
-          }}</ElDescriptionsItem>
-          <ElDescriptionsItem label="更新时间">{{ currentAsset.updateTime }}</ElDescriptionsItem>
-          <ElDescriptionsItem label="描述" :span="2">{{
-            currentAsset.description
-          }}</ElDescriptionsItem>
-        </ElDescriptions>
-      </div>
+      <template #footer>
+        <ElButton @click="previewVisible = false">关闭</ElButton>
+        <ElButton type="primary" :loading="downloading" @click="handleDownload()">
+          <ArtSvgIcon icon="ri:download-2-line" class="mr-1" />
+          下载原文件
+        </ElButton>
+      </template>
     </ElDialog>
 
     <!-- 编辑弹窗 -->
@@ -381,7 +515,17 @@
 <script setup lang="ts">
   import { ElMessage, ElMessageBox } from 'element-plus'
   import type { FormInstance, FormRules } from 'element-plus'
-  import { useAssetList, useUpdateAsset, useBatchDeleteAssets, useBatchAddTags, useBatchMoveCategory, useDeleteAsset } from '@/api/queries'
+  import FileSaver from 'file-saver'
+  import {
+    useAssetList,
+    useAssetDetail,
+    useUpdateAsset,
+    useBatchDeleteAssets,
+    useBatchAddTags,
+    useBatchMoveCategory,
+    useDeleteAsset
+  } from '@/api/queries'
+  import { fetchDownloadAsset } from '@/api/asset'
   import { useProjectDataStore } from '@/store/modules/project-data'
 
   defineOptions({ name: 'AssetLibrary' })
@@ -404,12 +548,10 @@
   }
 
   const router = useRouter()
-  const route = useRoute()
   const projectStore = useProjectDataStore()
 
-  const projectId = computed(
-    () => (route.params.projectId as string) || projectStore.currentProjectId || ''
-  )
+  // 当前项目 ID 统一走数据层（project-data store）
+  const projectId = computed(() => projectStore.currentProjectId || '')
 
   const searchQuery = ref('')
   const filterType = ref<AssetType | ''>('')
@@ -493,36 +635,38 @@
   ]
 
   // Vue Query: 资产列表（后端分页/过滤）
-  const computedProjectId = computed(() =>
-    (route.params.projectId as string) || projectStore.currentProjectId || ''
-  )
-
+  // 统一从 project-data store 读取当前项目 ID，与 upload / 其他资产页保持一致
   const searchParams = computed<Api.Asset.AssetSearchParams>(() => ({
     page: pagination.current,
     pageSize: pagination.size,
     keyword: searchQuery.value || undefined,
     assetType: filterType.value || undefined,
-    category: filterCategory.value || undefined
+    categoryName: filterCategory.value || undefined
   }))
 
-  const { data: listResult, isLoading } = useAssetList(computedProjectId, searchParams)
+  const { data: listResult, isLoading } = useAssetList(projectId, searchParams)
 
   const assetList = computed(() => {
     const records = listResult.value?.records ?? []
-    return records.map((item: any) => ({
-      id: Number(item.id),
-      name: item.name || '',
-      type: (item.type || item.assetType || 'image') as AssetType,
-      category: item.category || '',
-      categoryName: item.categoryName || item.category || '',
-      tags: Array.isArray(item.tags) ? item.tags : [],
-      description: item.description || '',
-      size: Number(item.size) || 0,
-      format: item.format || '',
-      url: item.url || '',
-      updateTime: item.updateTime || '',
-      createTime: item.createTime || ''
-    }))
+    return records.map((item: any) => {
+      // 后端 AssetListItem 字段：assetName / assetType / fileType / fileUrl / thumbnailUrl / fileSize / categoryName
+      const type = (item.assetType || item.type || 'image') as AssetType
+      return {
+        id: Number(item.id),
+        name: item.assetName || item.name || '',
+        type,
+        category: item.categoryId || item.category || item.categoryName || '',
+        categoryName: item.categoryName || item.category || '',
+        tags: Array.isArray(item.tags) ? item.tags : [],
+        description: item.description || '',
+        size: Number(item.fileSize ?? item.size) || 0,
+        format: item.fileType || item.format || '',
+        url: item.fileUrl || item.url || '',
+        thumbnailUrl: item.thumbnailUrl || item.fileUrl || item.url || '',
+        updateTime: item.updateTime || '',
+        createTime: item.createTime || ''
+      }
+    })
   })
 
   const paginationTotal = computed(() => listResult.value?.total ?? 0)
@@ -614,9 +758,61 @@
     }
   }
 
+  // ==================== 预览：通过详情接口拉取完整字段（含 description/tags/fileUrl 等） ====================
+  const previewAssetId = ref<string>('')
+  const { data: previewDetail, isFetching: previewLoading } = useAssetDetail(
+    projectId,
+    computed(() => previewAssetId.value || undefined)
+  )
+
+  // 预览态资产：优先用详情回填，列表行作为兜底（避免弹窗空白闪烁）
+  const previewAsset = computed<AssetItem | null>(() => {
+    if (previewDetail.value) {
+      const d: any = previewDetail.value
+      return {
+        id: Number(d.id),
+        name: d.assetName || d.name || '',
+        type: (d.assetType || d.type || 'image') as AssetType,
+        category: d.categoryId || d.category || d.categoryName || '',
+        categoryName: d.categoryName || d.category || '',
+        tags: Array.isArray(d.tags) ? d.tags : [],
+        description: d.description || '',
+        size: Number(d.fileSize ?? d.size) || 0,
+        format: d.fileType || d.format || '',
+        url: d.fileUrl || d.url || '',
+        thumbnailUrl: d.thumbnailUrl || d.fileUrl || d.url || '',
+        updateTime: d.updateTime || '',
+        createTime: d.createTime || ''
+      }
+    }
+    return currentAsset.value
+  })
+
   const handlePreview = (row: AssetItem) => {
     currentAsset.value = row
+    previewAssetId.value = String(row.id)
     previewVisible.value = true
+  }
+
+  // 下载：调用后端 download 接口（支持鉴权场景），用 file-saver 保存
+  const downloading = ref(false)
+  const handleDownload = async (row?: AssetItem | null) => {
+    const target = row || previewAsset.value || currentAsset.value
+    if (!target) return
+    if (downloading.value) return
+    downloading.value = true
+    try {
+      const blob = await fetchDownloadAsset(projectId.value, String(target.id))
+      const ext = target.format ? `.${target.format}` : ''
+      const filename =
+        target.name && /\.[^./\\]+$/.test(target.name) ? target.name : `${target.name}${ext}`
+      FileSaver.saveAs(blob, filename)
+      ElMessage.success('下载已开始')
+    } catch {
+      ElMessage.error('下载失败')
+    } finally {
+      downloading.value = false
+    }
   }
 
   const handleEdit = (row: AssetItem) => {
@@ -634,7 +830,7 @@
       if (valid && currentAsset.value) {
         try {
           await updateMutation.mutateAsync({
-            projectId: computedProjectId.value,
+            projectId: projectId.value,
             assetId: String(currentAsset.value.id),
             params: {
               assetName: editForm.name,
@@ -670,7 +866,7 @@
         type: 'warning'
       })
       await deleteMutation.mutateAsync({
-        projectId: computedProjectId.value,
+        projectId: projectId.value,
         assetId: String(row.id)
       })
       ElMessage.success('删除成功')
@@ -700,7 +896,7 @@
         )
         const ids = selectedAssets.value.map((a) => String(a.id))
         await batchDeleteMutation.mutateAsync({
-          projectId: computedProjectId.value,
+          projectId: projectId.value,
           assetIds: ids
         })
         selectedAssets.value = []
@@ -766,8 +962,7 @@
     tagVisible.value = false
   }
 
-  onMounted(() => {
-  })
+  onMounted(() => {})
 </script>
 
 <style lang="scss" scoped>
@@ -929,19 +1124,87 @@
     align-items: center;
     justify-content: center;
     min-height: 300px;
+    max-height: 560px;
     overflow: hidden;
     background: var(--el-fill-color-lighter);
     border-radius: var(--custom-radius);
 
     .preview-image {
       max-width: 100%;
-      max-height: 500px;
+      max-height: 540px;
     }
 
-    .preview-video,
-    .preview-audio,
-    .preview-doc {
+    .preview-video {
+      display: flex;
       flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      max-height: 540px;
+      padding: 12px;
+
+      .preview-video-el {
+        width: 100%;
+        max-width: 800px;
+        max-height: 520px;
+        background: #000;
+        border-radius: 4px;
+      }
+    }
+
+    .preview-audio {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 300px;
+      padding: 24px;
+
+      .audio-art {
+        width: 160px;
+        height: 160px;
+        margin-bottom: 16px;
+        overflow: hidden;
+        background: var(--el-color-warning-light-9);
+        border-radius: 50%;
+
+        .audio-cover {
+          width: 100%;
+          height: 100%;
+        }
+      }
+
+      .preview-audio-el {
+        width: 100%;
+        max-width: 480px;
+      }
+    }
+
+    .preview-doc {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      max-height: 540px;
+      padding: 12px;
+
+      .preview-doc-iframe {
+        width: 100%;
+        height: 500px;
+        background: #fff;
+        border: 1px solid var(--el-border-color-lighter);
+        border-radius: 4px;
+      }
+
+      .preview-doc-placeholder {
+        width: 100%;
+        height: 300px;
+      }
+    }
+
+    .preview-error {
       width: 100%;
       height: 300px;
     }

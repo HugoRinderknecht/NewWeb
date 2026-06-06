@@ -23,16 +23,25 @@ export function useAiProcessStatus(
   })
 }
 
-/** AI 处理历史列表 */
+/** AI 处理历史列表
+ *  后端必填：projectId + type + businessId（项目级聚合时 businessId = projectId）
+ */
 export function useAiProcessHistory(
   params?: MaybeRefOrGetter<Api.AiProcess.HistorySearchParams | undefined>
 ) {
   return useQuery({
     queryKey: [QUERY_KEY, 'history', params] as const,
     queryFn: async () => {
-      const res = await fetchGetAiProcessHistory(toValue(params))
+      const p = toValue(params)
+      if (!p?.projectId || !p?.type || !p?.businessId) return []
+      const res = await fetchGetAiProcessHistory(p)
       return res ?? []
     },
+    enabled: () => {
+      const p = toValue(params)
+      return !!(p?.projectId && p?.type && p?.businessId)
+    },
+    retry: false,
     staleTime: 30 * 1000
   })
 }

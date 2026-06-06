@@ -14,6 +14,12 @@
           <div class="flex items-center gap-4">
             <span class="text-lg font-medium">分镜批量编辑</span>
             <ElTag type="info" size="small">已选中 {{ selectedStoryboards.length }} 个分镜</ElTag>
+            <ProjectSwitcher
+              v-model="currentProjectId"
+              :project-list="projectOptions"
+              @change="handleProjectChange"
+              @refresh="handleProjectRefresh"
+            />
           </div>
           <ElSpace>
             <ElButton @click="handleClearSelection">
@@ -260,6 +266,9 @@
 <script setup lang="ts">
   import { ElMessage, ElMessageBox } from 'element-plus'
   import { useRoute } from 'vue-router'
+  import { useProjectList } from '@/api/queries/project'
+  import { useProjectStore } from '@/store/modules/project'
+  import ProjectSwitcher from '@/components/ProjectSwitcher/index.vue'
   import {
     useStoryboardList,
     useBatchSubmitStoryboardReview,
@@ -270,6 +279,7 @@
   defineOptions({ name: 'StoryboardBatchEdit' })
 
   const route = useRoute()
+  const projectStore = useProjectStore()
 
   type SceneType = 'indoor' | 'outdoor' | 'vfx'
   type TimeOfDay = 'day' | 'night' | 'dusk' | 'dawn'
@@ -302,7 +312,35 @@
     remark: ''
   })
 
-  const projectId = computed(() => (route.params.projectId as string) || '')
+  const projectId = computed(
+    () => (route.params.projectId as string) || projectStore.currentProjectId || ''
+  )
+
+  // 项目下拉：列表 + 当前项目
+  const { data: projectListResult } = useProjectList(() => undefined)
+  const projectOptions = computed<{ id: string; name: string }[]>(() => {
+    const data = projectListResult.value as any
+    if (!data) return []
+    const list = Array.isArray(data) ? data : data.records || []
+    return list.map((p: any) => ({ id: String(p.id), name: p.name || p.projectName || '' }))
+  })
+  const currentProjectId = computed<string>({
+    get: () => projectId.value,
+    set: (val) => {
+      if (val && val !== projectStore.currentProjectId) {
+        projectStore.setCurrentProject(val)
+      }
+    }
+  })
+
+  function handleProjectChange() {
+    handleClearSelection()
+    refetchStoryboardList()
+  }
+
+  function handleProjectRefresh() {
+    refetchStoryboardList()
+  }
 
   const {
     data: storyboardListData,

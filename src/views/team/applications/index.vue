@@ -126,10 +126,10 @@
   import { useTeamStore } from '@/store/modules/team'
   import { useRoute } from 'vue-router'
   import {
-    fetchGetJoinApplications,
-    fetchApproveApplication,
-    fetchRejectApplication
-  } from '@/api/team'
+    useJoinApplications,
+    useApproveApplication,
+    useRejectApplication
+  } from '@/api/queries'
 
   defineOptions({ name: 'TeamApplications' })
 
@@ -153,8 +153,25 @@
   const teamId = computed(() =>
     String((route.query.id || route.query.teamId || teamStore.currentTeamId) as string)
   )
-  const loading = ref(false)
   const activeTab = ref<'pending' | 'history'>('pending')
+
+  const pagination = reactive({
+    current: 1,
+    size: 10,
+    total: 0
+  })
+
+  // Vue Query: 申请列表
+  const applicationParams = computed(() => ({
+    current: pagination.current,
+    size: pagination.size,
+    ...(activeTab.value === 'pending' ? { status: 'pending' } : {})
+  }))
+  const { data: applicationData, isLoading: loading } = useJoinApplications(teamId, applicationParams)
+
+  // Mutations
+  const approveMutation = useApproveApplication()
+  const rejectMutation = useRejectApplication()
 
   const roleTagMap: Record<string, 'primary' | 'success' | 'warning' | 'info' | 'danger'> = {
     项目经理: 'primary',
@@ -178,7 +195,38 @@
     rejected: '已拒绝'
   }
 
-  const applicationList = ref<ApplicationItem[]>([])
+  const applicationList = computed<ApplicationItem[]>(() => {
+    const res = applicationData.value as any
+    const list = res?.records || []
+    let mapped = list.map((item: any) => ({
+      id: item.id,
+      name: item.userName,
+      email: '',
+      avatar: item.userAvatar || '',
+      role: '',
+      reason: item.reason || '',
+      applyTime: item.applyTime || '',
+      status: item.status as ApplicationStatus,
+      handler: '',
+      handleTime: item.processTime || ''
+    }))
+    if (activeTab.value === 'history') {
+      mapped = mapped.filter((a: ApplicationItem) => a.status !== 'pending')
+    }
+    return mapped
+  })
+
+  // 同步分页 total
+  watch(
+    () => (applicationData.value as any)?.total,
+    (total) => {
+      if (total !== undefined) pagination.total = total
+    }
+  )
+
+  watch(activeTab, () => {
+    pagination.current = 1
+  })
 
   const appStats = computed(() => {
     const pending = applicationList.value.filter((a) => a.status === 'pending').length
@@ -193,52 +241,6 @@
     ]
   })
 
-  const loadApplications = async () => {
-    if (!teamId.value) return
-    loading.value = true
-    try {
-      const params: any = {
-        current: pagination.current,
-        size: pagination.size
-      }
-      if (activeTab.value === 'pending') {
-        params.status = 'pending'
-      }
-      const res = await fetchGetJoinApplications(teamId.value, params)
-      const list = res?.records || []
-      let mapped = list.map((item) => ({
-        id: item.id,
-        name: item.userName,
-        email: '',
-        avatar: item.userAvatar || '',
-        role: '',
-        reason: item.reason || '',
-        applyTime: item.applyTime || '',
-        status: item.status as ApplicationStatus,
-        handler: '',
-        handleTime: item.processTime || ''
-      }))
-      if (activeTab.value === 'history') {
-        mapped = mapped.filter((a) => a.status !== 'pending')
-      }
-      applicationList.value = mapped
-      pagination.total = res?.total || 0
-    } catch {
-      ElMessage.error('加载申请列表失败')
-    } finally {
-      loading.value = false
-    }
-  }
-
-  onMounted(() => {
-    loadApplications()
-  })
-
-  watch(activeTab, () => {
-    pagination.current = 1
-    loadApplications()
-  })
-
   const columns: ColumnOption[] = [
     { type: 'index' },
     { prop: 'name', label: '申请人', minWidth: 200 },
@@ -251,12 +253,6 @@
     { prop: 'operation', label: '操作', width: 180, fixed: 'right' }
   ]
 
-  const pagination = reactive({
-    current: 1,
-    size: 10,
-    total: 0
-  })
-
   const filteredApplications = computed(() => {
     return applicationList.value
   })
@@ -264,12 +260,10 @@
   const handleSizeChange = (size: number) => {
     pagination.size = size
     pagination.current = 1
-    loadApplications()
   }
 
   const handleCurrentChange = (current: number) => {
     pagination.current = current
-    loadApplications()
   }
 
   const rejectDialogVisible = ref(false)
@@ -286,9 +280,8 @@
       type: 'success'
     }).then(async () => {
       try {
-        await fetchApproveApplication(teamId.value, row.id)
+        await approveMutation.mutateAsync({ teamId: teamId.value, id: row.id })
         ElMessage.success('已通过申请')
-        loadApplications()
       } catch {
         ElMessage.error('审批失败')
       }
@@ -304,10 +297,13 @@
 
   const handleRejectSubmit = async () => {
     try {
-      await fetchRejectApplication(teamId.value, rejectForm.id, rejectForm.reason || undefined)
+      await rejectMutation.mutateAsync({
+        teamId: teamId.value,
+        id: rejectForm.id,
+        reason: rejectForm.reason || undefined
+      })
       ElMessage.success('已拒绝申请')
       rejectDialogVisible.value = false
-      loadApplications()
     } catch {
       ElMessage.error('拒绝失败')
     }

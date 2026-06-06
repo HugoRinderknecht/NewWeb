@@ -50,6 +50,8 @@ import { loadingService } from '@/utils/ui'
 import { useCommon } from '@/hooks/core/useCommon'
 import { useWorktabStore } from '@/store/modules/worktab'
 import { fetchGetUserInfo } from '@/api/auth'
+import { fetchGetMyTeams } from '@/api/team'
+import { queryClient } from '@/plugins/vue-query'
 import { ApiStatus } from '@/utils/http/status'
 import { isHttpError } from '@/utils/http/error'
 import { RouteRegistry, MenuProcessor, IframeRouteManager, RoutePermissionValidator } from '../core'
@@ -278,7 +280,21 @@ async function handleDynamicRoutes(
 
     // 1.5 加载用户团队列表，确保 currentTeamId 就绪
     const teamStore = useTeamStore()
-    await teamStore.loadTeamList()
+    // 使用 Vue Query fetchQuery 获取团队列表（享受缓存和去重）
+    const teamList = await queryClient.fetchQuery({
+      queryKey: ['teams', 'my-teams'] as const,
+      queryFn: async () => {
+        const res = await fetchGetMyTeams()
+        return res ?? []
+      }
+    })
+    // 设置当前团队 ID
+    const current = teamList.find((t: any) => t.isCurrent)
+    if (current) {
+      teamStore.setCurrentTeamId((current as any).teamId)
+    } else if (teamList.length > 0) {
+      teamStore.setCurrentTeamId((teamList[0] as any).teamId)
+    }
 
     // 2. 获取菜单数据
     const menuList = await menuProcessor.getMenuList()

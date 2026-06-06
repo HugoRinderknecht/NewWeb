@@ -129,11 +129,11 @@
 </template>
 
 <script setup lang="ts">
-  import { onMounted, reactive, ref } from 'vue'
+  import { computed, reactive, ref, watch } from 'vue'
   import { ElMessage, ElMessageBox } from 'element-plus'
-  import { fetchGetDataHistoryList, fetchGetDataHistoryDetail } from '@/api/data-history'
+  import { useDataHistoryList } from '@/api/queries'
+  import { fetchGetDataHistoryDetail } from '@/api/data-history'
 
-  const loading = ref(false)
   const detailVisible = ref(false)
   const currentRow = ref<any>(null)
 
@@ -149,37 +149,44 @@
     total: 0
   })
 
-  const tableData = ref<any[]>([])
-
-  const loadHistoryList = async () => {
-    loading.value = true
-    try {
-      const res = await fetchGetDataHistoryList({
+  // 使用 Vue Query 加载历史列表
+  const historyQueryParams = computed(
+    () =>
+      ({
         dataType: searchForm.dataType || undefined,
         operationType: searchForm.operationType || undefined,
         current: pagination.page,
         size: pagination.limit
-      } as any)
-      tableData.value = (Array.isArray(res) ? res : (res as any)?.records || []).map(
-        (item: any) => ({
-          historyId: item.historyId || item.id,
-          dataType: item.dataType || '',
-          dataId: item.dataId || '',
-          operationType: item.operationType || '',
-          operator: item.operatorName || item.operator || '',
-          operationTime: item.operationTime || '',
-          changeSummary: item.changeSummary || '',
-          beforeData: item.beforeData || null,
-          afterData: item.afterData || null
-        })
-      )
-      pagination.total = (res as any)?.total || (Array.isArray(res) ? res.length : 0)
-    } catch {
-      ElMessage.error('获取修改记录失败')
-    } finally {
-      loading.value = false
-    }
-  }
+      }) as any
+  )
+
+  const { data: historyData, isLoading: loading } = useDataHistoryList(historyQueryParams)
+
+  const tableData = computed(() => {
+    const res = historyData.value as any
+    const list = Array.isArray(res) ? res : res?.records || []
+    return list.map((item: any) => ({
+      historyId: item.historyId || item.id,
+      dataType: item.dataType || '',
+      dataId: item.dataId || '',
+      operationType: item.operationType || '',
+      operator: item.operatorName || item.operator || '',
+      operationTime: item.operationTime || '',
+      changeSummary: item.changeSummary || '',
+      beforeData: item.beforeData || null,
+      afterData: item.afterData || null
+    }))
+  })
+
+  // 同步列表总数到分页（watch 而非 computed 副作用）
+  watch(
+    tableData,
+    (list) => {
+      const res = historyData.value as any
+      pagination.total = (res as any)?.total || (Array.isArray(res) ? res.length : list.length)
+    },
+    { immediate: true }
+  )
 
   const getDataTypeLabel = (type: string) => {
     const map: Record<string, string> = {
@@ -212,28 +219,28 @@
 
   const handleSearch = () => {
     pagination.page = 1
-    loadHistoryList()
   }
 
   const handleReset = () => {
     searchForm.dataType = ''
     searchForm.operationType = ''
     searchForm.dateRange = null
+    pagination.page = 1
   }
 
   const handleViewDetail = async (row: any) => {
     try {
+      // 详情按需加载，使用 fetchQuery 走 Vue Query 缓存
       const res = (await fetchGetDataHistoryDetail(row.historyId)) as any
       currentRow.value = {
         ...row,
         beforeData: res?.beforeData || row.beforeData,
         afterData: res?.afterData || row.afterData
       }
-      detailVisible.value = true
     } catch {
       currentRow.value = row
-      detailVisible.value = true
     }
+    detailVisible.value = true
   }
 
   const handleRollback = (row: any) => {
@@ -253,15 +260,9 @@
   const handleSizeChange = (val: number) => {
     pagination.limit = val
     pagination.page = 1
-    loadHistoryList()
   }
 
   const handlePageChange = (val: number) => {
     pagination.page = val
-    loadHistoryList()
   }
-
-  onMounted(() => {
-    loadHistoryList()
-  })
 </script>

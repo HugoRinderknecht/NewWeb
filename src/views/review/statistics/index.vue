@@ -158,7 +158,8 @@
   import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
   import { echarts } from '@/plugins/echarts'
   import { ElMessage } from 'element-plus'
-  import { fetchGetReviewStatistics, fetchExportReviewRecords } from '@/api/review'
+  import { fetchExportReviewRecords } from '@/api/review'
+  import { useReviewStatistics } from '@/api/queries'
 
   defineOptions({ name: 'ReviewStatistics' })
 
@@ -180,42 +181,18 @@
   let avgTimeChart: echarts.ECharts | null = null
   let typeChart: echarts.ECharts | null = null
 
-  const statData = reactive({
-    total: 0,
-    passed: 0,
-    rejected: 0,
-    avgTime: 0
-  })
+  const projectId = '1'
 
-  const loadStatistics = async () => {
-    const projectId = '1'
-    try {
-      const res = await fetchGetReviewStatistics(projectId)
-      if (res) {
-        statData.total = (res as any).total || 0
-        statData.passed = (res as any).passed || 0
-        statData.rejected = (res as any).rejected || 0
-        statData.avgTime = (res as any).avgTime || 0
-        if ((res as any).reviewerRankList) {
-          reviewerRankList.value = (res as any).reviewerRankList
-        }
-        if ((res as any).weekData) {
-          Object.assign(weekData, (res as any).weekData)
-        }
-        if ((res as any).monthData) {
-          Object.assign(monthData, (res as any).monthData)
-        }
-        if ((res as any).quarterData) {
-          Object.assign(quarterData, (res as any).quarterData)
-        }
-      }
-    } catch {
-      // keep default state
-    }
-  }
+  const { data: statisticsData } = useReviewStatistics(projectId)
+
+  const statData = computed(() => ({
+    total: (statisticsData.value as any)?.total || 0,
+    passed: (statisticsData.value as any)?.passed || 0,
+    rejected: (statisticsData.value as any)?.rejected || 0,
+    avgTime: (statisticsData.value as any)?.avgTime || 0
+  }))
 
   const handleExport = async () => {
-    const projectId = '1'
     try {
       await fetchExportReviewRecords(projectId)
       ElMessage.success('导出成功')
@@ -224,44 +201,38 @@
     }
   }
 
-  const reviewerRankList = ref<ReviewerRank[]>([
-    { name: '张三', avatar: '', total: 156, passed: 142, passRate: 91, avgTime: 3.2 },
-    { name: '李四', avatar: '', total: 134, passed: 128, passRate: 95.5, avgTime: 2.8 },
-    { name: '王五', avatar: '', total: 128, passed: 115, passRate: 89.8, avgTime: 4.1 },
-    { name: '赵六', avatar: '', total: 112, passed: 98, passRate: 87.5, avgTime: 3.9 },
-    { name: '孙小亮', avatar: '', total: 98, passed: 88, passRate: 89.8, avgTime: 5.2 },
-    { name: '周小芳', avatar: '', total: 87, passed: 82, passRate: 94.3, avgTime: 3.5 },
-    { name: '吴小杰', avatar: '', total: 76, passed: 65, passRate: 85.5, avgTime: 4.8 }
-  ])
+  const reviewerRankList = computed<ReviewerRank[]>(
+    () => (statisticsData.value as any)?.reviewerRankList || []
+  )
 
-  const weekData = {
+  const weekData = computed(() => (statisticsData.value as any)?.weekData || {
     dates: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
     passRate: [92, 89, 94, 91, 88, 95, 93],
     avgTime: [3.5, 4.2, 3.8, 4.5, 5.1, 3.2, 3.0]
-  }
+  })
 
-  const monthData = {
+  const monthData = computed(() => (statisticsData.value as any)?.monthData || {
     dates: ['第1周', '第2周', '第3周', '第4周'],
     passRate: [90, 92, 88, 94],
     avgTime: [4.2, 3.8, 4.5, 3.6]
-  }
+  })
 
-  const quarterData = {
+  const quarterData = computed(() => (statisticsData.value as any)?.quarterData || {
     dates: ['1月', '2月', '3月'],
     passRate: [87, 91, 93],
     avgTime: [5.1, 4.3, 3.8]
-  }
+  })
 
   const getChartData = () => {
     switch (timeRange.value) {
       case 'week':
-        return weekData
+        return weekData.value
       case 'month':
-        return monthData
+        return monthData.value
       case 'quarter':
-        return quarterData
+        return quarterData.value
       default:
-        return weekData
+        return weekData.value
     }
   }
 
@@ -377,7 +348,6 @@
   }
 
   onMounted(() => {
-    loadStatistics()
     initPassRateChart()
     initAvgTimeChart()
     initTypeChart()

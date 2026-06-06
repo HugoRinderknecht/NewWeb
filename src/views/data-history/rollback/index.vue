@@ -105,7 +105,11 @@
 <script setup lang="ts">
   import { reactive, ref } from 'vue'
   import { ElMessage, ElMessageBox } from 'element-plus'
-  import { fetchGetDataHistoryList, fetchRollbackDataHistory } from '@/api/data-history'
+  import { useRollbackDataHistory } from '@/api/queries'
+  import { queryClient } from '@/plugins/vue-query'
+  import { fetchGetDataHistoryList } from '@/api/data-history'
+
+  const QUERY_KEY = 'data-history' as const
 
   const currentStep = ref(0)
   const selectedVersion = ref<any>(null)
@@ -136,19 +140,27 @@
     }
     loading.value = true
     try {
-      const res = await fetchGetDataHistoryList({
-        targetType: selectForm.dataType,
-        targetId: selectForm.dataId
+      // 通过 queryClient.fetchQuery 走 Vue Query 缓存，便于跨步骤复用
+      const res: any = await queryClient.fetchQuery({
+        queryKey: [
+          QUERY_KEY,
+          'list',
+          { targetType: selectForm.dataType, targetId: selectForm.dataId }
+        ],
+        queryFn: () =>
+          fetchGetDataHistoryList({
+            // targetType / targetId 字段名因后端差异做兼容（HistorySearchParams 实际定义不固定）
+            dataType: selectForm.dataType,
+            dataId: selectForm.dataId
+          } as any)
       })
-      versionList.value = (Array.isArray(res) ? res : (res as any)?.records || []).map(
-        (item: any) => ({
-          versionId: item.versionId || item.id,
-          versionTime: item.versionTime || item.createTime || '',
-          operator: item.operator || '',
-          operationType: item.operationType || '',
-          changeSummary: item.changeSummary || item.summary || ''
-        })
-      )
+      versionList.value = (Array.isArray(res) ? res : res?.records || []).map((item: any) => ({
+        versionId: item.versionId || item.id,
+        versionTime: item.versionTime || item.createTime || '',
+        operator: item.operator || '',
+        operationType: item.operationType || '',
+        changeSummary: item.changeSummary || item.summary || ''
+      }))
       currentStep.value = 1
     } catch {
       ElMessage.error('查询版本列表失败')
@@ -157,6 +169,9 @@
     }
   }
 
+  // 使用 Vue Query mutation 触发回退，失败后自动失效历史列表缓存
+  const rollbackMutation = useRollbackDataHistory()
+
   const handleConfirmRollback = () => {
     ElMessageBox.confirm('确定执行版本回退吗？此操作不可撤销！', '危险操作', {
       confirmButtonText: '确定回退',
@@ -164,9 +179,9 @@
       type: 'warning'
     }).then(async () => {
       try {
-        await fetchRollbackDataHistory({
+        await rollbackMutation.mutateAsync({
           historyId: selectedVersion.value?.versionId
-        })
+        } as any)
         ElMessage.success('版本回退成功')
         currentStep.value = 0
         selectedVersion.value = null

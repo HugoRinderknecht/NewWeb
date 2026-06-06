@@ -70,7 +70,7 @@
   import { reactive } from 'vue'
   import { ElMessage } from 'element-plus'
   import { Plus } from '@element-plus/icons-vue'
-  import { fetchSubmitImageGeneration } from '@/api/image'
+  import { useSubmitImageGeneration } from '@/api/queries'
 
   const form = reactive({
     prompt: '',
@@ -88,13 +88,16 @@
     form.referenceImage = null
   }
 
+  // 使用 Vue Query mutation 提交图片生成任务
+  const submitMutation = useSubmitImageGeneration()
+
   const handleSubmit = async () => {
     if (!form.prompt.trim()) {
       ElMessage.warning('请输入提示词')
       return
     }
     try {
-      await fetchSubmitImageGeneration({
+      await submitMutation.mutateAsync({
         prompt: form.prompt,
         model: form.model,
         size: form.size,
@@ -103,7 +106,7 @@
       } as any)
       ElMessage.success('图片生成任务已提交')
     } catch {
-      ElMessage.success('图片生成任务已提交')
+      ElMessage.error('图片生成任务提交失败')
     }
   }
 

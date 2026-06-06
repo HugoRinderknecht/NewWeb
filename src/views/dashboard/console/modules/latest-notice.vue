@@ -1,60 +1,65 @@
+<!-- 最新通知模块 -->
 <template>
-  <div class="art-card h-128 p-5 mb-5 max-sm:mb-4">
-    <div class="art-card-header">
-      <div class="title">
+  <div class="art-card p-5 mb-5 latest-notice-card">
+    <div class="latest-notice-header">
+      <div class="latest-notice-title">
         <h4>最新通知</h4>
-        <p
-          >未读<span class="text-danger">{{ unreadCount }}</span></p
-        >
+        <p>
+          未读
+          <span class="text-danger font-semibold">{{ unreadCount }}</span>
+        </p>
       </div>
-      <ElButton type="primary" link size="small" @click="markAllRead">全部已读</ElButton>
+      <ElButton type="primary" link size="small" :disabled="!hasUnread" @click="markAllRead">
+        全部已读
+      </ElButton>
     </div>
 
-    <div class="h-[calc(100%-60px)] mt-2 overflow-hidden">
-      <ElScrollbar>
+    <div class="latest-notice-list">
+      <ElScrollbar v-if="list.length">
         <div
-          class="flex-cb h-17.5 border-b border-g-300 text-sm last:border-b-0 cursor-pointer hover:bg-g-100/50 transition-colors px-1"
+          class="notice-item"
           v-for="(item, index) in list"
-          :key="index"
+          :key="item.id || index"
           @click="handleViewDetail(item)"
         >
-          <div class="flex items-center gap-2">
-            <div
-              class="size-2 rounded-full flex-shrink-0"
-              :class="item.read ? 'bg-g-400' : 'bg-primary'"
-            />
-            <div>
-              <p class="text-sm" :class="item.read ? 'text-g-500' : 'text-g-800 font-medium'">
-                {{ item.title }}
-              </p>
-              <p class="text-g-500 mt-0.5 text-xs">{{ item.source }} · {{ item.date }}</p>
-            </div>
+          <div class="notice-dot" :class="item.read ? 'is-read' : 'is-unread'"></div>
+          <div class="notice-content">
+            <p class="notice-title" :class="item.read ? 'is-read' : 'is-unread'">
+              {{ item.title || '系统通知' }}
+            </p>
+            <p class="notice-meta">
+              <span>{{ item.source || '系统消息' }}</span>
+              <span class="notice-dot-sep">·</span>
+              <span>{{ formatDate(item.date) }}</span>
+            </p>
           </div>
-          <div class="flex items-center gap-1">
-            <ElButton
-              v-if="!item.read"
-              type="primary"
-              link
-              size="small"
-              @click.stop="handleMarkRead(item)"
-            >
-              标为已读
-            </ElButton>
-            <ElButton type="danger" link size="small" @click.stop="handleDelete(item)">
-              <ArtSvgIcon icon="ri:delete-bin-line" class="text-sm" />
-            </ElButton>
-          </div>
+          <ElButton
+            v-if="!item.read"
+            type="primary"
+            link
+            size="small"
+            class="notice-action"
+            @click.stop="handleMarkRead(item)"
+          >
+            标为已读
+          </ElButton>
         </div>
       </ElScrollbar>
+      <div v-else class="latest-notice-empty">
+        <ArtSvgIcon icon="ri:notification-off-line" class="empty-icon" />
+        <p>暂无新通知</p>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-  import { fetchGetNotificationList } from '@/api/notification'
+  import { useNotificationList, useMarkAsRead, useMarkAllAsRead } from '@/api/queries'
+
+  defineOptions({ name: 'LatestNotice' })
 
   interface NoticeItem {
-    id: number
+    id: string
     title: string
     source: string
     date: string
@@ -62,60 +67,183 @@
     type: string
   }
 
-  /**
-   * 最新通知列表
-   * 记录系统通知、审核结果、项目更新等各类消息
-   */
-  const list = reactive<NoticeItem[]>([])
+  // 统一数据层：通知列表
+  const { data: notificationData } = useNotificationList({ current: 1, size: 5 })
+  const markAsReadMutation = useMarkAsRead()
+  const markAllAsReadMutation = useMarkAllAsRead()
 
-  const unreadCount = ref(0)
-
-  const loadData = async () => {
-    try {
-      const res = await fetchGetNotificationList({ current: 1, size: 10 })
-      if (res?.records) {
-        list.splice(
-          0,
-          list.length,
-          ...res.records.map((item: any) => ({
-            id: item.id,
-            title: item.title ?? '',
-            source: item.source ?? '',
-            date: item.createdAt ?? '',
-            read: item.isRead ?? false,
-            type: item.type ?? ''
-          }))
-        )
-        unreadCount.value = res.records.filter((item: any) => !item.isRead).length
-      }
-    } catch (error) {
-      console.error('获取通知列表失败:', error)
-    }
-  }
-
-  const handleViewDetail = (item: NoticeItem) => {
-    item.read = true
-    console.log('查看通知详情:', item.title)
-  }
-
-  const handleMarkRead = (item: NoticeItem) => {
-    item.read = true
-  }
-
-  const markAllRead = () => {
-    list.forEach((item) => {
-      item.read = true
-    })
-  }
-
-  const handleDelete = (item: NoticeItem) => {
-    const index = list.findIndex((i) => i.id === item.id)
-    if (index > -1) {
-      list.splice(index, 1)
-    }
-  }
-
-  onMounted(() => {
-    loadData()
+  // 通知列表（标准化）
+  const list = computed<NoticeItem[]>(() => {
+    const records = notificationData.value?.records
+    if (!Array.isArray(records)) return []
+    return records.map((item: any) => ({
+      id: String(item.id ?? ''),
+      title: item.title ?? '',
+      source: item.source ?? item.sender ?? '系统消息',
+      date: item.createTime ?? '',
+      read: Boolean(item.isRead ?? item.read ?? false),
+      type: item.type ?? ''
+    }))
   })
+
+  // 未读数
+  const unreadCount = computed(() => list.value.filter((item) => !item.read).length)
+  const hasUnread = computed(() => unreadCount.value > 0)
+
+  function formatDate(date: string): string {
+    if (!date) return ''
+    const d = new Date(date)
+    if (isNaN(d.getTime())) return date
+    const month = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    const hour = String(d.getHours()).padStart(2, '0')
+    const minute = String(d.getMinutes()).padStart(2, '0')
+    return `${month}-${day} ${hour}:${minute}`
+  }
+
+  function handleViewDetail(item: NoticeItem) {
+    if (!item.read) {
+      markAsReadMutation.mutate(item.id)
+    }
+  }
+
+  function handleMarkRead(item: NoticeItem) {
+    markAsReadMutation.mutate(item.id)
+  }
+
+  function markAllRead() {
+    markAllAsReadMutation.mutate()
+  }
 </script>
+
+<style lang="scss" scoped>
+  .latest-notice-card {
+    box-sizing: border-box;
+    padding: 16px 18px;
+    margin-bottom: 16px;
+    height: 22rem;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .latest-notice-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .latest-notice-title h4 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--art-gray-900);
+  }
+
+  .latest-notice-title p {
+    margin: 4px 0 0;
+    font-size: 13px;
+    color: var(--art-gray-600);
+  }
+
+  .latest-notice-list {
+    flex: 1;
+    min-height: 0;
+    max-height: 22rem;
+  }
+
+  .notice-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 8px;
+    border-bottom: 1px solid var(--art-gray-200);
+    cursor: pointer;
+    transition: background-color 0.2s;
+    border-radius: 6px;
+
+    &:hover {
+      background: var(--art-gray-100);
+    }
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  .notice-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 6px;
+  }
+
+  .notice-dot.is-unread {
+    background: var(--art-primary);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--art-primary) 20%, transparent);
+  }
+
+  .notice-dot.is-read {
+    background: var(--art-gray-400);
+  }
+
+  .notice-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .notice-title {
+    margin: 0;
+    font-size: 13px;
+    color: var(--art-gray-900);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .notice-title.is-unread {
+    font-weight: 500;
+  }
+
+  .notice-title.is-read {
+    color: var(--art-gray-500);
+  }
+
+  .notice-meta {
+    margin: 2px 0 0;
+    font-size: 11px;
+    color: var(--art-gray-500);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .notice-dot-sep {
+    color: var(--art-gray-400);
+  }
+
+  .notice-action {
+    flex-shrink: 0;
+  }
+
+  .latest-notice-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 32px 0;
+    color: var(--art-gray-400);
+
+    p {
+      margin: 0;
+      font-size: 13px;
+    }
+  }
+
+  .empty-icon {
+    font-size: 32px;
+  }
+</style>

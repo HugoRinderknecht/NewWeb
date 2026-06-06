@@ -17,6 +17,12 @@ export const storyboardRoutes: AppRouteRecord = {
       meta: { title: '分镜设计', keepAlive: true }
     },
     {
+      path: 'ai',
+      name: 'StoryboardAi',
+      component: '/storyboard/ai',
+      meta: { title: 'AI 工作台', keepAlive: true }
+    },
+    {
       path: 'scene',
       name: 'StoryboardScene',
       component: '/storyboard/scene',

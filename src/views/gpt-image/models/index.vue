@@ -78,13 +78,13 @@
 </template>
 
 <script setup lang="ts">
-  import { reactive, ref } from 'vue'
+  import { computed, reactive, ref, watch } from 'vue'
   import { ElMessage, ElMessageBox } from 'element-plus'
-  import { fetchGetImageModels, fetchGetImageModelDetail } from '@/api/image'
+  import { useImageModels, useImageModelDetail } from '@/api/queries'
 
-  const loading = ref(false)
   const dialogVisible = ref(false)
   const isEdit = ref(false)
+  const editingModelCode = ref<string | undefined>(undefined)
 
   const form = reactive<{
     modelName: string
@@ -98,23 +98,23 @@
     supportedSizes: []
   })
 
-  const tableData = ref<any[]>([])
+  // 使用 Vue Query 加载模型列表
+  const { data: modelsData, isLoading: loading } = useImageModels()
 
-  const loadModelList = async () => {
-    loading.value = true
-    try {
-      const res = await fetchGetImageModels()
-      if (res && Array.isArray(res)) {
-        tableData.value = res.map((item: any) => ({
-          modelName: item.modelName || item.name || '',
-          modelCode: item.modelCode || item.code || '',
-          provider: item.provider || '',
-          supportedSizes: item.supportedSizes || [],
-          status: item.status || 'enabled'
-        }))
-      }
-    } catch {
-      tableData.value = [
+  const tableData = computed(() => {
+    const list = (modelsData.value as any) || []
+    if (Array.isArray(list) && list.length > 0) {
+      return list.map((item: any) => ({
+        modelName: item.modelName || item.name || '',
+        modelCode: item.modelCode || item.code || '',
+        provider: item.provider || '',
+        supportedSizes: item.supportedSizes || [],
+        status: item.status || 'enabled'
+      }))
+    }
+    // Vue Query 加载完成但为空时显示默认数据（容错）
+    if (!loading.value) {
+      return [
         {
           modelName: 'GPT-Image-2',
           modelCode: 'gpt-image-2',
@@ -137,17 +137,16 @@
           status: 'disabled'
         }
       ]
-    } finally {
-      loading.value = false
     }
-  }
-
-  onMounted(() => {
-    loadModelList()
+    return []
   })
+
+  // 编辑时按需获取详情
+  const { data: modelDetail } = useImageModelDetail(editingModelCode)
 
   const handleAdd = () => {
     isEdit.value = false
+    editingModelCode.value = undefined
     form.modelName = ''
     form.modelCode = ''
     form.provider = ''
@@ -157,22 +156,21 @@
 
   const handleEdit = async (row: any) => {
     isEdit.value = true
+    editingModelCode.value = row.modelCode
     form.modelName = row.modelName
     form.modelCode = row.modelCode
     form.provider = row.provider
     form.supportedSizes = [...row.supportedSizes]
     dialogVisible.value = true
-    try {
-      const res = await fetchGetImageModelDetail(row.modelCode)
-      if (res) {
-        form.modelName = (res as any).modelName || (res as any).name || form.modelName
-        form.provider = (res as any).provider || form.provider
-        form.supportedSizes = (res as any).supportedSizes || form.supportedSizes
-      }
-    } catch {
-      // keep current data
-    }
   }
+
+  // 当详情加载完成时填充表单
+  watch(modelDetail, (res) => {
+    if (!res) return
+    form.modelName = (res as any).modelName || (res as any).name || form.modelName
+    form.provider = (res as any).provider || form.provider
+    form.supportedSizes = (res as any).supportedSizes || form.supportedSizes
+  })
 
   const handleSave = () => {
     ElMessage.success(isEdit.value ? '修改成功' : '添加成功')

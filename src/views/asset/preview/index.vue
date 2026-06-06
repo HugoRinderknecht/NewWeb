@@ -82,7 +82,7 @@
                 <h4 class="preview-name">{{ item.name }}</h4>
                 <div class="preview-tags">
                   <ElTag
-                    v-for="tag in item.tags.slice(0, 2)"
+                    v-for="tag in (item.tags || []).slice(0, 2)"
                     :key="tag"
                     size="small"
                     effect="dark"
@@ -167,7 +167,7 @@
                 }}</ElDescriptionsItem>
                 <ElDescriptionsItem label="格式">{{ currentAsset.format }}</ElDescriptionsItem>
                 <ElDescriptionsItem label="标签">
-                  <ElTag v-for="tag in currentAsset.tags" :key="tag" size="small" class="mr-1 mb-1">
+                  <ElTag v-for="tag in (currentAsset.tags || [])" :key="tag" size="small" class="mr-1 mb-1">
                     {{ tag }}
                   </ElTag>
                 </ElDescriptionsItem>
@@ -305,9 +305,9 @@
       const q = searchQuery.value.toLowerCase()
       result = result.filter(
         (item) =>
-          item.name.toLowerCase().includes(q) ||
-          item.tags.some((t) => t.toLowerCase().includes(q)) ||
-          item.description.toLowerCase().includes(q)
+          item.name?.toLowerCase().includes(q) ||
+          (item.tags || []).some((t) => t.toLowerCase().includes(q)) ||
+          item.description?.toLowerCase().includes(q)
       )
     }
 

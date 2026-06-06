@@ -111,13 +111,15 @@
         <div v-if="hasScripts" class="guide-text">
           <p class="guide-title">您尚未选择要编辑的剧本</p>
           <p class="guide-desc">
-            请返回<span class="highlight">「剧本管理」</span>页面，从列表中选择具体剧本后进行编辑操作。
+            请返回<span class="highlight">「剧本管理」</span
+            >页面，从列表中选择具体剧本后进行编辑操作。
           </p>
         </div>
         <div v-else class="guide-text">
           <p class="guide-title">当前项目下暂无剧本</p>
           <p class="guide-desc">
-            您需要先创建或上传剧本才能进行编辑。请返回<span class="highlight">「剧本管理」</span>页面：
+            您需要先创建或上传剧本才能进行编辑。请返回<span class="highlight">「剧本管理」</span
+            >页面：
           </p>
           <ul class="guide-steps">
             <li>
@@ -147,12 +149,14 @@
   import { useRouter, useRoute } from 'vue-router'
   import { useScriptProjectStore } from '@/store/modules/script-project'
   import {
-    fetchGetScriptDetail,
-    fetchGetScriptList,
-    fetchCreateScript,
-    fetchUpdateScript,
-    fetchSubmitScriptReview
-  } from '@/api/script'
+    useScriptDetail,
+    useCreateScript,
+    useUpdateScript,
+    useSubmitScriptReview,
+    useProjectList
+  } from '@/api/queries'
+  // fetchGetScriptList 用于一次性检查，暂保留直接调用
+  import { fetchGetScriptList } from '@/api/script'
   import ProjectSwitcher from '@/components/ProjectSwitcher/index.vue'
 
   defineOptions({ name: 'ScriptWrite' })
@@ -160,6 +164,19 @@
   const router = useRouter()
   const route = useRoute()
   const scriptProjectStore = useScriptProjectStore()
+
+  // ==================== 状态变量（需先于 Vue Query Hooks 定义，避免 TDZ） ====================
+  const scriptId = ref<string>('')
+  const isEditMode = ref(false)
+  const saveStatus = ref<SaveStatus>('saved')
+  const showGuideDialog = ref(false)
+  const hasScripts = ref(false)
+
+  // ==================== Vue Query Hooks ====================
+  const scriptDetailQuery = useScriptDetail(scriptId)
+  const createScriptMutation = useCreateScript()
+  const updateScriptMutation = useUpdateScript()
+  const submitReviewMutation = useSubmitScriptReview()
 
   type SaveStatus = 'unsaved' | 'saving' | 'saved'
 
@@ -172,12 +189,6 @@
     createTime: string
     updateTime: string
   }
-
-  const scriptId = ref<string>('')
-  const isEditMode = ref(false)
-  const saveStatus = ref<SaveStatus>('saved')
-  const showGuideDialog = ref(false)
-  const hasScripts = ref(false)
 
   const form = reactive<ScriptForm>({
     title: '',
@@ -194,7 +205,20 @@
     set: (val: string) => scriptProjectStore.setCurrentProject(val)
   })
 
-  const projectList = computed(() => scriptProjectStore.projectList || [])
+  // ==================== 统一数据层：项目列表 ====================
+  // store 中已废弃的 projectList 不再使用，改走 useProjectList Vue Query Hook
+  const projectListQuery = useProjectList({
+    current: 1,
+    size: 100
+  } as Api.Project.ProjectSearchParams)
+  const projectList = computed(() => {
+    const records = projectListQuery.data.value?.records || []
+    return records.map((p) => ({
+      id: p.id,
+      name: p.projectName,
+      scriptCount: undefined
+    }))
+  })
 
   const wordCount = computed(() => {
     return form.content.replace(/\s/g, '').length
@@ -205,18 +229,22 @@
   })
 
   // 加载剧本详情
+  const populateFormFromDetail = (data: Api.Script.ScriptDetail) => {
+    form.title = data.title ?? ''
+    form.description = data.description ?? ''
+    form.content = data.content ?? ''
+    form.status = data.status ?? 1
+    form.creatorName = data.creatorName ?? ''
+    form.createTime = data.createTime ?? ''
+    form.updateTime = data.updateTime ?? ''
+    saveStatus.value = 'saved'
+  }
+
   const loadScriptDetail = async (id: string) => {
     try {
-      const res = await fetchGetScriptDetail(id)
-      if (res) {
-        form.title = res.title ?? ''
-        form.description = res.description ?? ''
-        form.content = res.content ?? ''
-        form.status = res.status ?? 1
-        form.creatorName = res.creatorName ?? ''
-        form.createTime = res.createTime ?? ''
-        form.updateTime = res.updateTime ?? ''
-        saveStatus.value = 'saved'
+      const result = await scriptDetailQuery.refetch()
+      if (result.data) {
+        populateFormFromDetail(result.data)
       }
     } catch {
       ElMessage.error('加载剧本详情失败')
@@ -260,11 +288,15 @@
     try {
       if (isEditMode.value && scriptId.value) {
         // 编辑模式：更新剧本
-        const res = await fetchUpdateScript(scriptId.value, {
-          title: form.title,
-          description: form.description,
-          content: form.content,
-          status: form.status
+        const res = await updateScriptMutation.mutateAsync({
+          scriptId: scriptId.value,
+          params: {
+            title: form.title,
+            description: form.description,
+            content: form.content,
+            status: form.status
+          },
+          projectId: currentProjectId.value
         })
         if (res) {
           form.updateTime = res.updateTime ?? form.updateTime
@@ -277,11 +309,14 @@
           saveStatus.value = 'unsaved'
           return
         }
-        const res = await fetchCreateScript(projectId, {
-          title: form.title,
-          description: form.description,
-          content: form.content,
-          status: form.status
+        const res = await createScriptMutation.mutateAsync({
+          projectId,
+          params: {
+            title: form.title,
+            description: form.description,
+            content: form.content,
+            status: form.status
+          }
         })
         if (res) {
           scriptId.value = res.id
@@ -316,7 +351,10 @@
         cancelButtonText: '取消',
         type: 'warning'
       })
-      await fetchSubmitScriptReview(scriptId.value)
+      await submitReviewMutation.mutateAsync({
+        scriptId: scriptId.value,
+        projectId: currentProjectId.value
+      })
       ElMessage.success('已提交审核')
     } catch (e: any) {
       if (e !== 'cancel') {
@@ -327,30 +365,42 @@
 
   // 自动保存
   let autoSaveTimer: ReturnType<typeof setTimeout> | null = null
+  // 组件卸载标志：避免异步回调在卸载后继续修改状态
+  let isUnmounted = false
 
   const handleAutoSave = async () => {
+    // 卸载后或缺少上下文时不执行
+    if (isUnmounted) return
     if (!isEditMode.value || !scriptId.value) return
     if (!form.title) return
     saveStatus.value = 'saving'
     try {
-      const res = await fetchUpdateScript(scriptId.value, {
-        title: form.title,
-        description: form.description,
-        content: form.content,
-        status: form.status
+      const res = await updateScriptMutation.mutateAsync({
+        scriptId: scriptId.value,
+        params: {
+          title: form.title,
+          description: form.description,
+          content: form.content,
+          status: form.status
+        },
+        projectId: currentProjectId.value
       })
+      if (isUnmounted) return
       if (res) {
         form.updateTime = res.updateTime ?? form.updateTime
       }
       saveStatus.value = 'saved'
     } catch {
-      saveStatus.value = 'unsaved'
+      if (!isUnmounted) {
+        saveStatus.value = 'unsaved'
+      }
     }
   }
 
   watch(
     () => [form.title, form.description, form.content, form.status],
     () => {
+      if (isUnmounted) return
       if (isEditMode.value) {
         saveStatus.value = 'unsaved'
         if (autoSaveTimer) clearTimeout(autoSaveTimer)
@@ -396,7 +446,9 @@
   })
 
   onBeforeUnmount(() => {
+    isUnmounted = true
     if (autoSaveTimer) clearTimeout(autoSaveTimer)
+    autoSaveTimer = null
   })
 </script>
 

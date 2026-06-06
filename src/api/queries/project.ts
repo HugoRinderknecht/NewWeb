@@ -46,7 +46,8 @@ export function useProjectDetail(projectId: MaybeRefOrGetter<string | undefined>
       const res = await fetchGetProjectDetail(id)
       return res ?? null
     },
-    enabled: () => !!toValue(projectId)
+    enabled: () => !!toValue(projectId),
+    retry: false
   })
 }
 

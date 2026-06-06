@@ -196,7 +196,7 @@ describe('剧本管理 API', () => {
 
       const res = await fetchGetProjectEpisodes('proj-001')
 
-      expect(mockAdapter.get).toHaveBeenCalledWith('/api/projects/proj-001/episodes', undefined)
+      expect(mockAdapter.get).toHaveBeenCalledWith('/api/projects/proj-001/episodes')
       expect(res).toHaveLength(2)
       expect(res?.[0].episodeName).toBe('第一集：神秘的开始')
     })
@@ -204,23 +204,31 @@ describe('剧本管理 API', () => {
 
   describe('fetchGetCharacterProfiles - 人物小传查询', () => {
     it('应正确调用 GET /api/scripts/{scriptId}/character-profiles', async () => {
-      mockAdapter.get.mockResolvedValue(mockCharacterProfiles.profiles)
+      mockAdapter.get.mockResolvedValue(mockCharacterProfiles)
 
       const res = await fetchGetCharacterProfiles('script-001')
 
       expect(mockAdapter.get).toHaveBeenCalledWith('/api/scripts/script-001/character-profiles')
-      expect(res).toHaveLength(2)
-      expect(res?.[0].name).toBe('张三')
+      expect(res?.profiles).toHaveLength(2)
+      expect(res?.profiles?.[0].name).toBe('张三')
     })
 
     it('应正确解析 profiles 数组', async () => {
-      mockAdapter.get.mockResolvedValue(mockCharacterProfiles.profiles)
+      mockAdapter.get.mockResolvedValue(mockCharacterProfiles)
 
       const res = await fetchGetCharacterProfiles('script-001')
 
-      expect(res?.[0].identity).toBe('主角')
-      expect(res?.[0].verificationStatus).toBe('一致')
-      expect(res?.[0].relations).toHaveLength(2)
+      expect(res?.profiles?.[0].identity).toBe('主角')
+      expect(res?.profiles?.[0].verificationStatus).toBe('一致')
+      expect(res?.profiles?.[0].relations).toHaveLength(2)
+    })
+
+    it('未生成时返回 null 应被正确处理', async () => {
+      mockAdapter.get.mockResolvedValue(null)
+
+      const res = await fetchGetCharacterProfiles('script-001')
+
+      expect(res).toBeNull()
     })
   })
 

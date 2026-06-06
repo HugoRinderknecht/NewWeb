@@ -196,6 +196,7 @@
     useReviewList,
     usePendingReviewCount,
     useReviewDecision,
+    useBatchReviewDecision,
     useClaimReview,
     useDispatchReview
   } from '@/api/queries'
@@ -231,6 +232,14 @@
   const transferDialogVisible = ref(false)
   const addSignDialogVisible = ref(false)
   const currentRow = ref<PendingItem | null>(null)
+
+  /** Date 转为 YYYY-MM-DD 格式（后端期望的日期格式） */
+  const toISODate = (d: Date): string => {
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${y}-${m}-${day}`
+  }
 
   const transferForm = reactive({
     targetUser: '',
@@ -296,12 +305,18 @@
   })
 
   // Vue Query: 审核列表（后端分页/过滤）
-  const searchParams = computed<Api.Review.ReviewSearchParams>(() => ({
-    page: pagination.current,
-    pageSize: pagination.size,
-    keyword: searchQuery.value || undefined,
-    reviewType: filterType.value || undefined
-  }))
+  const searchParams = computed<Api.Review.ReviewSearchParams>(() => {
+    const [startDate, endDate] = filterDateRange.value || []
+    return {
+      page: pagination.current,
+      pageSize: pagination.size,
+      keyword: searchQuery.value || undefined,
+      reviewType: filterType.value || undefined,
+      // 日期范围筛选：转换为后端需要的 startDate/endDate
+      startDate: startDate ? toISODate(startDate) : undefined,
+      endDate: endDate ? toISODate(endDate) : undefined
+    }
+  })
 
   const { data: listResult, isLoading } = useReviewList(searchParams)
   const { data: pendingCountData } = usePendingReviewCount()
@@ -339,14 +354,11 @@
   // 后端分页：直接使用 Vue Query 数据
   const pagedList = pendingList
 
-  watch(filterDateRange, () => {
-    pagination.current = 1
-  })
-
   // Mutations
   const claimMutation = useClaimReview()
   const dispatchMutation = useDispatchReview()
   const decisionMutation = useReviewDecision()
+  const batchDecisionMutation = useBatchReviewDecision()
 
   const handleSelectionChange = (selection: PendingItem[]) => {
     selectedItems.value = selection
@@ -461,14 +473,29 @@
         type: 'success'
       }
     ).then(async () => {
+      const total = selectedItems.value.length
       try {
-        await decisionMutation.mutateAsync({
-          reviewId: String(selectedItems.value[0].id),
+        // 使用批量接口一次提交所有任务，避免单条串行调用
+        const result = await batchDecisionMutation.mutateAsync({
+          taskIds: selectedItems.value.map((item) => String(item.id)),
           decision: 'approved',
           comment: '批量审批'
         })
         selectedItems.value = []
-        ElMessage.success('批量通过成功')
+        if (result && typeof result === 'object') {
+          const { successCount = total, failCount = 0, failures = [] } = result
+          if (failCount === 0) {
+            ElMessage.success(`已批量通过 ${successCount} 项`)
+          } else if (successCount === 0) {
+            ElMessage.error(`批量通过失败：${failures[0]?.reason || '所有任务均未通过'}`)
+          } else {
+            ElMessage.warning(
+              `部分通过：成功 ${successCount} 项，失败 ${failCount} 项${failures[0]?.reason ? `（${failures[0].reason}）` : ''}`
+            )
+          }
+        } else {
+          ElMessage.success('批量通过成功')
+        }
       } catch {
         ElMessage.error('批量通过失败')
       }

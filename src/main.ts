@@ -9,7 +9,8 @@ import { setupGlobDirectives } from './directives'
 import { setupErrorHandle } from './utils/sys/error-handle'
 import { dataFlowBus } from './utils/data-flow'
 import { initWebVitals } from './utils/sys/web-vitals'
-import { useProjectDataStore } from '@/store/modules/project-data'
+import { queryClient } from './plugins/vue-query'
+import { fetchGetProjectList } from '@/api/project'
 
 document.addEventListener(
   'touchstart',
@@ -27,7 +28,13 @@ async function bootstrap() {
 
   app.mount('#app')
 
-  useProjectDataStore().loadProjects()
+  queryClient.fetchQuery({
+    queryKey: ['projects', 'list', undefined] as const,
+    queryFn: async () => {
+      const res = await fetchGetProjectList(undefined as any)
+      return res ?? null
+    }
+  })
 
   dataFlowBus.init().catch((err) => {
     console.error('[DataFlow] 初始化失败:', err)

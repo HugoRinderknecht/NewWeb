@@ -261,7 +261,7 @@
   import type { UploadFile, UploadUserFile } from 'element-plus'
   import { useTeamStore } from '@/store/modules/team'
   import { useProjectDataStore } from '@/store/modules/project-data'
-  import { fetchImportFromTeam, fetchGetTeamAssets } from '@/api/asset'
+  import { useTeamAssetList, useImportFromTeam } from '@/api/queries'
 
   defineOptions({ name: 'AssetImport' })
 
@@ -288,6 +288,15 @@
   const projectId = computed(() => projectStore.currentProjectId || '')
   const teamId = computed(() => teamStore.currentTeamId || '')
   const currentStep = ref(0)
+
+  // Vue Query: 团队资产列表
+  const { data: teamAssetData } = useTeamAssetList(teamId)
+  const importFromTeamMutation = useImportFromTeam()
+
+  const teamAssetList = computed<any[]>(() => {
+    const res = teamAssetData.value as any
+    return Array.isArray(res) ? res : res?.records || []
+  })
   const fileList = ref<UploadUserFile[]>([])
   const previewList = ref<FileItem[]>([])
   const previewSearch = ref('')
@@ -295,23 +304,6 @@
   const totalCount = ref(0)
   const completedCount = ref(0)
   const importStatus = ref<'success' | 'exception' | ''>('')
-  const teamAssetList = ref<any[]>([])
-
-  const loadTeamAssets = async () => {
-    if (!teamId.value) return
-    try {
-      const res = await fetchGetTeamAssets(teamId.value)
-      if (res) {
-        teamAssetList.value = Array.isArray(res) ? res : (res as any).records || []
-      }
-    } catch {
-      teamAssetList.value = []
-    }
-  }
-
-  onMounted(() => {
-    loadTeamAssets()
-  })
 
   const allTags = ['主角', '反派', '场景', '道具', '特效', 'UI', '背景', '图标', '动画', '概念图']
 
@@ -512,7 +504,10 @@
     const teamAssetIds = selectedFiles.value.map((f) => String(f.id))
 
     try {
-      await fetchImportFromTeam(projectId.value, teamAssetIds)
+      await importFromTeamMutation.mutateAsync({
+        projectId: projectId.value,
+        teamAssetIds: teamAssetIds
+      })
       importProgressList.value.forEach((item) => {
         item.status = 'success'
       })

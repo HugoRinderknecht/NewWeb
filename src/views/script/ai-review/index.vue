@@ -293,9 +293,10 @@
   import { ElMessage } from 'element-plus'
   import { storeToRefs } from 'pinia'
   import { useScriptProjectStore } from '@/store/modules/script-project'
+  import { useScriptList, useReviewScriptContent, useProjectList } from '@/api/queries'
+  // fetchGetScriptEpisodes 无对应的 Vue Query hook（useProjectEpisodes 是项目级，非剧本级），暂保留直接调用
+  // fetchGetAiProcessStatus / fetchGetAiProcessDetail 的 Vue Query hooks（useAiProcessStatus / useAiProcessDetail）参数和返回类型与当前用法不兼容，暂保留直接调用
   import {
-    fetchGetScriptList,
-    fetchReviewScriptContent,
     fetchGetScriptEpisodes,
     fetchGetAiProcessStatus,
     fetchGetAiProcessDetail
@@ -396,12 +397,30 @@
 
   // ==================== Store ====================
   const scriptProjectStore = useScriptProjectStore()
-  const { currentProjectId, projectList } = storeToRefs(scriptProjectStore)
+  const { currentProjectId } = storeToRefs(scriptProjectStore)
+
+  // ==================== Vue Query Hooks ====================
+  const scriptListQuery = useScriptList(currentProjectId)
+
+  const reviewScriptMutation = useReviewScriptContent()
+
+  // ==================== 统一数据层：项目列表 ====================
+  // store 中已废弃的 projectList 不再使用，改走 useProjectList Vue Query Hook
+  const projectListQuery = useProjectList({
+    current: 1,
+    size: 100
+  } as Api.Project.ProjectSearchParams)
+  const projectList = computed(() => {
+    const records = projectListQuery.data.value?.records || []
+    return records.map((p) => ({
+      id: p.id,
+      name: p.projectName,
+      scriptCount: undefined
+    }))
+  })
 
   // ==================== 响应式数据 ====================
   const currentScriptId = ref('')
-  const scriptOptions = ref<ScriptOption[]>([])
-  const episodeOptions = ref<EpisodeOption[]>([])
   const selectedEpisodeIds = ref<string[]>([])
 
   const loading = ref(false)
@@ -421,39 +440,40 @@
   let pollTimer: ReturnType<typeof setTimeout> | null = null
 
   // ==================== 计算属性 ====================
+  const scriptOptions = computed(() => {
+    const data = scriptListQuery.data?.value
+    if (!data?.records) return []
+    return data.records.map((s: Api.Script.ScriptListItem) => ({
+      id: String(s.id),
+      title: s.title ?? '未命名剧本'
+    }))
+  })
+
+  const episodeOptions = ref<EpisodeOption[]>([])
+
   const highRiskCount = computed(() => violations.value.filter((v) => v.level === 'high').length)
   const mediumRiskCount = computed(
     () => violations.value.filter((v) => v.level === 'medium').length
   )
   const lowRiskCount = computed(() => violations.value.filter((v) => v.level === 'low').length)
 
-  // ==================== 加载剧本列表 ====================
-  const loadScriptList = async (projectId: string) => {
-    if (!projectId) {
-      scriptOptions.value = []
-      return
-    }
-    try {
-      const res = await fetchGetScriptList(projectId)
-      const arr = res?.records || []
-      scriptOptions.value = arr.map((s: Api.Script.ScriptListItem) => ({
-        id: String(s.id),
-        title: s.title ?? '未命名剧本'
-      }))
-      // 自动选中当前store中的scriptId或第一个
+  // 自动选中剧本
+  watch(
+    () => scriptListQuery.data?.value,
+    (data) => {
+      if (!data?.records || currentScriptId.value) return
+      const arr = data.records
       let sid = scriptProjectStore.currentScriptId
-      if (!sid && scriptOptions.value.length > 0) {
-        sid = scriptOptions.value[0].id
+      if (!sid && arr.length > 0) {
+        sid = String(arr[0].id)
       }
       if (sid) {
         currentScriptId.value = sid
         scriptProjectStore.setCurrentScript(sid)
-        await loadReviewResult(projectId, sid)
+        loadReviewResult(currentProjectId.value, sid)
       }
-    } catch {
-      scriptOptions.value = []
     }
-  }
+  )
 
   // ==================== 加载分集列表 ====================
   const loadEpisodes = async (projectId: string, scriptId: string) => {
@@ -487,7 +507,7 @@
       const res = await fetchGetAiProcessStatus({
         type: 'SCRIPT_REVIEW',
         businessId: scriptId
-      })
+      } as any)
       const record = res as Api.AiProcess.AiProcessRecord | null
 
       if (!record) {
@@ -573,14 +593,13 @@
     reviewResult.value = null
     processStatus.value = 'IDLE'
     stopPolling()
-    loadScriptList(projectId)
   }
 
   const handleProjectRefresh = () => {
     if (currentScriptId.value) {
       loadReviewResult(currentProjectId.value, currentScriptId.value)
     } else {
-      loadScriptList(currentProjectId.value)
+      scriptListQuery.refetch()
     }
   }
 
@@ -617,12 +636,12 @@
     try {
       const episodeIds = selectedEpisodeIds.value.length > 0 ? selectedEpisodeIds.value : undefined
       // POST 发起审核
-      const res = await fetchReviewScriptContent(
-        currentProjectId.value,
-        currentScriptId.value,
+      const res = await reviewScriptMutation.mutateAsync({
+        projectId: currentProjectId.value,
+        scriptId: currentScriptId.value,
         episodeIds,
-        true
-      )
+        force: true
+      })
       const result = res as Api.Script.AiProcessResult<Api.Script.ReviewResult>
       reviewDialogVisible.value = false
 
@@ -659,10 +678,6 @@
   }
 
   // ==================== 生命周期 ====================
-  onMounted(() => {
-    loadScriptList(currentProjectId.value)
-  })
-
   onUnmounted(() => {
     stopPolling()
   })

@@ -141,7 +141,7 @@
   import type { ColumnOption } from '@/types/component'
   import { useTeamStore } from '@/store/modules/team'
   import { useRoute } from 'vue-router'
-  import { fetchGetInviteCodes, fetchCreateInviteCode, fetchRevokeInviteCode } from '@/api/team'
+  import { useInviteCodes, useCreateInviteCode, useRevokeInviteCode } from '@/api/queries'
 
   defineOptions({ name: 'TeamInviteCodes' })
 
@@ -161,9 +161,25 @@
   const teamId = computed(() =>
     String((route.query.id || route.query.teamId || teamStore.currentTeamId) as string)
   )
-  const loading = ref(false)
   const dialogVisible = ref(false)
   const formRef = ref<FormInstance>()
+
+  const pagination = reactive({
+    current: 1,
+    size: 10,
+    total: 0
+  })
+
+  // Vue Query: 邀请码列表
+  const inviteCodeParams = computed(() => ({
+    current: pagination.current,
+    size: pagination.size
+  }))
+  const { data: inviteCodesData, isLoading: loading } = useInviteCodes(teamId, inviteCodeParams)
+
+  // Mutations
+  const createInviteCodeMutation = useCreateInviteCode()
+  const revokeInviteCodeMutation = useRevokeInviteCode()
 
   const roleTagMap: Record<string, 'primary' | 'success' | 'warning' | 'info' | 'danger'> = {
     项目经理: 'primary',
@@ -174,7 +190,31 @@
     观察员: 'info'
   }
 
-  const inviteCodeList = ref<InviteCodeItem[]>([])
+  const inviteCodeList = computed<InviteCodeItem[]>(() => {
+    const res = inviteCodesData.value as any
+    const list = res?.records || []
+    return list.map((item: any) => ({
+      id: item.id,
+      code: item.code,
+      role: '',
+      maxUses: item.maxUses || 0,
+      usedCount: item.usedCount || 0,
+      expireTime: item.expiresAt || '',
+      status:
+        item.expiresAt && new Date(item.expiresAt) < new Date()
+          ? ('disabled' as const)
+          : ('active' as const),
+      createTime: item.createTime || ''
+    }))
+  })
+
+  // 同步分页 total
+  watch(
+    () => (inviteCodesData.value as any)?.total,
+    (total) => {
+      if (total !== undefined) pagination.total = total
+    }
+  )
 
   const inviteStats = computed(() => {
     const total = pagination.total
@@ -189,40 +229,6 @@
     ]
   })
 
-  const loadInviteCodes = async () => {
-    if (!teamId.value) return
-    loading.value = true
-    try {
-      const res = await fetchGetInviteCodes(teamId.value, {
-        current: pagination.current,
-        size: pagination.size
-      })
-      const list = res?.records || []
-      inviteCodeList.value = list.map((item) => ({
-        id: item.id,
-        code: item.code,
-        role: '',
-        maxUses: item.maxUses || 0,
-        usedCount: item.usedCount || 0,
-        expireTime: item.expiresAt || '',
-        status:
-          item.expiresAt && new Date(item.expiresAt) < new Date()
-            ? ('disabled' as const)
-            : ('active' as const),
-        createTime: item.createTime || ''
-      }))
-      pagination.total = res?.total || 0
-    } catch {
-      ElMessage.error('加载邀请码列表失败')
-    } finally {
-      loading.value = false
-    }
-  }
-
-  onMounted(() => {
-    loadInviteCodes()
-  })
-
   const columns: ColumnOption[] = [
     { type: 'index' },
     { prop: 'code', label: '邀请码', minWidth: 180 },
@@ -235,25 +241,16 @@
     { prop: 'operation', label: '操作', width: 180, fixed: 'right' }
   ]
 
-  const pagination = reactive({
-    current: 1,
-    size: 10,
-    total: 0
-  })
-
   const filteredCodes = computed(() => {
     return inviteCodeList.value
   })
-
   const handleSizeChange = (size: number) => {
     pagination.size = size
     pagination.current = 1
-    loadInviteCodes()
   }
 
   const handleCurrentChange = (current: number) => {
     pagination.current = current
-    loadInviteCodes()
   }
 
   const form = reactive({
@@ -283,13 +280,15 @@
     try {
       const expireDate = new Date()
       expireDate.setDate(expireDate.getDate() + form.expireDays)
-      await fetchCreateInviteCode(teamId.value, {
-        maxUses: form.maxUses,
-        expiresAt: form.expireDays >= 3650 ? '' : expireDate.toISOString().slice(0, 10)
+      await createInviteCodeMutation.mutateAsync({
+        teamId: teamId.value,
+        params: {
+          maxUses: form.maxUses,
+          expiresAt: form.expireDays >= 3650 ? '' : expireDate.toISOString().slice(0, 10)
+        }
       })
       ElMessage.success('邀请码生成成功')
       dialogVisible.value = false
-      loadInviteCodes()
     } catch {
       ElMessage.error('生成邀请码失败')
     }
@@ -308,9 +307,8 @@
       type: 'warning'
     }).then(async () => {
       try {
-        await fetchRevokeInviteCode(teamId.value, row.id)
+        await revokeInviteCodeMutation.mutateAsync({ teamId: teamId.value, id: row.id })
         ElMessage.success('邀请码已禁用')
-        loadInviteCodes()
       } catch {
         ElMessage.error('禁用失败')
       }
@@ -328,9 +326,8 @@
       type: 'error'
     }).then(async () => {
       try {
-        await fetchRevokeInviteCode(teamId.value, row.id)
+        await revokeInviteCodeMutation.mutateAsync({ teamId: teamId.value, id: row.id })
         ElMessage.success('删除成功')
-        loadInviteCodes()
       } catch {
         ElMessage.error('删除失败')
       }

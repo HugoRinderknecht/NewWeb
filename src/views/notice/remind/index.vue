@@ -32,16 +32,15 @@
 <script setup lang="ts">
   import { ElMessage } from 'element-plus'
   import {
-    fetchGetDndSettings,
-    fetchUpdateDndSettings,
-    fetchGetSubscriptions,
-    fetchAddSubscription,
-    fetchCancelSubscription
-  } from '@/api/notification'
+    useDndSettings,
+    useSubscriptions,
+    useUpdateDndSettings,
+    useAddSubscription,
+    useCancelSubscription
+  } from '@/api/queries'
 
   defineOptions({ name: 'NoticeRemind' })
 
-  const saving = ref(false)
   const form = reactive({
     taskRemind: true,
     reviewRemind: true,
@@ -49,24 +48,30 @@
     methods: ['站内通知'] as string[]
   })
 
-  const dndSettings = ref<any>(null)
-  const subscriptions = ref<any[]>([])
+  // 查询 hooks - 自动加载数据
+  const { data: dndSettings } = useDndSettings()
+  const { data: subscriptions } = useSubscriptions()
 
-  const loadSettings = async () => {
-    try {
-      const dnd = await fetchGetDndSettings()
-      dndSettings.value = dnd
+  // 变更 hooks
+  const { mutateAsync: updateDndSettings } = useUpdateDndSettings()
+  const { mutateAsync: addSubscription } = useAddSubscription()
+  const { mutateAsync: cancelSubscription } = useCancelSubscription()
+
+  // 从查询结果同步表单数据
+  watch(
+    () => dndSettings.value,
+    (dnd) => {
       if (dnd) {
         form.systemRemind = !(dnd as any).enabled
       }
-    } catch {
-      // 使用默认值
-    }
+    },
+    { immediate: true }
+  )
 
-    try {
-      const subs = await fetchGetSubscriptions()
+  watch(
+    () => subscriptions.value,
+    (subs) => {
       const subList = Array.isArray(subs) ? subs : []
-      subscriptions.value = subList
       subList.forEach((sub: any) => {
         if (sub.type === 'task' || sub.name === '任务到期提醒') {
           form.taskRemind = sub.enabled
@@ -76,15 +81,16 @@
           form.systemRemind = sub.enabled
         }
       })
-    } catch {
-      // 使用默认值
-    }
-  }
+    },
+    { immediate: true }
+  )
+
+  const saving = ref(false)
 
   const handleSave = async () => {
     saving.value = true
     try {
-      await fetchUpdateDndSettings({
+      await updateDndSettings({
         enabled: !form.systemRemind,
         startTime: (dndSettings.value as any)?.startTime || '22:00',
         endTime: (dndSettings.value as any)?.endTime || '08:00',
@@ -97,19 +103,20 @@
         { type: 'system', name: '系统公告提醒', enabled: form.systemRemind }
       ]
 
+      const subList = Array.isArray(subscriptions.value) ? subscriptions.value : []
       for (const sub of subUpdates) {
-        const existing = subscriptions.value.find((s: any) => s.type === sub.type)
+        const existing = subList.find((s: any) => s.type === sub.type)
         if (existing) {
           if (!sub.enabled) {
             try {
-              await fetchCancelSubscription((existing as any).id)
+              await cancelSubscription((existing as any).id)
             } catch {
               // 取消订阅失败
             }
           }
         } else if (sub.enabled) {
           try {
-            await fetchAddSubscription({ type: sub.type, name: sub.name })
+            await addSubscription({ type: sub.type, name: sub.name })
           } catch {
             // 添加订阅失败
           }
@@ -123,8 +130,4 @@
       saving.value = false
     }
   }
-
-  onMounted(() => {
-    loadSettings()
-  })
 </script>

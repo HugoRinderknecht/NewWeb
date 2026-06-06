@@ -19,7 +19,7 @@
 <script setup lang="ts">
   defineOptions({ name: 'TeamPermission' })
 
-  import { fetchGetAvailablePermissions, fetchSetRolePermissions } from '@/api/team'
+  import { useAvailablePermissions, useSetRolePermissions } from '@/api/queries'
   import { useTeamStore } from '@/store/modules/team'
 
   interface PermissionItem {
@@ -31,47 +31,39 @@
   }
 
   const teamStore = useTeamStore()
-  const loading = ref(false)
 
-  const permissionList = ref<PermissionItem[]>([])
+  // Vue Query: 可用权限列表
+  const teamId = computed(() => teamStore.currentTeamId || undefined)
+  const { data: permissionsData, isLoading: loading } = useAvailablePermissions(teamId)
 
-  const loadPermissions = async () => {
-    const teamId = teamStore.currentTeamId
-    if (!teamId) return
-    loading.value = true
-    try {
-      const data = await fetchGetAvailablePermissions(teamId)
-      if (Array.isArray(data)) {
-        permissionList.value = data.map((item: any) => ({
-          code: item.code,
-          name: item.name,
-          description: item.description,
-          category: item.category,
-          enabled: false
-        }))
-      }
-    } catch {
-      console.error('加载权限列表失败')
-    } finally {
-      loading.value = false
-    }
-  }
+  // Mutation
+  const setRolePermissionsMutation = useSetRolePermissions()
+
+  const permissionList = computed<PermissionItem[]>(() =>
+    (permissionsData.value || []).map((item: any) => ({
+      code: item.code,
+      name: item.name,
+      description: item.description,
+      category: item.category,
+      enabled: false
+    }))
+  )
 
   const handlePermissionChange = async (row: PermissionItem) => {
-    const teamId = teamStore.currentTeamId
-    if (!teamId) return
+    const tid = teamStore.currentTeamId
+    if (!tid) return
     const enabledCodes = permissionList.value.filter((p) => p.enabled).map((p) => p.code)
     try {
-      await fetchSetRolePermissions(teamId, 'default', enabledCodes)
+      await setRolePermissionsMutation.mutateAsync({
+        teamId: tid,
+        roleId: 'default',
+        permissionCodes: enabledCodes
+      })
     } catch {
       ElMessage.error('权限更新失败')
       row.enabled = !row.enabled
     }
   }
-
-  onMounted(() => {
-    loadPermissions()
-  })
 </script>
 
 <style scoped>

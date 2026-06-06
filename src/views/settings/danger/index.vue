@@ -192,30 +192,9 @@
 <script setup lang="ts">
   import { ElMessage } from 'element-plus'
   import type { FormInstance, FormRules } from 'element-plus'
-  import { fetchGetUserInfo, fetchLogout } from '@/api/auth'
+  import { fetchLogout } from '@/api/auth'
 
   defineOptions({ name: 'SettingsDanger' })
-
-  const userInfo = ref<Api.Auth.UserInfo>({
-    buttons: [],
-    roles: [],
-    userId: 0,
-    username: '',
-    userName: '',
-    email: '',
-    avatar: ''
-  })
-
-  const loadUserInfo = async () => {
-    try {
-      const data = await fetchGetUserInfo()
-      if (data) {
-        userInfo.value = data
-      }
-    } catch (error) {
-      console.error('加载用户信息失败:', error)
-    }
-  }
 
   interface ExportOption {
     type: string
@@ -395,10 +374,6 @@
 
   onUnmounted(() => {
     if (exportTimer) clearInterval(exportTimer)
-  })
-
-  onMounted(() => {
-    loadUserInfo()
   })
 </script>
 

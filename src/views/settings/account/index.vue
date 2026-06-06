@@ -26,24 +26,14 @@
 
 <script setup lang="ts">
   import { ElMessage } from 'element-plus'
-  import {
-    fetchGetUserInfo,
-    fetchUpdateProfile,
-    fetchUploadAvatar,
-    fetchResetPassword
-  } from '@/api/auth'
+  import { useCurrentUser, useUpdateProfile, useUploadAvatar } from '@/api/queries'
+  import { fetchResetPassword } from '@/api/auth'
 
   defineOptions({ name: 'SettingsAccount' })
 
-  const userInfo = ref<Api.Auth.UserInfo>({
-    buttons: [],
-    roles: [],
-    userId: 0,
-    username: '',
-    userName: '',
-    email: '',
-    avatar: ''
-  })
+  const { data: userInfo } = useCurrentUser()
+  const updateProfileMutation = useUpdateProfile()
+  const uploadAvatarMutation = useUploadAvatar()
 
   const form = reactive({
     oldPassword: '',
@@ -52,17 +42,6 @@
   })
 
   const loading = ref(false)
-
-  const loadUserInfo = async () => {
-    try {
-      const data = await fetchGetUserInfo()
-      if (data) {
-        userInfo.value = data
-      }
-    } catch (error) {
-      console.error('加载用户信息失败:', error)
-    }
-  }
 
   const handleChangePassword = async () => {
     if (!form.newPassword || !form.confirmPassword) {
@@ -76,7 +55,7 @@
     loading.value = true
     try {
       await fetchResetPassword({
-        email: userInfo.value.email || '',
+        email: userInfo.value?.email || '',
         captchaCode: '',
         newPassword: form.newPassword
       })
@@ -93,15 +72,14 @@
 
   const handleUpdateProfile = async (params: Api.Auth.UpdateProfileParams) => {
     try {
-      const data = await fetchUpdateProfile(params)
+      const data = await updateProfileMutation.mutateAsync(params)
       if (data) {
         // 更新用户名变更后的token
         if (data.token) {
           const userStore = (await import('@/store/modules/user')).useUserStore()
           userStore.setToken(data.token, data.refreshToken)
         }
-        // 重新获取完整用户信息
-        await loadUserInfo()
+        // useUpdateProfile 会自动使用户信息缓存失效
       }
       ElMessage.success('信息修改成功')
     } catch {
@@ -111,10 +89,8 @@
 
   const handleUploadAvatar = async (file: File) => {
     try {
-      const data = await fetchUploadAvatar(file)
-      if (data) {
-        userInfo.value = data
-      }
+      await uploadAvatarMutation.mutateAsync(file)
+      // useUploadAvatar 会自动使用户信息缓存失效
       ElMessage.success('头像上传成功')
     } catch {
       ElMessage.error('头像上传失败')
@@ -124,9 +100,5 @@
   defineExpose({
     handleUpdateProfile,
     handleUploadAvatar
-  })
-
-  onMounted(() => {
-    loadUserInfo()
   })
 </script>

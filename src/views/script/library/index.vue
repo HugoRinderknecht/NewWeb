@@ -196,7 +196,6 @@
           :page-sizes="[10, 20, 50, 100]"
           layout="total, sizes, prev, pager, next, jumper"
           background
-          @current-change="loadScriptList"
           @size-change="handleSizeChange"
         />
       </div>
@@ -250,9 +249,7 @@
           class="upload-area"
         >
           <ArtSvgIcon icon="ri:upload-cloud-2-line" class="upload-icon" />
-          <div class="el-upload__text">
-            将文件拖到此处，或 <em>点击上传</em>
-          </div>
+          <div class="el-upload__text"> 将文件拖到此处，或 <em>点击上传</em> </div>
           <template #tip>
             <div class="el-upload__tip">
               请上传 .txt 或 .md 格式的剧本文件，文件大小不超过 10MB
@@ -381,21 +378,88 @@
   import type { FormInstance, FormRules, UploadFile, UploadRawFile } from 'element-plus'
   import { useRouter } from 'vue-router'
   import { storeToRefs } from 'pinia'
-  import { useScriptProjectStore } from '@/store/modules/script-project'
+  import { useProjectStore } from '@/store/modules/project'
   import {
-    fetchGetScriptList,
-    fetchGetScriptDetail,
-    fetchCreateScript,
-    fetchDeleteScript,
-    fetchSubmitScriptReview,
-    fetchWithdrawScriptReview
-  } from '@/api/script'
+    useScriptList,
+    useScriptDetail,
+    useCreateScript,
+    useDeleteScript,
+    useSubmitScriptReview,
+    useWithdrawScriptReview,
+    useProjectList,
+    useProjectDetail
+  } from '@/api/queries'
+  // fetchGetScriptDetail 用于列表批量获取审核状态，暂保留直接调用
+  import { fetchGetScriptDetail } from '@/api/script'
 
   defineOptions({ name: 'ScriptLibrary' })
 
   const router = useRouter()
-  const scriptProjectStore = useScriptProjectStore()
-  const { currentProjectId, projectList, currentProject } = storeToRefs(scriptProjectStore)
+  const projectStore = useProjectStore()
+  const { currentProjectId } = storeToRefs(projectStore)
+
+  // ==================== 统一数据层：项目列表与当前项目 ====================
+  // 下拉框与当前项目名称需走 Vue Query Hook，store 中已废弃的 projectList/currentProject 不再使用
+  const projectListQuery = useProjectList({
+    current: 1,
+    size: 100
+  } as Api.Project.ProjectSearchParams)
+  const projectDetailQuery = useProjectDetail(computed(() => currentProjectId.value || undefined))
+  const projectList = computed(() => {
+    const records = projectListQuery.data.value?.records || []
+    return records.map((p) => ({
+      id: p.id,
+      name: p.projectName,
+      scriptCount: undefined
+    }))
+  })
+  const currentProject = computed(() => {
+    const detail = projectDetailQuery.data.value
+    if (!detail) return undefined
+    return {
+      id: detail.id,
+      name: detail.projectName,
+      description: detail.description,
+      episodeCount: 0
+    }
+  })
+
+  // ==================== 列表状态变量（需先于 Vue Query Hooks 定义，避免 TDZ） ====================
+  const searchQuery = ref('')
+  const filterStatus = ref<number | ''>('')
+  const loading = ref(false)
+  const scriptDetailId = ref('')
+
+  const scriptList = ref<Api.Script.ScriptDetail[]>([])
+
+  const pagination = reactive({
+    current: 1,
+    size: 10,
+    total: 0
+  })
+
+  // ==================== Vue Query Hooks ====================
+  const scriptListQuery = useScriptList(
+    currentProjectId,
+    computed(() => {
+      const params: Api.Script.ScriptSearchParams = {
+        current: pagination.current,
+        size: pagination.size
+      }
+      if (searchQuery.value) {
+        params.keyword = searchQuery.value
+      }
+      if (filterStatus.value !== '') {
+        params.status = filterStatus.value
+      }
+      return params
+    })
+  )
+  const scriptDetailQuery = useScriptDetail(computed(() => scriptDetailId.value || undefined))
+  const createScriptMutation = useCreateScript()
+  const deleteScriptMutation = useDeleteScript()
+  const submitReviewMutation = useSubmitScriptReview()
+  const withdrawReviewMutation = useWithdrawScriptReview()
 
   // ==================== 状态映射 ====================
   const statusTypeMap: Record<number, 'info' | 'success'> = {
@@ -428,45 +492,42 @@
     { label: '已完成', value: 2 }
   ]
 
-  // ==================== 列表数据（服务端分页） ====================
-  const searchQuery = ref('')
-  const filterStatus = ref<number | ''>('')
-  const loading = ref(false)
-
-  const scriptList = ref<Api.Script.ScriptDetail[]>([])
-
-  const pagination = reactive({
-    current: 1,
-    size: 10,
-    total: 0
-  })
-
-  // ==================== 加载数据 ====================
-  const loadScriptList = async () => {
-    const projectId = currentProjectId.value
-    if (!projectId) return
-    loading.value = true
-    try {
-      const params: Api.Script.ScriptSearchParams = {
-        current: pagination.current,
-        size: pagination.size
+  // ==================== 列表数据响应式更新 ====================
+  // 监听 scriptListQuery.data 变化，批量获取详情（含审核状态）
+  watch(
+    () => scriptListQuery.data?.value,
+    async (data) => {
+      if (!data?.records) {
+        scriptList.value = []
+        pagination.total = 0
+        return
       }
-      if (searchQuery.value) {
-        params.keyword = searchQuery.value
-      }
-      if (filterStatus.value !== '') {
-        params.status = filterStatus.value
-      }
-      const res = await fetchGetScriptList(projectId, params)
-      const records = res?.records || []
-      pagination.total = res?.total || 0
-      // 为当前页的每个剧本获取详情（含审核状态），并行请求
-      const detailPromises = records.map(
-        async (item: Api.Script.ScriptListItem): Promise<Api.Script.ScriptDetail> => {
-          try {
-            const detail = await fetchGetScriptDetail(item.id)
-            return (
-              detail || {
+      const records = data.records
+      pagination.total = data.total || 0
+      loading.value = true
+      try {
+        // 为当前页的每个剧本获取详情（含审核状态），并行请求
+        const detailPromises = records.map(
+          async (item: Api.Script.ScriptListItem): Promise<Api.Script.ScriptDetail> => {
+            try {
+              const detail = await fetchGetScriptDetail(item.id)
+              return (
+                detail || {
+                  ...item,
+                  reviewStatus: null,
+                  reviewStatusText: '',
+                  episodeCount: 0,
+                  storyboardCount: 0,
+                  reviewTaskId: '',
+                  reviewerName: '',
+                  reviewComment: '',
+                  submittedAt: '',
+                  reviewedAt: '',
+                  statusText: ''
+                }
+              )
+            } catch {
+              return {
                 ...item,
                 reviewStatus: null,
                 reviewStatusText: '',
@@ -479,32 +540,17 @@
                 reviewedAt: '',
                 statusText: ''
               }
-            )
-          } catch {
-            return {
-              ...item,
-              reviewStatus: null,
-              reviewStatusText: '',
-              episodeCount: 0,
-              storyboardCount: 0,
-              reviewTaskId: '',
-              reviewerName: '',
-              reviewComment: '',
-              submittedAt: '',
-              reviewedAt: '',
-              statusText: ''
             }
           }
-        }
-      )
-      scriptList.value = await Promise.all(detailPromises)
-    } catch {
-      scriptList.value = []
-      ElMessage.error('加载剧本列表失败')
-    } finally {
-      loading.value = false
+        )
+        scriptList.value = await Promise.all(detailPromises)
+      } catch {
+        scriptList.value = []
+      } finally {
+        loading.value = false
+      }
     }
-  }
+  )
 
   const stats = computed(() => {
     const list = scriptList.value
@@ -518,16 +564,14 @@
 
   const handleProjectChange = () => {
     pagination.current = 1
-    loadScriptList()
   }
 
   const handleProjectRefresh = () => {
-    loadScriptList()
+    scriptListQuery.refetch()
   }
 
   const handleSizeChange = () => {
     pagination.current = 1
-    loadScriptList()
   }
 
   // 搜索防抖
@@ -536,25 +580,16 @@
     if (searchTimer) clearTimeout(searchTimer)
     searchTimer = setTimeout(() => {
       pagination.current = 1
-      loadScriptList()
     }, 300)
   })
 
   watch(filterStatus, () => {
     pagination.current = 1
-    loadScriptList()
-  })
-
-  onMounted(() => {
-    if (currentProjectId.value) {
-      loadScriptList()
-    }
   })
 
   watch(currentProjectId, (newId) => {
     if (newId) {
       pagination.current = 1
-      loadScriptList()
     }
   })
 
@@ -570,9 +605,11 @@
       type: 'warning'
     }).then(async () => {
       try {
-        await fetchDeleteScript(row.id)
+        await deleteScriptMutation.mutateAsync({
+          scriptId: row.id,
+          projectId: currentProjectId.value
+        })
         ElMessage.success('删除成功')
-        loadScriptList()
       } catch {
         ElMessage.error('删除失败')
       }
@@ -586,8 +623,10 @@
       type: 'warning'
     }).then(async () => {
       try {
-        await fetchSubmitScriptReview(row.id)
-        row.reviewStatus = 1
+        await submitReviewMutation.mutateAsync({
+          scriptId: row.id,
+          projectId: currentProjectId.value
+        })
         ElMessage.success('已提交审核')
       } catch {
         ElMessage.error('提交审核失败')
@@ -602,8 +641,10 @@
       type: 'info'
     }).then(async () => {
       try {
-        await fetchWithdrawScriptReview(row.id)
-        row.reviewStatus = 4
+        await withdrawReviewMutation.mutateAsync({
+          scriptId: row.id,
+          projectId: currentProjectId.value
+        })
         ElMessage.success('已撤回审核')
       } catch {
         ElMessage.error('撤回审核失败')
@@ -617,9 +658,10 @@
 
   const handleViewDetail = async (row: Api.Script.ScriptDetail) => {
     try {
-      const detail = await fetchGetScriptDetail(row.id)
-      if (detail) {
-        scriptDetail.value = detail
+      scriptDetailId.value = row.id
+      const result = await scriptDetailQuery.refetch()
+      if (result.data) {
+        scriptDetail.value = result.data as Api.Script.ScriptDetail
         detailDialogVisible.value = true
       }
     } catch {
@@ -665,10 +707,9 @@
           ElMessage.warning('请先选择项目')
           return
         }
-        await fetchCreateScript(projectId, { ...createForm })
+        await createScriptMutation.mutateAsync({ projectId, params: { ...createForm } })
         createDialogVisible.value = false
         ElMessage.success('创建成功')
-        loadScriptList()
       } catch {
         ElMessage.error('创建失败')
       } finally {
@@ -712,15 +753,17 @@
       const content = await parseScriptFile(file)
       if (content) {
         const fileName = file.name.replace(/\.[^/.]+$/, '')
-        await fetchCreateScript(projectId, {
-          title: fileName,
-          description: '',
-          content: content,
-          status: 1
+        await createScriptMutation.mutateAsync({
+          projectId,
+          params: {
+            title: fileName,
+            description: '',
+            content: content,
+            status: 1
+          }
         })
         ElMessage.success(`已导入剧本「${file.name}」，共 ${content.replace(/\s/g, '').length} 字`)
         uploadDialogVisible.value = false
-        loadScriptList()
       }
     } catch (error) {
       ElMessage.error('文件解析失败：' + (error instanceof Error ? error.message : '未知错误'))

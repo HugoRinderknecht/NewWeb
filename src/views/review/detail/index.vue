@@ -276,7 +276,7 @@
 <script setup lang="ts">
   import { ElMessage, ElMessageBox } from 'element-plus'
   import type { UploadFile } from 'element-plus'
-  import { fetchGetReviewDetail } from '@/api/review'
+  import { useReviewDetail } from '@/api/queries'
 
   defineOptions({ name: 'ReviewDetail' })
 
@@ -402,6 +402,9 @@
     addSign: 'ri:user-add-line'
   }
 
+  const reviewId = computed(() => (route.query.id as string) || undefined)
+  const { data: detailData } = useReviewDetail(reviewId)
+
   const detail = reactive<ReviewDetailData>({
     id: Number(route.query.id) || 1,
     title: '',
@@ -419,11 +422,9 @@
 
   const historyList = ref<HistoryItem[]>([])
 
-  const loadDetail = async () => {
-    const id = route.query.id as string
-    if (!id) return
-    try {
-      const res = await fetchGetReviewDetail(id)
+  watch(
+    detailData,
+    (res) => {
       if (res) {
         Object.assign(detail, {
           id: (res as any).id || detail.id,
@@ -441,14 +442,9 @@
         })
         historyList.value = (res as any).historyList || []
       }
-    } catch {
-      // keep default empty state
-    }
-  }
-
-  onMounted(() => {
-    loadDetail()
-  })
+    },
+    { immediate: true }
+  )
 
   const handleBack = () => {
     router.back()
