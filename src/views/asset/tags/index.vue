@@ -123,7 +123,7 @@
   import { ElMessage, ElMessageBox } from 'element-plus'
   import type { FormInstance, FormRules } from 'element-plus'
   import { fetchBatchAddTags, fetchBatchRemoveTags } from '@/api/asset'
-  import { useProjectDataStore } from '@/store/modules/project-data'
+  import { useAssetProjectStore } from '@/store/modules/asset-project'
 
   defineOptions({ name: 'AssetTags' })
 
@@ -141,7 +141,7 @@
   const isEdit = ref(false)
   const currentId = ref<number | null>(null)
   const formRef = ref<FormInstance>()
-  const projectStore = useProjectDataStore()
+  const projectStore = useAssetProjectStore()
   const projectId = computed(() => projectStore.currentProjectId || '')
 
   const typeIconMap: Record<TagType, string> = {

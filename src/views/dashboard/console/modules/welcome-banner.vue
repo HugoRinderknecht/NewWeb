@@ -186,7 +186,7 @@
   .banner-illustration {
     width: 60px;
     height: 60px;
-    border-radius: 14px;
+    border-radius: 8px;
     background: rgba(255, 255, 255, 0.15);
     backdrop-filter: blur(8px);
     display: flex;

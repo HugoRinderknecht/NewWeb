@@ -271,13 +271,13 @@
     useReorderStoryboards
   } from '@/api/queries/storyboard'
   import { useProjectList } from '@/api/queries/project'
-  import { useProjectStore } from '@/store/modules/project'
+  import { useStoryboardProjectStore } from '@/store/modules/storyboard-project'
   import ProjectSwitcher from '@/components/ProjectSwitcher/index.vue'
 
   defineOptions({ name: 'StoryboardScene' })
 
   const route = useRoute()
-  const projectStore = useProjectStore()
+  const storyboardProjectStore = useStoryboardProjectStore()
 
   type SceneType = 'interior' | 'exterior' | 'mixed' | 'studio'
 
@@ -312,7 +312,7 @@
   const formRef = ref<FormInstance>()
 
   const projectId = computed(
-    () => (route.params.projectId as string) || projectStore.currentProjectId || ''
+    () => (route.params.projectId as string) || storyboardProjectStore.currentProjectId || ''
   )
 
   // 项目下拉：列表 + 当前项目
@@ -326,8 +326,8 @@
   const currentProjectId = computed<string>({
     get: () => projectId.value,
     set: (val) => {
-      if (val && val !== projectStore.currentProjectId) {
-        projectStore.setCurrentProject(val)
+      if (val && val !== storyboardProjectStore.currentProjectId) {
+        storyboardProjectStore.setCurrentProject(val)
       }
     }
   })
@@ -591,8 +591,8 @@
     if (routeEpisodeId) {
       currentEpisode.value = Number(routeEpisodeId) || 1
     }
-    if (projectId.value && !projectStore.currentProjectId) {
-      projectStore.setCurrentProject(projectId.value)
+    if (projectId.value && !storyboardProjectStore.currentProjectId) {
+      storyboardProjectStore.setCurrentProject(projectId.value)
     }
   })
 

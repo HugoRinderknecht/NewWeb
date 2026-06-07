@@ -84,15 +84,19 @@ export function fetchGetScriptEpisodes(projectId: string, scriptId: string) {
   )
 }
 
-/** 查询项目所有分集 */
+/** 查询项目所有分集 — 辅助请求，关闭全局弹错 */
 export function fetchGetProjectEpisodes(projectId: string) {
-  return getApiAdapter().get<Api.Script.Episode[]>(`/api/projects/${projectId}/episodes`)
+  return getApiAdapter().get<Api.Script.Episode[]>(`/api/projects/${projectId}/episodes`, undefined, {
+    showErrorMessage: false
+  })
 }
 
-/** 查询分集详情 */
+/** 查询分集详情 — 次级请求，关闭全局弹错 */
 export function fetchGetEpisodeDetail(scriptId: string, episodeId: string) {
   return getApiAdapter().get<Api.Script.EpisodeDetail>(
-    `/api/scripts/${scriptId}/episodes/${episodeId}`
+    `/api/scripts/${scriptId}/episodes/${episodeId}`,
+    undefined,
+    { showErrorMessage: false }
   )
 }
 
@@ -297,22 +301,4 @@ export function fetchGetVideoPrompts(episodeId: string) {
   )
 }
 
-// ==================== AI处理记录 ====================
 
-/** 查询AI处理状态(按type+businessId，返回最新一条) */
-export function fetchGetAiProcessStatus(params: Api.AiProcess.StatusQueryParams) {
-  return getApiAdapter().get<Api.AiProcess.AiProcessRecord>('/api/ai-process/status', params)
-}
-
-/** 查询AI处理历史列表(最多5条，不含完整resultData) */
-export function fetchGetAiProcessHistory(params: Api.AiProcess.StatusQueryParams) {
-  return getApiAdapter().get<Api.AiProcess.AiProcessHistoryItem[]>(
-    '/api/ai-process/history',
-    params
-  )
-}
-
-/** 查询AI处理历史详情(含完整resultData) */
-export function fetchGetAiProcessDetail(recordId: string) {
-  return getApiAdapter().get<Api.AiProcess.AiProcessRecord>(`/api/ai-process/history/${recordId}`)
-}

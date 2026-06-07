@@ -6,6 +6,8 @@ export interface RequestConfig {
   headers?: Record<string, string>
   signal?: AbortSignal
   responseType?: 'json' | 'blob' | 'arraybuffer' | 'text' | 'stream'
+  /** 是否在 HTTP 层全局弹错提示，默认 true；轮询/次级请求可设为 false 由页面局部处理 */
+  showErrorMessage?: boolean
 }
 
 export interface PaginatedResponse<T> {

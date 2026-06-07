@@ -249,11 +249,11 @@
    * 完成时自动失效人物小传缓存并停止轮询。
    */
   const aiStatusQuery = useAiProcessStatus(
-    computed<Api.AiProcess.StatusSearchParams | undefined>(() =>
+    computed<Api.AiProcess.StatusQueryParams | undefined>(() =>
       generateRecordId.value && currentScriptId.value
         ? {
-            scriptId: currentScriptId.value,
-            processType: 'CHARACTER_PROFILE'
+            type: 'CHARACTER_PROFILE',
+            businessId: currentScriptId.value
           }
         : undefined
     )
@@ -460,15 +460,14 @@
     () => aiStatusQuery.data.value,
     (status) => {
       if (!generateRecordId.value || !status) return
-      const s = status as Api.AiProcess.ProcessStatus | null as any
-      const stage = s?.status
-      if (stage === 'COMPLETED') {
+      const record = status as Api.AiProcess.AiProcessRecord
+      if (record.status === 'COMPLETED') {
         generateRecordId.value = ''
         ElMessage.success('人物小传生成完成')
         characterProfilesQuery.refetch()
-      } else if (stage === 'FAILED') {
+      } else if (record.status === 'FAILED') {
         generateRecordId.value = ''
-        ElMessage.error(s?.message || '人物小传生成失败')
+        ElMessage.error(record.message || '人物小传生成失败')
       }
     }
   )

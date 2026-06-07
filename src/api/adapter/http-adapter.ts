@@ -3,7 +3,7 @@ import request from '@/utils/http'
 
 export class HttpAdapter implements IApiAdapter {
   async request<T>(config: RequestConfig): Promise<T> {
-    const { url, method, data, params, headers, signal, responseType } = config
+    const { url, method, data, params, headers, signal, responseType, showErrorMessage } = config
     return request.request<T>({
       url,
       method,
@@ -11,7 +11,8 @@ export class HttpAdapter implements IApiAdapter {
       params,
       headers,
       signal,
-      responseType
+      responseType,
+      showErrorMessage
     })
   }
 

@@ -150,18 +150,18 @@
   .latest-notice-list {
     flex: 1;
     min-height: 0;
-    max-height: 22rem;
+    overflow-y: auto;
   }
 
   .notice-item {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px 8px;
+    gap: 10px;
+    padding: 8px 6px;
     border-bottom: 1px solid var(--art-gray-200);
     cursor: pointer;
     transition: background-color 0.2s;
-    border-radius: 6px;
+    border-radius: 4px;
 
     &:hover {
       background: var(--art-gray-100);

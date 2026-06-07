@@ -103,13 +103,16 @@
 <style lang="scss" scoped>
   .quick-actions-card {
     box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
     padding: 16px 18px;
     margin-bottom: 0;
     height: 100%;
   }
 
   .quick-actions-header {
-    margin-bottom: 12px;
+    margin-bottom: 14px;
+    flex-shrink: 0;
 
     h4 {
       margin: 0;
@@ -125,35 +128,47 @@
     }
   }
 
+  // 一行 6 个入口
   .quick-actions-grid {
+    flex: 1;
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(6, 1fr);
     gap: 8px;
+    align-content: center;
+    min-height: 0;
   }
 
+  // 60x60 带边框方形按钮（替代原背景色填充）
   .action-item {
+    box-sizing: border-box;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    padding: 10px 6px;
-    border-radius: 8px;
-    background: var(--art-gray-100);
+    gap: 4px;
+    padding: 6px 4px;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    max-width: 60px;
+    max-height: 60px;
+    margin: 0 auto;
+    border: 1px solid var(--art-gray-200);
+    border-radius: 6px;
+    background: transparent;
     cursor: pointer;
     transition: all 0.2s;
-    text-align: center;
 
     &:hover {
+      border-color: var(--art-primary);
+      background: color-mix(in srgb, var(--art-primary) 4%, transparent);
       transform: translateY(-1px);
-      box-shadow: 0 4px 10px -4px rgba(0, 0, 0, 0.08);
     }
   }
 
   .action-icon-wrap {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
+    width: 22px;
+    height: 22px;
+    border-radius: 4px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -186,16 +201,16 @@
   }
 
   .action-icon {
-    font-size: 18px;
+    font-size: 13px;
   }
 
   .action-title {
-    font-size: 12px;
-    font-weight: 500;
+    font-size: 10px;
     color: var(--art-gray-700);
     line-height: 1;
   }
 
+  // 窄屏：自动换行
   @media (max-width: 768px) {
     .quick-actions-grid {
       grid-template-columns: repeat(3, 1fr);

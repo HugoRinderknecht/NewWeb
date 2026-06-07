@@ -267,7 +267,7 @@
   import { ElMessage, ElMessageBox } from 'element-plus'
   import { useRoute } from 'vue-router'
   import { useProjectList } from '@/api/queries/project'
-  import { useProjectStore } from '@/store/modules/project'
+  import { useStoryboardProjectStore } from '@/store/modules/storyboard-project'
   import ProjectSwitcher from '@/components/ProjectSwitcher/index.vue'
   import {
     useStoryboardList,
@@ -279,7 +279,7 @@
   defineOptions({ name: 'StoryboardBatchEdit' })
 
   const route = useRoute()
-  const projectStore = useProjectStore()
+  const storyboardProjectStore = useStoryboardProjectStore()
 
   type SceneType = 'indoor' | 'outdoor' | 'vfx'
   type TimeOfDay = 'day' | 'night' | 'dusk' | 'dawn'
@@ -313,7 +313,7 @@
   })
 
   const projectId = computed(
-    () => (route.params.projectId as string) || projectStore.currentProjectId || ''
+    () => (route.params.projectId as string) || storyboardProjectStore.currentProjectId || ''
   )
 
   // 项目下拉：列表 + 当前项目
@@ -327,8 +327,8 @@
   const currentProjectId = computed<string>({
     get: () => projectId.value,
     set: (val) => {
-      if (val && val !== projectStore.currentProjectId) {
-        projectStore.setCurrentProject(val)
+      if (val && val !== storyboardProjectStore.currentProjectId) {
+        storyboardProjectStore.setCurrentProject(val)
       }
     }
   })

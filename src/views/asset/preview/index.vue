@@ -201,7 +201,7 @@
 <script setup lang="ts">
   import { ElMessage } from 'element-plus'
   import { fetchGetProjectAssets, fetchGetAssetDetail, fetchDownloadAsset } from '@/api/asset'
-  import { useProjectDataStore } from '@/store/modules/project-data'
+  import { useAssetProjectStore } from '@/store/modules/asset-project'
 
   defineOptions({ name: 'AssetPreview' })
 
@@ -224,7 +224,7 @@
 
   const router = useRouter()
   const route = useRoute()
-  const projectStore = useProjectDataStore()
+  const projectStore = useAssetProjectStore()
   const projectId = computed(
     () => (route.params.projectId as string) || projectStore.currentProjectId || ''
   )

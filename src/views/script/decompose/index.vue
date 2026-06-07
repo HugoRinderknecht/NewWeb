@@ -180,11 +180,10 @@
     useCreateEpisode,
     useUpdateEpisode,
     useDeleteEpisode,
-    useProjectList
+    useProjectList,
+    useScriptEpisodes,
+    useDecomposeScript
   } from '@/api/queries'
-  // fetchDecomposeScript 无对应的 Vue Query hook（useDecomposeStoryboard 是分镜级拆解，非剧本拆解），暂保留直接调用
-  // fetchGetScriptEpisodes 无对应的 Vue Query hook（useProjectEpisodes 是项目级，非剧本级），暂保留直接调用
-  import { fetchDecomposeScript, fetchGetScriptEpisodes } from '@/api/script'
   import ProjectSwitcher from '@/components/ProjectSwitcher/index.vue'
 
   defineOptions({ name: 'ScriptDecompose' })
@@ -221,7 +220,6 @@
   const currentScriptId = ref('')
 
   // 分集列表
-  const episodeList = ref<Episode[]>([])
   const selectedEpisodeId = ref('')
   const currentEpisode = ref<Episode | null>(null)
 
@@ -229,7 +227,6 @@
   const scriptListQuery = useScriptList(currentProjectId)
 
   // ==================== 统一数据层：项目列表 ====================
-  // store 中已废弃的 projectList 不再使用，改走 useProjectList Vue Query Hook
   const projectListQuery = useProjectList({
     current: 1,
     size: 100
@@ -243,6 +240,25 @@
     }))
   })
 
+  // ==================== 统一数据层：剧本分集列表 ====================
+  const scriptEpisodesQuery = useScriptEpisodes(
+    currentProjectId,
+    computed(() => currentScriptId.value || undefined)
+  )
+  const episodeList = computed<Episode[]>(() => {
+    const arr = scriptEpisodesQuery.data.value ?? []
+    return arr.map((ep: Api.Script.Episode) => ({
+      id: String(ep.id),
+      projectId: String(ep.projectId ?? currentProjectId.value),
+      scriptId: String(ep.scriptId ?? currentScriptId.value),
+      episodeName: ep.episodeName ?? '',
+      content: ep.content ?? '',
+      episodeIndex: ep.episodeIndex ?? 0,
+      createTime: ep.createTime ?? '',
+      updateTime: ep.updateTime ?? ''
+    }))
+  })
+
   const episodeDetailQuery = useEpisodeDetail(
     computed(() => currentScriptId.value || undefined),
     computed(() => selectedEpisodeId.value || undefined)
@@ -251,6 +267,7 @@
   const createEpisodeMutation = useCreateEpisode()
   const updateEpisodeMutation = useUpdateEpisode()
   const deleteEpisodeMutation = useDeleteEpisode()
+  const decomposeMutation = useDecomposeScript()
 
   // 剧本选项从 query 数据派生
   const scriptOptions = computed(() => {
@@ -308,10 +325,19 @@
       if (sid) {
         currentScriptId.value = sid
         scriptProjectStore.setCurrentScript(sid)
-        loadEpisodes(currentProjectId.value, sid)
       }
     }
   )
+
+  // 分集列表变化时自动选中第一个
+  watch(episodeList, (list) => {
+    if (list.length > 0 && !selectedEpisodeId.value) {
+      handleEpisodeClick(list[0])
+    } else if (list.length === 0) {
+      selectedEpisodeId.value = ''
+      currentEpisode.value = null
+    }
+  })
 
   // 监听分集详情，更新编辑表单
   watch(
@@ -335,62 +361,25 @@
     }
   )
 
-  // 加载分集列表
-  const loadEpisodes = async (projectId: string, scriptId: string) => {
-    if (!projectId || !scriptId) {
-      episodeList.value = []
-      selectedEpisodeId.value = ''
-      currentEpisode.value = null
-      return
-    }
-    try {
-      const res = await fetchGetScriptEpisodes(projectId, scriptId)
-      const arr = res ?? []
-      episodeList.value = arr.map((ep: Api.Script.Episode) => ({
-        id: String(ep.id),
-        projectId: String(ep.projectId ?? projectId),
-        scriptId: String(ep.scriptId ?? scriptId),
-        episodeName: ep.episodeName ?? '',
-        content: ep.content ?? '',
-        episodeIndex: ep.episodeIndex ?? 0,
-        createTime: ep.createTime ?? '',
-        updateTime: ep.updateTime ?? ''
-      }))
-      // 默认选中第一个
-      if (episodeList.value.length > 0) {
-        await handleEpisodeClick(episodeList.value[0])
-      } else {
-        selectedEpisodeId.value = ''
-        currentEpisode.value = null
-      }
-    } catch {
-      episodeList.value = []
-      selectedEpisodeId.value = ''
-      currentEpisode.value = null
-    }
-  }
-
   // 项目切换
   const handleProjectChange = (projectId: string) => {
     scriptProjectStore.setCurrentProject(projectId)
     currentScriptId.value = ''
-    episodeList.value = []
     selectedEpisodeId.value = ''
     currentEpisode.value = null
   }
 
   const handleProjectRefresh = () => {
     scriptListQuery.refetch()
-    if (currentScriptId.value) {
-      loadEpisodes(currentProjectId.value, currentScriptId.value)
-    }
+    scriptEpisodesQuery.refetch()
     ElMessage.success('数据已刷新')
   }
 
   // 剧本切换
   const handleScriptChange = (scriptId: string) => {
     scriptProjectStore.setCurrentScript(scriptId)
-    loadEpisodes(currentProjectId.value, scriptId)
+    selectedEpisodeId.value = ''
+    currentEpisode.value = null
   }
 
   // 点击分集
@@ -427,16 +416,6 @@
           projectId: currentProjectId.value
         })
         ElMessage.success('分集保存成功')
-        // 更新列表中的数据
-        const idx = episodeList.value.findIndex((e) => e.id === currentEpisode.value!.id)
-        if (idx !== -1) {
-          episodeList.value[idx] = {
-            ...episodeList.value[idx],
-            episodeName: params.episodeName ?? episodeList.value[idx].episodeName,
-            content: params.content ?? episodeList.value[idx].content,
-            episodeIndex: params.episodeIndex ?? episodeList.value[idx].episodeIndex
-          }
-        }
         // 同步更新currentEpisode
         currentEpisode.value = {
           ...currentEpisode.value!,
@@ -464,12 +443,11 @@
           projectId: currentProjectId.value
         })
         ElMessage.success('分集删除成功')
-        // 从列表中移除
-        episodeList.value = episodeList.value.filter((e) => e.id !== item.id)
         // 如果删除的是当前选中的，重置
         if (selectedEpisodeId.value === item.id) {
-          if (episodeList.value.length > 0) {
-            await handleEpisodeClick(episodeList.value[0])
+          const remaining = episodeList.value.filter((e) => e.id !== item.id)
+          if (remaining.length > 0) {
+            await handleEpisodeClick(remaining[0])
           } else {
             selectedEpisodeId.value = ''
             currentEpisode.value = null
@@ -509,9 +487,8 @@
         })
         ElMessage.success('分集创建成功')
         createDialogVisible.value = false
-        // 刷新列表
-        await loadEpisodes(currentProjectId.value, currentScriptId.value)
-        // 选中新创建的分集
+        // 刷新列表后选中新创建的分集
+        await scriptEpisodesQuery.refetch()
         if (res?.id) {
           const found = episodeList.value.find((e) => e.id === String(res.id))
           if (found) {
@@ -550,12 +527,15 @@
     }
     try {
       ElMessage.info('AI拆解进行中，请稍候...')
-      const res = await fetchDecomposeScript(currentProjectId.value, currentScriptId.value, true)
+      const res = await decomposeMutation.mutateAsync({
+        projectId: currentProjectId.value,
+        scriptId: currentScriptId.value,
+        force: true
+      })
       if (res?.status === 'PROCESSING') {
         ElMessage.success('AI拆解任务已提交，请稍后刷新查看结果')
       } else {
         ElMessage.success('AI拆解完成')
-        await loadEpisodes(currentProjectId.value, currentScriptId.value)
       }
     } catch {
       ElMessage.error('AI拆解失败')
@@ -564,6 +544,7 @@
 
   // 初始化 - Vue Query 自动管理数据获取
   // 当 currentProjectId 变化时 scriptListQuery 会自动 refetch
+  // 当 currentScriptId 变化时 scriptEpisodesQuery 会自动 refetch
 </script>
 
 <style lang="scss" scoped>

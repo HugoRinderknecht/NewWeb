@@ -526,7 +526,7 @@
     useDeleteAsset
   } from '@/api/queries'
   import { fetchDownloadAsset } from '@/api/asset'
-  import { useProjectDataStore } from '@/store/modules/project-data'
+  import { useAssetProjectStore } from '@/store/modules/asset-project'
 
   defineOptions({ name: 'AssetLibrary' })
 
@@ -548,7 +548,7 @@
   }
 
   const router = useRouter()
-  const projectStore = useProjectDataStore()
+  const projectStore = useAssetProjectStore()
 
   // 当前项目 ID 统一走数据层（project-data store）
   const projectId = computed(() => projectStore.currentProjectId || '')

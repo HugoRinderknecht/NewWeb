@@ -1,0 +1,113 @@
+pinia.mjs:281 🍍 "userStore" store installed 🆕
+bus.ts:157 [DataFlow] 轻量级数据流总线已初始化 ✅
+pinia.mjs:281 🍍 "team" store installed 🆕
+pinia.mjs:281 🍍 "notification" store installed 🆕
+pinia.mjs:281 🍍 "review" store installed 🆕
+pinia.mjs:281 🍍 "project" store installed 🆕
+web-vitals.ts:13 [WebVitals] TTFB: 29.10ms (good)
+ComponentLoader.ts:36 [ComponentLoader] 未找到组件: /team/settings，尝试过的路径: ../../views/team/settings.vue 和 ../../views/team/settings/index.vue
+(匿名) @ ComponentLoader.ts:36
+pinia.mjs:281 🍍 "worktabStore" store installed 🆕
+content_main.js:4683 This page uses the built-in LanguageDetector feature. To learn more and leave feedback, see https://learn.microsoft.com/microsoft-edge/web-platform/languagedetector-api
+web-vitals.ts:13 [WebVitals] INP: 48.00ms (good)
+error-handle.ts:129 [ResourceError] Object
+(匿名) @ error-handle.ts:129
+error-handle.ts:129 [ResourceError] Object
+(匿名) @ error-handle.ts:129
+error-handle.ts:129 [ResourceError] Object
+(匿名) @ error-handle.ts:129
+error-handle.ts:129 [ResourceError] Object
+(匿名) @ error-handle.ts:129
+error-handle.ts:129 [ResourceError] Object
+(匿名) @ error-handle.ts:129
+pinia.mjs:281 🍍 "tableStore" store installed 🆕
+logger.ts:12 [10:32:11][ProjectEdit] 审核配置加载完成
+logger.ts:12 [10:32:11][ProjectEdit] 项目配置加载完成
+logger.ts:12 [10:32:11][ProjectEdit] 项目详情加载完成
+error-handle.ts:129 [ResourceError] Objectsrc: "http://localhost:3006/file/avatars/3ea20aae591a122b2311aab63a2070a3/cb3b6cfb-a422-4cdd-ae81-81ac410595d8.jpg"tagName: "IMG"[[Prototype]]: Object
+(匿名) @ error-handle.ts:129
+error.ts:160 [HTTP Error] Objectcode: 3001data: undefinedmessage: "项目不存在"method: undefinedstack: "HttpError: 项目不存在\n    at createHttpError (http://localhost:3006/src/utils/http/index.ts?t=1780799499845:113:10)\n    at axiosInstance.interceptors.response.use.config (http://localhost:3006/src/utils/http/index.ts?t=1780799499845:100:11)\n    at async Axios.request (http://localhost:3006/node_modules/.vite/deps/axios.js?v=df85bbcc:2197:14)\n    at async _doRequest (http://localhost:3006/src/utils/http/index.ts?t=1780799499845:295:17)\n    at async retryRequest (http://localhost:3006/src/utils/http/index.ts?t=1780799499845:241:12)"timestamp: "2026-06-07T02:32:16.616Z"url: undefined[[Prototype]]: Object
+(匿名) @ error.ts:160
+logger.ts:18 [10:32:16][ProjectEdit] [项目保存失败]  
+(匿名) @ logger.ts:18
+web-vitals.ts:13 [WebVitals] INP: 64.00ms (good)
+error.ts:160 [HTTP Error] {code: 3001, message: '项目不存在', data: undefined, timestamp: '2026-06-07T02:33:45.680Z', url: undefined, …}code: 3001data: undefinedmessage: "项目不存在"method: undefinedstack: "HttpError: 项目不存在\n    at createHttpError (http://localhost:3006/src/utils/http/index.ts?t=1780799499845:113:10)\n    at axiosInstance.interceptors.response.use.config (http://localhost:3006/src/utils/http/index.ts?t=1780799499845:100:11)\n    at async Axios.request (http://localhost:3006/node_modules/.vite/deps/axios.js?v=df85bbcc:2197:14)\n    at async _doRequest (http://localhost:3006/src/utils/http/index.ts?t=1780799499845:295:17)\n    at async retryRequest (http://localhost:3006/src/utils/http/index.ts?t=1780799499845:241:12)"timestamp: "2026-06-07T02:33:45.680Z"url: undefined[[Prototype]]: Object
+(匿名) @ error.ts:160
+_doRequest @ index.ts:480
+await in _doRequest
+request @ index.ts:433
+retryRequest @ index.ts:385
+request @ index.ts:501
+(匿名) @ http-adapter.ts:7
+(匿名) @ http-adapter.ts:27
+(匿名) @ project.ts:19
+(匿名) @ project.ts:123
+(匿名) @ mutation.ts:190
+(匿名) @ retryer.ts:156
+(匿名) @ retryer.ts:222
+execute @ mutation.ts:235
+await in execute
+mutate @ mutationObserver.ts:142
+(匿名) @ index.vue:765
+await in (匿名)
+callWithErrorHandling @ runtime-core.esm-bundler.js:199
+callWithAsyncErrorHandling @ runtime-core.esm-bundler.js:206
+emit @ runtime-core.esm-bundler.js:6473
+(匿名) @ runtime-core.esm-bundler.js:8188
+(匿名) @ use-button.ts:76
+callWithErrorHandling @ runtime-core.esm-bundler.js:199
+callWithAsyncErrorHandling @ runtime-core.esm-bundler.js:206
+(匿名) @ runtime-dom.esm-bundler.js:730
+logger.ts:18 [10:33:45][ProjectEdit] [项目保存失败]  
+(匿名) @ logger.ts:18
+error @ logger.ts:35
+(匿名) @ index.vue:808
+await in (匿名)
+callWithErrorHandling @ runtime-core.esm-bundler.js:199
+callWithAsyncErrorHandling @ runtime-core.esm-bundler.js:206
+emit @ runtime-core.esm-bundler.js:6473
+(匿名) @ runtime-core.esm-bundler.js:8188
+(匿名) @ use-button.ts:76
+callWithErrorHandling @ runtime-core.esm-bundler.js:199
+callWithAsyncErrorHandling @ runtime-core.esm-bundler.js:206
+(匿名) @ runtime-dom.esm-bundler.js:730
+error.ts:160 [HTTP Error] {code: 3001, message: '项目不存在', data: undefined, timestamp: '2026-06-07T02:35:15.905Z', url: undefined, …}
+(匿名) @ error.ts:160
+_doRequest @ index.ts:480
+await in _doRequest
+request @ index.ts:433
+retryRequest @ index.ts:385
+request @ index.ts:501
+(匿名) @ http-adapter.ts:7
+(匿名) @ http-adapter.ts:27
+(匿名) @ project.ts:19
+(匿名) @ project.ts:123
+(匿名) @ mutation.ts:190
+(匿名) @ retryer.ts:156
+(匿名) @ retryer.ts:222
+execute @ mutation.ts:235
+await in execute
+mutate @ mutationObserver.ts:142
+(匿名) @ index.vue:765
+await in (匿名)
+callWithErrorHandling @ runtime-core.esm-bundler.js:199
+callWithAsyncErrorHandling @ runtime-core.esm-bundler.js:206
+emit @ runtime-core.esm-bundler.js:6473
+(匿名) @ runtime-core.esm-bundler.js:8188
+(匿名) @ use-button.ts:76
+callWithErrorHandling @ runtime-core.esm-bundler.js:199
+callWithAsyncErrorHandling @ runtime-core.esm-bundler.js:206
+(匿名) @ runtime-dom.esm-bundler.js:730
+logger.ts:18 [10:35:15][ProjectEdit] [项目保存失败]  
+(匿名) @ logger.ts:18
+error @ logger.ts:35
+(匿名) @ index.vue:808
+await in (匿名)
+callWithErrorHandling @ runtime-core.esm-bundler.js:199
+callWithAsyncErrorHandling @ runtime-core.esm-bundler.js:206
+emit @ runtime-core.esm-bundler.js:6473
+(匿名) @ runtime-core.esm-bundler.js:8188
+(匿名) @ use-button.ts:76
+callWithErrorHandling @ runtime-core.esm-bundler.js:199
+callWithAsyncErrorHandling @ runtime-core.esm-bundler.js:206
+(匿名) @ runtime-dom.esm-bundler.js:730

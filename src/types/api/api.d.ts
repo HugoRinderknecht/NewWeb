@@ -267,6 +267,7 @@ declare namespace Api {
     interface UpdateProjectParams {
       projectName?: string
       description?: string
+      coverImage?: string
     }
 
     /** 封面上传响应 (CoverUploadResponse) */
@@ -749,6 +750,12 @@ declare namespace Api {
       creditsDeducted: number
       createTime: string
       updateTime: string
+    }
+
+    /** AI处理历史查询参数 */
+    interface HistoryQueryParams {
+      type: string
+      businessId: string
     }
 
     /** AI处理历史列表项(不含完整resultData) */
@@ -2017,60 +2024,6 @@ declare namespace Api {
       cost: number
       source: string
       createTime: string
-    }
-  }
-
-  /** AI处理类型 */
-  namespace AiProcess {
-    /** 状态查询参数 */
-    interface StatusSearchParams {
-      scriptId?: string
-      episodeId?: string
-      processType?: string
-    }
-
-    /** 处理状态 */
-    interface ProcessStatus {
-      scriptId: string
-      processType: string
-      status: 'pending' | 'running' | 'completed' | 'failed'
-      progress: number
-      currentStep: string
-      message: string
-    }
-
-    /** 历史查询参数 */
-    interface HistorySearchParams {
-      projectId: string
-      type: string
-      businessId: string
-      status?: string
-    }
-
-    /** 处理记录 */
-    interface ProcessRecord {
-      id: string
-      scriptId: string
-      processType: string
-      status: string
-      progress: number
-      startTime: string
-      endTime: string
-      createBy: string
-    }
-
-    /** 处理记录详情 */
-    interface ProcessRecordDetail extends ProcessRecord {
-      params: Record<string, unknown>
-      result: Record<string, unknown>
-      error: string
-      steps: {
-        name: string
-        status: string
-        startTime: string
-        endTime: string
-        message: string
-      }[]
     }
   }
 

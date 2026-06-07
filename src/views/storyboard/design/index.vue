@@ -157,10 +157,9 @@
 <script setup lang="ts">
   import { computed, reactive, watch } from 'vue'
   import { ElMessage, ElMessageBox } from 'element-plus'
-  import { storeToRefs } from 'pinia'
   import { useRoute, useRouter } from 'vue-router'
   import { logger } from '@/utils/logger'
-  import { useProjectStore } from '@/store/modules/project'
+  import { useStoryboardProjectStore } from '@/store/modules/storyboard-project'
   import { useStoryboardStore } from '@/store/modules/storyboard'
   import {
     useStoryboardList,
@@ -182,12 +181,12 @@
 
   const route = useRoute()
   const router = useRouter()
-  const projectStore = useProjectStore()
+  const storyboardProjectStore = useStoryboardProjectStore()
   const storyboardStore = useStoryboardStore()
 
   const projectId = computed(() => {
     const fromRoute = (route.params.projectId as string) || (route.query.projectId as string)
-    return fromRoute || projectStore.currentProjectId || ''
+    return fromRoute || storyboardProjectStore.currentProjectId || ''
   })
 
   // 同步当前项目到分镜 store，供 AI 弹窗等共用
@@ -213,8 +212,8 @@
   const currentProjectId = computed<string>({
     get: () => projectId.value,
     set: (val) => {
-      if (val && val !== projectStore.currentProjectId) {
-        projectStore.setCurrentProject(val)
+      if (val && val !== storyboardProjectStore.currentProjectId) {
+        storyboardProjectStore.setCurrentProject(val)
       }
     }
   })
@@ -245,12 +244,12 @@
 
   const { data: listResult, isLoading, error, refetch } = useStoryboardList(projectId, searchParams)
 
-  // 后端返回 3001「项目不存在」时，清空 store 中 stale 的 currentProjectId，
+  // 后端返回 3001「项目不存在」时，清空分镜域 store 中 stale 的 currentProjectId，
   // 避免每次跳转都重发 3001 请求（sessionStorage 持久化的过期 ID 场景）
   watch(error, (err) => {
     const code = (err as any)?.code
-    if (code === 3001 && projectStore.currentProjectId) {
-      projectStore.clearCurrentProject()
+    if (code === 3001 && storyboardProjectStore.currentProjectId) {
+      storyboardProjectStore.clearCurrentProject()
     }
   })
 

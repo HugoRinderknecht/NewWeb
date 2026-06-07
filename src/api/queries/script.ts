@@ -11,6 +11,8 @@ import {
   fetchGetScriptReviewStatus,
   fetchGetPostApprovalStatus,
   fetchGetProjectEpisodes,
+  fetchGetScriptEpisodes,
+  fetchDecomposeScript,
   fetchGetEpisodeDetail,
   fetchUpdateEpisode,
   fetchDeleteEpisode,
@@ -191,6 +193,39 @@ export function useProjectEpisodes(projectId: MaybeRefOrGetter<string | undefine
     },
     enabled: () => !!toValue(projectId),
     staleTime: 60 * 1000
+  })
+}
+
+/** 剧本分集列表 */
+export function useScriptEpisodes(
+  projectId: MaybeRefOrGetter<string | undefined>,
+  scriptId: MaybeRefOrGetter<string | undefined>
+) {
+  return useQuery({
+    queryKey: [QUERY_KEY, 'script-episodes', projectId, scriptId] as const,
+    queryFn: async () => {
+      const pid = toValue(projectId)
+      const sid = toValue(scriptId)
+      if (!pid || !sid) return []
+      return await fetchGetScriptEpisodes(pid, sid)
+    },
+    enabled: () => !!toValue(projectId) && !!toValue(scriptId),
+    staleTime: 60 * 1000
+  })
+}
+
+/** 拆解剧本为分集 */
+export function useDecomposeScript() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: { projectId: string; scriptId: string; force?: boolean }) =>
+      fetchDecomposeScript(payload.projectId, payload.scriptId, payload.force),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEY, 'script-episodes', variables.projectId, variables.scriptId]
+      })
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'episodes', variables.projectId] })
+    }
   })
 }
 

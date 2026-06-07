@@ -142,11 +142,11 @@
 </template>
 
 <script setup lang="ts">
-  import { computed, ref } from 'vue'
+  import { computed, ref, watch } from 'vue'
   import { storeToRefs } from 'pinia'
   import { useAiProcessHistory, useAiProcessStatus } from '@/api/queries/ai-process'
   import { useProjectList } from '@/api/queries/project'
-  import { useProjectStore } from '@/store/modules/project'
+  import { useStoryboardProjectStore } from '@/store/modules/storyboard-project'
   import { useStoryboardStore } from '@/store/modules/storyboard'
   import ProjectSwitcher from '@/components/ProjectSwitcher/index.vue'
   import ShotAiDialog from '../design/components/ShotAiDialog.vue'
@@ -155,8 +155,17 @@
   defineOptions({ name: 'StoryboardAiWorkbench' })
 
   const storyboardStore = useStoryboardStore()
-  const projectStore = useProjectStore()
+  const storyboardProjectStore = useStoryboardProjectStore()
   const { activeProjectId } = storeToRefs(storyboardStore)
+
+  // 同步分镜域 projectId -> storyboardStore.activeProjectId（供本页其它逻辑共用）
+  watch(
+    () => storyboardProjectStore.currentProjectId,
+    (id) => {
+      storyboardStore.setActiveProjectId(id || '')
+    },
+    { immediate: true }
+  )
 
   // 项目下拉：列表 + 当前项目
   const { data: projectListResult } = useProjectList(() => undefined)
@@ -167,10 +176,10 @@
     return list.map((p: any) => ({ id: String(p.id), name: p.name || p.projectName || '' }))
   })
   const currentProjectId = computed<string>({
-    get: () => activeProjectId.value,
+    get: () => storyboardProjectStore.currentProjectId,
     set: (val) => {
-      if (val && val !== projectStore.currentProjectId) {
-        projectStore.setCurrentProject(val)
+      if (val && val !== storyboardProjectStore.currentProjectId) {
+        storyboardProjectStore.setCurrentProject(val)
       }
     }
   })

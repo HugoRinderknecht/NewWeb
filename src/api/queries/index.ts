@@ -86,6 +86,8 @@ export {
   useSubmitScriptReview,
   useWithdrawScriptReview,
   useEpisodeDetail,
+  useScriptEpisodes,
+  useDecomposeScript,
   useCreateEpisode,
   useUpdateEpisode,
   useDeleteEpisode,

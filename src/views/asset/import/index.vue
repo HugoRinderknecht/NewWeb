@@ -260,7 +260,7 @@
   import { ElMessage } from 'element-plus'
   import type { UploadFile, UploadUserFile } from 'element-plus'
   import { useTeamStore } from '@/store/modules/team'
-  import { useProjectDataStore } from '@/store/modules/project-data'
+  import { useAssetProjectStore } from '@/store/modules/asset-project'
   import { useTeamAssetList, useImportFromTeam } from '@/api/queries'
 
   defineOptions({ name: 'AssetImport' })
@@ -284,7 +284,7 @@
   }
 
   const teamStore = useTeamStore()
-  const projectStore = useProjectDataStore()
+  const projectStore = useAssetProjectStore()
   const projectId = computed(() => projectStore.currentProjectId || '')
   const teamId = computed(() => teamStore.currentTeamId || '')
   const currentStep = ref(0)

@@ -218,7 +218,7 @@
     border-bottom: 1px solid var(--art-gray-200);
     cursor: pointer;
     transition: background-color 0.2s;
-    border-radius: 6px;
+    border-radius: 4px;
 
     &:hover {
       background: var(--art-gray-100);

@@ -32,3 +32,7 @@ export { useChart, useChartComponent, useChartOps } from './core/useChart'
 export { useLayoutHeight, useAutoLayoutHeight } from './core/useLayoutHeight'
 
 export { useApiQuery, useApiMutation, useInvalidateQueries } from './core/useQueryApi'
+
+// 业务域当前项目 ID（统一数据层入口）
+export { useCurrentProjectId } from './core/useCurrentProjectId'
+export type { DomainProjectStore, UseCurrentProjectIdResult } from './core/useCurrentProjectId'

@@ -418,7 +418,7 @@
   type ProjectStatus = 0 | 1 | 2 | 3
 
   interface ProjectForm {
-    id: number
+    id: string
     name: string
     description: string
     type: string
@@ -550,7 +550,7 @@
   }
 
   const projectForm = reactive<ProjectForm>({
-    id: Number(route.query.id) || 1,
+    id: String(route.query.id || ''),
     name: '',
     description: '',
     type: '',
@@ -591,13 +591,16 @@
     jsonConfig: defaultJson
   })
 
+  // 封面是否已被用户修改但尚未通过"保存修改"持久化到项目，避免详情查询失效刷新时覆盖未保存的预览
+  const coverDirty = ref(false)
+
   // 监听项目详情数据，自动映射到表单
   watch(
     projectDetail,
     (res) => {
       if (res) {
         logger.info('ProjectEdit', '项目详情加载完成')
-        projectForm.id = Number(res.id) || projectForm.id
+        projectForm.id = res.id != null ? String(res.id) : projectForm.id
         projectForm.name = res.projectName || ''
         projectForm.description = res.description || ''
         projectForm.type = ''
@@ -612,7 +615,10 @@
         settingsForm.name = res.projectName || ''
         settingsForm.description = res.description || ''
         settingsForm.status = mapApiStatus(res.status)
-        settingsForm.coverPreview = res.coverImage || ''
+        // 仅当用户未在本地修改过封面时，才用详情数据覆盖预览，避免上传成功后被覆盖
+        if (!coverDirty.value) {
+          settingsForm.coverPreview = res.coverImage || ''
+        }
         initProjectForm()
       }
     },
@@ -760,13 +766,13 @@
       projectForm.name = form.name
       projectForm.description = form.description
     }
-    const pid = String(projectForm.id)
     try {
       await updateProjectMutation.mutateAsync({
-        projectId: pid,
+        projectId: projectForm.id,
         params: {
           projectName: projectForm.name,
-          description: projectForm.description
+          description: projectForm.description,
+          coverImage: settingsForm.coverPreview || undefined
         }
       })
       logger.info('ProjectEdit', '项目信息保存成功')
@@ -779,7 +785,7 @@
           // JSON格式无效，使用空配置
         }
         await updateProjectConfigMutation.mutateAsync({
-          projectId: pid,
+          projectId: projectForm.id,
           configs: configData
         })
         logger.info('ProjectEdit', '项目配置保存成功')
@@ -790,7 +796,7 @@
       // 保存审核配置
       try {
         await updateReviewConfigMutation.mutateAsync({
-          projectId: pid,
+          projectId: projectForm.id,
           params: {
             storyboard: settingsForm.reviewStoryboard,
             firstFrame: settingsForm.reviewFirstFrame,
@@ -803,6 +809,8 @@
         // 审核配置保存失败不阻断主流程
       }
       projectForm.updateTime = new Date().toISOString().slice(0, 10)
+      // 已成功持久化，允许后续详情刷新覆盖
+      coverDirty.value = false
       ElMessage.success('保存成功')
     } catch {
       logger.error('ProjectEdit', '项目保存失败')
@@ -820,7 +828,7 @@
     }
     reader.readAsDataURL(raw)
     // 上传到服务器
-    const pid = String(projectForm.id)
+    const pid = projectForm.id
     if (pid) {
       try {
         const res = await uploadCoverMutation.mutateAsync({
@@ -829,6 +837,8 @@
         })
         if (res && res.coverUrl) {
           settingsForm.coverPreview = res.coverUrl
+          // 标记封面已被本地修改，等"保存修改"提交后才同步详情
+          coverDirty.value = true
         }
         logger.info('ProjectEdit', '封面上传成功')
         ElMessage.success('封面上传成功')
@@ -846,7 +856,7 @@
       type: 'warning'
     }).then(async () => {
       try {
-        await archiveProjectMutation.mutateAsync(String(projectForm.id))
+        await archiveProjectMutation.mutateAsync(projectForm.id)
         projectForm.status = 3
         settingsForm.status = 3
         ElMessage.success('项目已归档')
@@ -863,7 +873,7 @@
       type: 'error'
     }).then(async () => {
       try {
-        await deleteProjectMutation.mutateAsync(String(projectForm.id))
+        await deleteProjectMutation.mutateAsync(projectForm.id)
         ElMessage.success('项目已删除')
         router.push('/project/list')
       } catch {

@@ -295,12 +295,8 @@
   import { useScriptProjectStore } from '@/store/modules/script-project'
   import { useScriptList, useReviewScriptContent, useProjectList } from '@/api/queries'
   // fetchGetScriptEpisodes 无对应的 Vue Query hook（useProjectEpisodes 是项目级，非剧本级），暂保留直接调用
-  // fetchGetAiProcessStatus / fetchGetAiProcessDetail 的 Vue Query hooks（useAiProcessStatus / useAiProcessDetail）参数和返回类型与当前用法不兼容，暂保留直接调用
-  import {
-    fetchGetScriptEpisodes,
-    fetchGetAiProcessStatus,
-    fetchGetAiProcessDetail
-  } from '@/api/script'
+  import { fetchGetScriptEpisodes } from '@/api/script'
+  import { fetchGetAiProcessStatus, fetchGetAiProcessHistoryDetail as fetchGetAiProcessDetail } from '@/api/ai-process'
   import ProjectSwitcher from '@/components/ProjectSwitcher/index.vue'
 
   defineOptions({ name: 'AiReview' })

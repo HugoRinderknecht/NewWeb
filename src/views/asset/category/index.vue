@@ -148,7 +148,7 @@
   import { ElMessage, ElMessageBox } from 'element-plus'
   import type { FormInstance, FormRules } from 'element-plus'
   import { fetchGetProjectAssets, fetchBatchMoveCategory } from '@/api/asset'
-  import { useProjectDataStore } from '@/store/modules/project-data'
+  import { useAssetProjectStore } from '@/store/modules/asset-project'
 
   defineOptions({ name: 'AssetCategory' })
 
@@ -197,7 +197,7 @@
     'ai-generated': 'AI生成'
   }
 
-  const projectStore = useProjectDataStore()
+  const projectStore = useAssetProjectStore()
   const projectId = computed(() => projectStore.currentProjectId || '')
   const categoryList = ref<CategoryItem[]>([])
 

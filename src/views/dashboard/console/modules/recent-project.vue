@@ -176,7 +176,7 @@
     gap: 2px;
     padding: 2px;
     background: var(--art-gray-100);
-    border-radius: 8px;
+    border-radius: 6px;
   }
 
   .tab-button {
@@ -185,7 +185,7 @@
     color: var(--art-gray-600);
     background: transparent;
     border: none;
-    border-radius: 6px;
+    border-radius: 4px;
     cursor: pointer;
     transition: all 0.2s;
 
@@ -215,7 +215,7 @@
     align-items: center;
     gap: 10px;
     padding: 8px 6px;
-    border-radius: 6px;
+    border-radius: 4px;
     cursor: pointer;
     transition: background-color 0.2s;
 
@@ -225,14 +225,14 @@
   }
 
   .project-avatar {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
+    width: 30px;
+    height: 30px;
+    border-radius: 6px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: #fff;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
     flex-shrink: 0;
   }

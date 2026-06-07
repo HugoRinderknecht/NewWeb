@@ -2,33 +2,31 @@
 <template>
   <div class="console-page">
     <!-- ========================================== -->
-    <!-- 第一层：欢迎横幅 + 快捷功能 -->
+    <!-- 顶部双层：左列 = 欢迎横幅 + 核心数据概览；右列 = 快捷入口（底部对齐） -->
     <!-- ========================================== -->
-    <ElRow :gutter="20">
-      <ElCol :sm="24" :md="16" :lg="16" class="layer-1-banner">
-        <WelcomeBanner />
+    <ElRow :gutter="20" class="top-section">
+      <ElCol :sm="24" :md="24" :lg="16">
+        <div class="left-stack">
+          <WelcomeBanner />
+          <div class="kpi-section art-card">
+            <div class="kpi-section-header">
+              <div class="kpi-section-title">
+                <ArtSvgIcon icon="ri:dashboard-3-line" class="kpi-section-icon" />
+                <h5>核心数据概览</h5>
+              </div>
+              <span class="kpi-section-desc">业务与资源关键指标实时统计</span>
+            </div>
+            <CardList layout="grid-2x2" :start="0" :count="4" :embedded="true" />
+          </div>
+        </div>
       </ElCol>
-      <ElCol :sm="24" :md="8" :lg="8" class="layer-1-actions">
-        <QuickActions />
-      </ElCol>
-    </ElRow>
-
-    <!-- ========================================== -->
-    <!-- 第二层：核心指标（4 卡分两行）-->
-    <!-- 上半：项目总数 + 活跃用户 -->
-    <!-- 下半：视频资源 + 积分余额 -->
-    <!-- ========================================== -->
-    <ElRow :gutter="20">
-      <ElCol :sm="24" :md="12" :lg="12">
-        <CardList :columns="2" :start="0" :count="2" />
-      </ElCol>
-      <ElCol :sm="24" :md="12" :lg="12">
-        <CardList :columns="2" :start="2" :count="2" />
+      <ElCol :sm="24" :md="24" :lg="8">
+        <QuickActions class="quick-actions-full" />
       </ElCol>
     </ElRow>
 
     <!-- ========================================== -->
-    <!-- 第三层：业务列表（最近项目 + 待审核 + 最新通知） -->
+    <!-- 业务列表（最近项目 + 待审核 + 最新通知） -->
     <!-- ========================================== -->
     <ElRow :gutter="20">
       <ElCol :sm="24" :md="24" :lg="12">
@@ -149,11 +147,81 @@
         margin-bottom: 0;
       }
     }
+  }
 
-    // 第一层：让欢迎横幅与快捷功能等高对齐
-    :deep(.layer-1-banner),
-    :deep(.layer-1-actions) {
-      height: 9.5rem;
+  // 顶部区域：左列垂直堆叠（欢迎横幅 + 核心数据概览），右列快捷入口等高
+  .top-section {
+    :deep(.el-col) {
+      display: flex;
+    }
+  }
+
+  .left-stack {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+  }
+
+  // 快捷入口拉满右列高度（与左列底部对齐）
+  .quick-actions-full {
+    flex: 1;
+    height: 100%;
+  }
+
+  // 第二层（原）：核心指标 2x2 网格容器
+  .kpi-section {
+    box-sizing: border-box;
+    padding: 14px 18px;
+    margin-bottom: 0;
+    border-radius: 8px;
+  }
+
+  .kpi-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 10px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--art-gray-200);
+  }
+
+  .kpi-section-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    h5 {
+      margin: 0;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--art-gray-900);
+    }
+  }
+
+  .kpi-section-icon {
+    font-size: 15px;
+    color: var(--art-primary);
+  }
+
+  .kpi-section-desc {
+    font-size: 12px;
+    color: var(--art-gray-500);
+  }
+
+  @media (max-width: 992px) {
+    // 中等屏幕以下：快捷入口不强制等高
+    .quick-actions-full {
+      height: auto;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .kpi-section-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 4px;
     }
   }
 </style>

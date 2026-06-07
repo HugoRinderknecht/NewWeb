@@ -10,36 +10,41 @@ const QUERY_KEY = 'ai-process' as const
 
 /** AI 处理状态（轮询） */
 export function useAiProcessStatus(
-  params?: MaybeRefOrGetter<Api.AiProcess.StatusSearchParams | undefined>
+  params?: MaybeRefOrGetter<Api.AiProcess.StatusQueryParams | undefined>
 ) {
   return useQuery({
     queryKey: [QUERY_KEY, 'status', params] as const,
     queryFn: async () => {
-      const res = await fetchGetAiProcessStatus(toValue(params))
+      const p = toValue(params)
+      if (!p?.type || !p?.businessId) return null
+      const res = await fetchGetAiProcessStatus(p)
       return res ?? null
     },
+    enabled: () => {
+      const p = toValue(params)
+      return !!(p?.type && p?.businessId)
+    },
     staleTime: 10 * 1000,
-    refetchInterval: 5000
+    refetchInterval: 5000,
+    retry: false
   })
 }
 
-/** AI 处理历史列表
- *  后端必填：projectId + type + businessId（项目级聚合时 businessId = projectId）
- */
+/** AI 处理历史列表 */
 export function useAiProcessHistory(
-  params?: MaybeRefOrGetter<Api.AiProcess.HistorySearchParams | undefined>
+  params?: MaybeRefOrGetter<Api.AiProcess.HistoryQueryParams | undefined>
 ) {
   return useQuery({
     queryKey: [QUERY_KEY, 'history', params] as const,
     queryFn: async () => {
       const p = toValue(params)
-      if (!p?.projectId || !p?.type || !p?.businessId) return []
+      if (!p?.type || !p?.businessId) return []
       const res = await fetchGetAiProcessHistory(p)
       return res ?? []
     },
     enabled: () => {
       const p = toValue(params)
-      return !!(p?.projectId && p?.type && p?.businessId)
+      return !!(p?.type && p?.businessId)
     },
     retry: false,
     staleTime: 30 * 1000

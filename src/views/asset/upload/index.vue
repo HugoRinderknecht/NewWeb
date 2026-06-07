@@ -150,7 +150,7 @@
     fetchUploadChunk,
     fetchCompleteChunkUpload
   } from '@/api/asset'
-  import { useProjectDataStore } from '@/store/modules/project-data'
+  import { useAssetProjectStore } from '@/store/modules/asset-project'
 
   defineOptions({ name: 'AssetUpload' })
 
@@ -324,7 +324,7 @@
   }
 
   const CHUNK_SIZE = 5 * 1024 * 1024
-  const projectStore = useProjectDataStore()
+  const projectStore = useAssetProjectStore()
   const projectId = computed(() => projectStore.currentProjectId || '')
 
   const uploadSingleFile = async (item: UploadItem) => {

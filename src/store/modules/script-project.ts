@@ -2,16 +2,16 @@ import { defineStore } from 'pinia'
 import { useProjectStore } from './project'
 
 /**
- * 剧本项目 Store（轻量版）
+ * 剧本业务域：项目选择器 Store
  *
- * 本 store 仅负责追踪当前剧本 ID 等 UI 相关状态。
- * 项目列表数据统一通过 `useProjectList` Vue Query Hook 获取。
+ * 按业务域解耦：本 store 独立维护「剧本域」的 currentProjectId，
+ * 不再写入全局 useProjectStore，从而避免与「分镜域」「资产域」联动。
  *
- * 当前项目 ID 的唯一真实来源为 useProjectStore（带 sessionStorage 持久化），
- * 本 store 通过引用 project store 同步，不再依赖 project-data store。
+ * - 读：优先返回本域已设值；若本域未设值，回退到全局 useProjectStore 作为默认值（仅作首次进入兜底）。
+ * - 写：只写本域，不污染全局。
+ * - 持久化：独立 sessionStorage key (project:script)。
  *
- * 为兼容旧组件使用，保留 `projectList` / `currentProject` 派生 getter，
- * 推荐迁移到 `useProjectList()` Vue Query Hook。
+ * 历史保留：`projectList` / `currentProject` getter 已废弃，请改用 useProjectList / useProjectDetail Vue Query Hook。
  */
 export interface ProjectItem {
   id: string
@@ -22,49 +22,51 @@ export interface ProjectItem {
 
 export const useScriptProjectStore = defineStore('script-project', {
   state: () => ({
+    /** 剧本域独立持有的当前项目 ID */
+    scopedProjectId: '',
     currentScriptId: ''
   }),
 
   getters: {
-    /** 从 project store 获取当前项目 ID */
-    currentProjectId(): string {
-      return useProjectStore().currentProjectId
+    /** 剧本域当前项目 ID（本域未设值则回退到全局兜底） */
+    currentProjectId(state): string {
+      return state.scopedProjectId || useProjectStore().currentProjectId || ''
     },
-    /**
-     * @deprecated 推荐使用 useProjectList() Vue Query Hook 获取项目列表。
-     * 此 getter 已无数据源，返回空数组。
-     */
+    /** @deprecated 请改用 useProjectList() Vue Query Hook */
     projectList(): ProjectItem[] {
       return []
     },
-    /**
-     * @deprecated 推荐使用 useProjectDetail() Vue Query Hook 获取项目详情。
-     */
+    /** @deprecated 请改用 useProjectDetail() Vue Query Hook */
     currentProject(): ProjectItem | undefined {
       return undefined
     }
   },
 
   actions: {
+    /** 仅设置剧本域，不污染全局，避免跨业务域联动 */
     setCurrentProject(projectId: string) {
-      const projectStore = useProjectStore()
-      if (projectStore.currentProjectId !== projectId) {
-        projectStore.setCurrentProject(projectId)
-      }
+      this.scopedProjectId = projectId
+    },
+
+    clearCurrentProject() {
+      this.scopedProjectId = ''
     },
 
     setCurrentScript(scriptId: string) {
       this.currentScriptId = scriptId
     },
 
-    /**
-     * @deprecated 项目剧集数变化应通过 Vue Query mutation 自动维护，
-     * 此方法仅保留以兼容旧代码。
-     */
+    /** @deprecated 项目剧集数变化应通过 Vue Query mutation 自动维护 */
     updateEpisodeCount(_projectId: string, _delta: number) {
-      // noop: 项目数据已迁出 store，由 Vue Query 缓存管理
+      // noop
+      void _projectId
+      void _delta
     }
   },
 
-  persist: false
+  persist: {
+    key: 'project:script',
+    storage: sessionStorage,
+    pick: ['scopedProjectId']
+  }
 })
