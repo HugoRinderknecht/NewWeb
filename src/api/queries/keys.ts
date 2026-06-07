@@ -16,22 +16,27 @@ export const scriptKeys = {
   postApproval: (scriptId: unknown) => ['scripts', 'post-approval', scriptId] as const,
   episodes: (projectId: unknown) => ['scripts', 'episodes', projectId] as const,
   scriptEpisodes: (projectId: unknown, scriptId: unknown) => ['scripts', 'script-episodes', projectId, scriptId] as const,
-  episode: (scriptId: unknown, episodeId: unknown) => ['scripts', 'episode', scriptId, episodeId] as const,
+  episode: (projectId: unknown, scriptId: unknown, episodeId: unknown) =>
+    ['scripts', 'episode', projectId, scriptId, episodeId] as const,
   episodeById: (episodeId: string) => ['scripts', 'episode', episodeId] as const,
-  characterProfiles: (scriptId: unknown) => ['scripts', 'character-profiles', scriptId] as const,
-  extractedAssets: (scriptId: unknown) => ['scripts', 'extracted-assets', scriptId] as const,
-  styleConfig: (scriptId: unknown) => ['scripts', 'style-config', scriptId] as const,
-  refAnalysis: (scriptId: unknown) => ['scripts', 'ref-analysis', scriptId] as const,
-  voicePrompts: (scriptId: unknown) => ['scripts', 'voice-prompts', scriptId] as const,
-  assetPrompts: (scriptId: unknown) => ['scripts', 'asset-prompts', scriptId] as const,
-  assetImages: (scriptId: unknown) => ['scripts', 'asset-images', scriptId] as const,
-  videoPrompts: (episodeId: unknown) => ['scripts', 'video-prompts', episodeId] as const,
+  characterProfiles: (projectId: unknown, scriptId: unknown) =>
+    ['scripts', 'character-profiles', projectId, scriptId] as const,
+  extractedAssets: (projectId: unknown, scriptId: unknown) =>
+    ['scripts', 'extracted-assets', projectId, scriptId] as const,
+  styleConfig: (projectId: unknown, scriptId: unknown) => ['scripts', 'style-config', projectId, scriptId] as const,
+  refAnalysis: (projectId: unknown, scriptId: unknown) => ['scripts', 'ref-analysis', projectId, scriptId] as const,
+  voicePrompts: (projectId: unknown, scriptId: unknown) => ['scripts', 'voice-prompts', projectId, scriptId] as const,
+  assetPrompts: (projectId: unknown, scriptId: unknown) => ['scripts', 'asset-prompts', projectId, scriptId] as const,
+  assetImages: (projectId: unknown, scriptId: unknown) => ['scripts', 'asset-images', projectId, scriptId] as const,
+  videoPrompts: (projectId: unknown, episodeId: unknown) => ['scripts', 'video-prompts', projectId, episodeId] as const,
 }
 
 export const aiProcessKeys = {
   all: () => ['ai-process'] as const,
-  status: (params: unknown) => ['ai-process', 'status', params] as const,
-  history: (params: unknown) => ['ai-process', 'history', params] as const,
+  status: (params?: Partial<Api.AiProcess.StatusQueryParams>) =>
+    ['ai-process', 'status', params?.projectId, params?.type, params?.businessId] as const,
+  history: (params?: Partial<Api.AiProcess.HistoryQueryParams>) =>
+    ['ai-process', 'history', params?.projectId, params?.type, params?.businessId, params?.status] as const,
   detail: (recordId: unknown) => ['ai-process', 'detail', recordId] as const,
 }
 
@@ -104,6 +109,7 @@ export const storyboardKeys = {
   assets: (storyboardId: unknown) => ['storyboard', 'assets', storyboardId] as const,
   scenes: (episodeId: unknown) => ['storyboard', 'scenes', episodeId] as const,
   scriptStoryboards: (projectId: unknown, scriptId: unknown) => ['storyboard', 'script-storyboards', projectId, scriptId] as const,
+  boards: (projectId: unknown) => ['storyboard', 'boards', projectId] as const,
 }
 
 export const teamKeys = {
@@ -145,6 +151,7 @@ export const statisticsKeys = {
   dashboard: (teamId?: unknown) => ['statistics', 'dashboard', teamId] as const,
   realtime: () => ['statistics', 'realtime'] as const,
   trends: (teamId: unknown, params: unknown) => ['statistics', 'trends', teamId, params] as const,
+  platformTrends: (params?: unknown) => ['statistics', 'platform-trends', params] as const,
   credits: () => ['statistics', 'credits'] as const,
   myCredits: () => ['statistics', 'my-credits'] as const,
   alerts: () => ['statistics', 'alerts'] as const,
@@ -176,7 +183,7 @@ export const reviewKeys = {
   status: (reviewType: unknown, targetId: unknown) => ['reviews', 'status', reviewType, targetId] as const,
   pendingCount: () => ['reviews', 'pending-count'] as const,
   mySubmissions: (params?: unknown) => ['reviews', 'my-submissions', params] as const,
-  statistics: (projectId: unknown) => ['reviews', 'statistics', projectId] as const,
+  statistics: (projectId: unknown, params?: unknown) => ['reviews', 'statistics', projectId, params] as const,
   rejectReasons: (projectId: unknown) => ['reviews', 'reject-reasons', projectId] as const,
   routeConfig: (projectId: unknown) => ['reviews', 'route-config', projectId] as const,
 }
@@ -219,4 +226,12 @@ export const assetKeys = {
   referenceImages: (projectId: unknown) => ['assets', 'reference-images', projectId] as const,
   teamList: (teamId: unknown, params?: unknown) => ['assets', 'team-list', teamId, params] as const,
   teamCategories: (teamId: unknown) => ['assets', 'team-categories', teamId] as const,
+}
+
+export const scriptAssetKeys = {
+  all: () => ['script-assets'] as const,
+  lists: () => ['script-assets', 'list'] as const,
+  list: (projectId: unknown, params?: unknown) => ['script-assets', 'list', projectId, params] as const,
+  details: () => ['script-assets', 'detail'] as const,
+  detail: (assetId: unknown) => ['script-assets', 'detail', assetId] as const,
 }

@@ -3,7 +3,17 @@ import request from '@/utils/http'
 
 export class HttpAdapter implements IApiAdapter {
   async request<T>(config: RequestConfig): Promise<T> {
-    const { url, method, data, params, headers, signal, responseType, showErrorMessage } = config
+    const {
+      url,
+      method,
+      data,
+      params,
+      headers,
+      signal,
+      responseType,
+      showErrorMessage,
+      withCredentials
+    } = config
     return request.request<T>({
       url,
       method,
@@ -12,7 +22,8 @@ export class HttpAdapter implements IApiAdapter {
       headers,
       signal,
       responseType,
-      showErrorMessage
+      showErrorMessage,
+      withCredentials
     })
   }
 
@@ -28,6 +39,10 @@ export class HttpAdapter implements IApiAdapter {
     return this.request<T>({ ...config, url, method: 'PUT', data })
   }
 
+  /**
+   * DELETE：默认第二参数作为 query 参数
+   * 若需要携带 body，请显式使用 request 或在 config.data 中传入
+   */
   del<T>(url: string, params?: any, config?: Partial<RequestConfig>): Promise<T> {
     return this.request<T>({ ...config, url, method: 'DELETE', params })
   }

@@ -13,7 +13,7 @@ import { useProjectStore } from './project'
  * - 写：只写本域。
  * - 持久化：独立 sessionStorage key (project:storyboard)。
  *
- * 推荐通过 useCurrentProjectId(useStoryboardProjectStore) 或 useCurrentContext('storyboard') 获取，
+ * 推荐通过 useWritableProjectId(useStoryboardProjectStore) 或 useCurrentContext('storyboard') 获取，
  * 以自动遵循 Route > Store 的优先级策略。
  *
  * @see src/config/state-policy.ts 状态管理策略

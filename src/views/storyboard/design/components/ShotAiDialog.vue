@@ -36,7 +36,7 @@
           :disabled="!form.scriptId"
         >
           <ElOption
-            v-for="ep in episodes"
+            v-for="ep in filteredEpisodes"
             :key="ep.id"
             :label="`第${ep.number}集：${ep.name}`"
             :value="ep.id"
@@ -114,7 +114,7 @@
 
   const projectId = computed(() => {
     const fromRoute = (route.params.projectId as string) || (route.query.projectId as string)
-    return fromRoute || projectStore.currentProjectId || ''
+    return fromRoute || storyboardStore.activeProjectId || projectStore.currentProjectId || ''
   })
 
   const scripts = ref<Array<{ id: string; name: string }>>([])
@@ -159,6 +159,15 @@
 
   const { data: episodesData, isLoading: episodesLoading } = useProjectEpisodes(projectId)
   const episodes = computed<any[]>(() => (episodesData.value as any) || [])
+  const filteredEpisodes = computed(() =>
+    episodes.value
+      .filter((ep: any) => String(ep.scriptId || '') === form.scriptId)
+      .map((ep: any, idx: number) => ({
+        id: String(ep.id || idx + 1),
+        number: ep.number || ep.episodeNumber || ep.episodeIndex || idx + 1,
+        name: ep.name || ep.title || ep.episodeName || `第${idx + 1}集`
+      }))
+  )
 
   function onScriptChange() {
     form.episodeId = ''

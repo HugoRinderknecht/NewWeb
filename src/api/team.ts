@@ -20,12 +20,18 @@ export function fetchApplyJoinTeam(params: Api.Team.JoinApplyParams) {
   return getApiAdapter().post<void>('/api/teams/member/apply', params)
 }
 
+/** 通过邀请码加入团队（文档：code 为 query 参数） */
 export function fetchJoinByCode(code: string) {
-  return getApiAdapter().post<void>('/api/teams/member/join-by-code', { code })
+  return getApiAdapter().post<void>('/api/teams/member/join-by-code', undefined, {
+    params: { code }
+  })
 }
 
+/** 退出团队（文档：teamId 为 query 参数） */
 export function fetchLeaveTeam(teamId: string) {
-  return getApiAdapter().post<void>('/api/teams/member/leave', { teamId })
+  return getApiAdapter().post<void>('/api/teams/member/leave', undefined, {
+    params: { teamId }
+  })
 }
 
 export function fetchGetMyApplications() {
@@ -47,8 +53,11 @@ export function fetchUpdateMemberRole(teamId: string, params: Api.Team.UpdateMem
   return getApiAdapter().put<void>(`/api/teams/${teamId}/members/role`, params)
 }
 
+/** 更新成员状态（文档：memberId/status 均为 query 参数） */
 export function fetchUpdateMemberStatus(teamId: string, params: Api.Team.UpdateMemberStatusParams) {
-  return getApiAdapter().put<void>(`/api/teams/${teamId}/members/status`, params)
+  return getApiAdapter().put<void>(`/api/teams/${teamId}/members/status`, undefined, {
+    params
+  })
 }
 
 export function fetchRemoveMember(teamId: string, memberId: string) {
@@ -61,18 +70,23 @@ export function fetchGetMemberPermissions(teamId: string, memberId: string) {
   )
 }
 
+/** 设置成员权限（文档：请求体为 List<String>，即裸字符串数组） */
 export function fetchSetMemberPermissions(
   teamId: string,
   memberId: string,
   permissionCodes: string[]
 ) {
-  return getApiAdapter().put<void>(`/api/teams/${teamId}/members/${memberId}/permissions`, {
+  return getApiAdapter().put<void>(
+    `/api/teams/${teamId}/members/${memberId}/permissions`,
     permissionCodes
-  })
+  )
 }
 
+/** 转移团队所有权（文档：newOwnerId 为 query 参数） */
 export function fetchTransferOwnership(teamId: string, newOwnerId: string) {
-  return getApiAdapter().put<void>(`/api/teams/${teamId}/owner`, { newOwnerId })
+  return getApiAdapter().put<void>(`/api/teams/${teamId}/owner`, undefined, {
+    params: { newOwnerId }
+  })
 }
 
 export function fetchGetTeamRoles(teamId: string) {
@@ -101,10 +115,12 @@ export function fetchGetRolePermissions(teamId: string, roleId: string) {
   )
 }
 
+/** 设置角色权限（文档：请求体为 List<String>，即裸字符串数组） */
 export function fetchSetRolePermissions(teamId: string, roleId: string, permissionCodes: string[]) {
-  return getApiAdapter().put<void>(`/api/teams/${teamId}/roles/${roleId}/permissions`, {
+  return getApiAdapter().put<void>(
+    `/api/teams/${teamId}/roles/${roleId}/permissions`,
     permissionCodes
-  })
+  )
 }
 
 export function fetchGetAvailablePermissions(teamId: string) {
@@ -146,9 +162,11 @@ export function fetchApproveApplication(teamId: string, id: string) {
   return getApiAdapter().put<void>(`/api/teams/${teamId}/applications/${id}/approve`)
 }
 
+/** 拒绝团队加入申请（文档：reason 为 query 参数，字段名为 reason） */
 export function fetchRejectApplication(teamId: string, id: string, reason?: string) {
   return getApiAdapter().put<void>(
     `/api/teams/${teamId}/applications/${id}/reject`,
-    reason ? { rejectReason: reason } : undefined
+    undefined,
+    reason ? { params: { reason } } : undefined
   )
 }

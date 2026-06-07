@@ -28,7 +28,7 @@ export function fetchMarkAllAsRead() {
 }
 
 export function fetchBatchMarkAsRead(ids: string[]) {
-  return getApiAdapter().post<void>('/api/notifications/batch-read', { ids })
+  return getApiAdapter().post<void>('/api/notifications/batch-read', ids)
 }
 
 export function fetchDeleteNotification(id: string) {
@@ -36,7 +36,7 @@ export function fetchDeleteNotification(id: string) {
 }
 
 export function fetchBatchDeleteNotifications(ids: string[]) {
-  return getApiAdapter().del<void>('/api/notifications/batch-delete', { ids })
+  return getApiAdapter().post<void>('/api/notifications/batch-delete', ids)
 }
 
 export function fetchClearReadNotifications() {
@@ -61,8 +61,9 @@ export function fetchSearchNotifications(keyword: string, params?: Api.Common.Co
   )
 }
 
-export function fetchExportNotifications() {
-  return getApiAdapter().get<Blob>('/api/notifications/export', undefined, {
+// TODO: 需在类型定义中补充 Notification.ExportParams
+export function fetchExportNotifications(params?: Record<string, unknown>) {
+  return getApiAdapter().get<Blob>('/api/notifications/export', params, {
     responseType: 'blob'
   })
 }
@@ -100,6 +101,12 @@ export function fetchCancelSubscription(id: string) {
   return getApiAdapter().del<void>(`/api/notifications/subscribe/${id}`)
 }
 
+/** 创建通知 */
+// TODO: 需在类型定义中补充 Notification.CreateNotificationParams
+export function fetchCreateNotification(data: Record<string, unknown>) {
+  return getApiAdapter().post<Api.Notification.NotificationItem>('/api/notifications', data)
+}
+
 export function fetchGetWsToken() {
-  return getApiAdapter().post<string>('/api/notifications/ws-token')
+  return getApiAdapter().post<{ token: string; expiresIn: string }>('/api/notifications/ws-token')
 }

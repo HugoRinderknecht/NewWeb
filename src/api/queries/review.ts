@@ -70,7 +70,9 @@ export function useReviewDetail(id: MaybeRefOrGetter<string | undefined>) {
 
 /** 审核状态（按类型查询） */
 export function useReviewStatus(
-  reviewType: MaybeRefOrGetter<string | undefined>,
+  reviewType: MaybeRefOrGetter<
+    'storyboard' | 'video' | 'first_frame' | 'script' | 'image' | 'prompt' | 'asset' | undefined
+  >,
   targetId: MaybeRefOrGetter<string | undefined>
 ) {
   return useQuery({
@@ -114,13 +116,16 @@ export function useMySubmissions(
 }
 
 /** 项目审核统计 */
-export function useReviewStatistics(projectId: MaybeRefOrGetter<string | undefined>) {
+export function useReviewStatistics(
+  projectId: MaybeRefOrGetter<string | undefined>,
+  params?: MaybeRefOrGetter<{ startDate?: string; endDate?: string } | undefined>
+) {
   return useQuery({
-    queryKey: reviewKeys.statistics(projectId),
+    queryKey: reviewKeys.statistics(projectId, params),
     queryFn: async () => {
       const id = toValue(projectId)
       if (!id) return null
-      return await fetchGetReviewStatistics(id)
+      return await fetchGetReviewStatistics(id, toValue(params))
     },
     enabled: () => !!toValue(projectId),
     staleTime: 60 * 1000
@@ -233,9 +238,10 @@ export function useArchiveReview() {
 export function useDispatchReview() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (id: string) => fetchDispatchReview(id),
-    onSuccess: (_data, id) => {
-      queryClient.invalidateQueries({ queryKey: reviewKeys.detail(id) })
+    mutationFn: (payload: { id: string; target: 'art' | 'video' | 'edit' | 'audio' }) =>
+      fetchDispatchReview(payload.id, payload.target),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: reviewKeys.detail(variables.id) })
       queryClient.invalidateQueries({ queryKey: reviewKeys.lists() })
     }
   })

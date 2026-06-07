@@ -1,0 +1,646 @@
+pinia.mjs:281 🍍 "userStore" store installed 🆕
+web-vitals.ts:13 [WebVitals] FCP: 316.00ms (good)
+bus.ts:157 [DataFlow] 轻量级数据流总线已初始化 ✅
+pinia.mjs:281 🍍 "team" store installed 🆕
+pinia.mjs:281 🍍 "notification" store installed 🆕
+pinia.mjs:281 🍍 "review" store installed 🆕
+pinia.mjs:281 🍍 "project" store installed 🆕
+web-vitals.ts:13 [WebVitals] TTFB: 18.70ms (good)
+ComponentLoader.ts:36 [ComponentLoader] 未找到组件: /team/settings，尝试过的路径: ../../views/team/settings.vue 和 ../../views/team/settings/index.vue
+(匿名) @ ComponentLoader.ts:36
+(匿名) @ RouteTransformer.ts:121
+(匿名) @ RouteTransformer.ts:48
+(匿名) @ RouteTransformer.ts:53
+(匿名) @ RouteTransformer.ts:53
+(匿名) @ RouteRegistry.ts:51
+(匿名) @ RouteRegistry.ts:49
+handleDynamicRoutes @ beforeEach.ts:308
+await in handleDynamicRoutes
+handleRouteGuard @ beforeEach.ts:188
+anonymousCallbackTo: router.beforeEach @ beforeEach.ts:118
+(匿名) @ vue-router.mjs:2107
+(匿名) @ vue-router.mjs:2074
+(匿名) @ vue-router.mjs:2107
+(匿名) @ vue-router.mjs:2079
+runWithContext @ runtime-core.esm-bundler.js:4065
+runWithContext @ vue-router.mjs:3387
+(匿名) @ vue-router.mjs:3743
+Promise.then
+(匿名) @ vue-router.mjs:3743
+runGuardQueue @ vue-router.mjs:3743
+(匿名) @ vue-router.mjs:3413
+Promise.then
+navigate @ vue-router.mjs:3406
+pushWithRedirect @ vue-router.mjs:3327
+push @ vue-router.mjs:3260
+install @ vue-router.mjs:3704
+use @ runtime-core.esm-bundler.js:3928
+(匿名) @ index.ts:19
+bootstrap @ main.ts:25
+(匿名) @ main.ts:46
+pinia.mjs:281 🍍 "worktabStore" store installed 🆕
+index.vue:19 [Vue warn]: Property "handleScriptChange" was accessed during render but is not defined on instance. 
+  at <ElCard class="art-table-card h-full" > 
+  at <ScriptVersion style= {minHeight: 'calc(100vh - 15px)'} onVnodeUnmounted=fn<onVnodeUnmounted> ref=Ref< undefined >  ... > 
+  at <KeepAlive max=10 exclude= (10) ['WorkflowList', 'DataHistoryRecords', 'AiProcessHistory', 'StoryboardPreview', 'StoryboardScene', 'StatsDashboard', 'TeamRoles', 'TeamInviteCodes', 'TeamApplications', 'TeamQuota'] > 
+  at <BaseTransition mode="out-in" appear=true persisted=false  ... > 
+  at <Transition name="" mode="out-in" appear="" > 
+  at <RouterView key=0 style= {minHeight: 'calc(100vh - 15px)'} > 
+  at <ArtPageContent > 
+  at <AppLayout onVnodeUnmounted=fn<onVnodeUnmounted> ref=Ref< undefined > > 
+  at <RouterView > 
+  at <Index > 
+  at <ElConfigProvider size="default" locale= {name: 'zh-cn', el: {…}} z-index=3000  ... > 
+  at <App>
+warn$1 @ runtime-core.esm-bundler.js:51
+get @ runtime-core.esm-bundler.js:3196
+(匿名) @ index.vue:19
+renderFnWithContext @ runtime-core.esm-bundler.js:695
+renderSlot @ runtime-core.esm-bundler.js:3045
+(匿名) @ card.vue:33
+renderComponentRoot @ runtime-core.esm-bundler.js:6590
+componentUpdateFn @ runtime-core.esm-bundler.js:5390
+ReactiveEffect.run @ reactivity.esm-bundler.js:237
+setupRenderEffect @ runtime-core.esm-bundler.js:5525
+mountComponent @ runtime-core.esm-bundler.js:5299
+processComponent @ runtime-core.esm-bundler.js:5251
+patch @ runtime-core.esm-bundler.js:4767
+mountChildren @ runtime-core.esm-bundler.js:5001
+mountElement @ runtime-core.esm-bundler.js:4924
+processElement @ runtime-core.esm-bundler.js:4889
+patch @ runtime-core.esm-bundler.js:4755
+componentUpdateFn @ runtime-core.esm-bundler.js:5397
+ReactiveEffect.run @ reactivity.esm-bundler.js:237
+setupRenderEffect @ runtime-core.esm-bundler.js:5525
+mountComponent @ runtime-core.esm-bundler.js:5299
+processComponent @ runtime-core.esm-bundler.js:5251
+patch @ runtime-core.esm-bundler.js:4767
+componentUpdateFn @ runtime-core.esm-bundler.js:5397
+ReactiveEffect.run @ reactivity.esm-bundler.js:237
+setupRenderEffect @ runtime-core.esm-bundler.js:5525
+mountComponent @ runtime-core.esm-bundler.js:5299
+processComponent @ runtime-core.esm-bundler.js:5251
+patch @ runtime-core.esm-bundler.js:4767
+componentUpdateFn @ runtime-core.esm-bundler.js:5397
+ReactiveEffect.run @ reactivity.esm-bundler.js:237
+setupRenderEffect @ runtime-core.esm-bundler.js:5525
+mountComponent @ runtime-core.esm-bundler.js:5299
+processComponent @ runtime-core.esm-bundler.js:5251
+patch @ runtime-core.esm-bundler.js:4767
+componentUpdateFn @ runtime-core.esm-bundler.js:5397
+ReactiveEffect.run @ reactivity.esm-bundler.js:237
+setupRenderEffect @ runtime-core.esm-bundler.js:5525
+mountComponent @ runtime-core.esm-bundler.js:5299
+processComponent @ runtime-core.esm-bundler.js:5251
+patch @ runtime-core.esm-bundler.js:4767
+mountChildren @ runtime-core.esm-bundler.js:5001
+processFragment @ runtime-core.esm-bundler.js:5181
+patch @ runtime-core.esm-bundler.js:4741
+componentUpdateFn @ runtime-core.esm-bundler.js:5397
+ReactiveEffect.run @ reactivity.esm-bundler.js:237
+setupRenderEffect @ runtime-core.esm-bundler.js:5525
+mountComponent @ runtime-core.esm-bundler.js:5299
+processComponent @ runtime-core.esm-bundler.js:5251
+patch @ runtime-core.esm-bundler.js:4767
+mountChildren @ runtime-core.esm-bundler.js:5001
+mountElement @ runtime-core.esm-bundler.js:4924
+processElement @ runtime-core.esm-bundler.js:4889
+patch @ runtime-core.esm-bundler.js:4755
+componentUpdateFn @ runtime-core.esm-bundler.js:5397
+ReactiveEffect.run @ reactivity.esm-bundler.js:237
+setupRenderEffect @ runtime-core.esm-bundler.js:5525
+mountComponent @ runtime-core.esm-bundler.js:5299
+processComponent @ runtime-core.esm-bundler.js:5251
+patch @ runtime-core.esm-bundler.js:4767
+mountChildren @ runtime-core.esm-bundler.js:5001
+mountElement @ runtime-core.esm-bundler.js:4924
+processElement @ runtime-core.esm-bundler.js:4889
+patch @ runtime-core.esm-bundler.js:4755
+mountChildren @ runtime-core.esm-bundler.js:5001
+mountElement @ runtime-core.esm-bundler.js:4924
+processElement @ runtime-core.esm-bundler.js:4889
+patch @ runtime-core.esm-bundler.js:4755
+mountChildren @ runtime-core.esm-bundler.js:5001
+mountElement @ runtime-core.esm-bundler.js:4924
+processElement @ runtime-core.esm-bundler.js:4889
+patch @ runtime-core.esm-bundler.js:4755
+componentUpdateFn @ runtime-core.esm-bundler.js:5397
+ReactiveEffect.run @ reactivity.esm-bundler.js:237
+setupRenderEffect @ runtime-core.esm-bundler.js:5525
+mountComponent @ runtime-core.esm-bundler.js:5299
+processComponent @ runtime-core.esm-bundler.js:5251
+patch @ runtime-core.esm-bundler.js:4767
+componentUpdateFn @ runtime-core.esm-bundler.js:5477
+ReactiveEffect.run @ reactivity.esm-bundler.js:237
+ReactiveEffect.runIfDirty @ reactivity.esm-bundler.js:275
+callWithErrorHandling @ runtime-core.esm-bundler.js:199
+flushJobs @ runtime-core.esm-bundler.js:408
+Promise.then
+queueFlush @ runtime-core.esm-bundler.js:322
+queuePostFlushCb @ runtime-core.esm-bundler.js:336
+queueEffectWithSuspense @ runtime-core.esm-bundler.js:7409
+baseWatchOptions.scheduler @ runtime-core.esm-bundler.js:6284
+anonymousFunction @ reactivity.esm-bundler.js:1854
+ReactiveEffect.trigger @ reactivity.esm-bundler.js:265
+endBatch @ reactivity.esm-bundler.js:323
+Dep.notify @ reactivity.esm-bundler.js:614
+Dep.trigger @ reactivity.esm-bundler.js:588
+RefImpl.set value @ reactivity.esm-bundler.js:1472
+finalizeNavigation @ vue-router.mjs:3503
+(匿名) @ vue-router.mjs:3368
+Promise.then
+pushWithRedirect @ vue-router.mjs:3335
+(匿名) @ vue-router.mjs:3351
+Promise.then
+pushWithRedirect @ vue-router.mjs:3335
+push @ vue-router.mjs:3260
+install @ vue-router.mjs:3704
+use @ runtime-core.esm-bundler.js:3928
+(匿名) @ index.ts:19
+bootstrap @ main.ts:25
+(匿名) @ main.ts:46
+index.vue:19 Property "handleScriptChange" was accessed during render but is not defined on instance. Proxy(Object) {…} at <ElCard>
+at <ScriptVersion>
+at <KeepAlive>
+at <BaseTransition>
+at <Transition>
+at <RouterView>
+at <ArtPageContent>
+at <AppLayout>
+at <RouterView>
+at <Index>
+at <ElConfigProvider>
+at <App> (12) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+(匿名) @ select.vue:387
+callWithErrorHandling @ runtime-core.esm-bundler.js:199
+warn$1 @ runtime-core.esm-bundler.js:27
+get @ runtime-core.esm-bundler.js:3196
+(匿名) @ index.vue:19
+renderFnWithContext @ runtime-core.esm-bundler.js:695
+renderSlot @ runtime-core.esm-bundler.js:3045
+(匿名) @ card.vue:33
+renderComponentRoot @ runtime-core.esm-bundler.js:6590
+componentUpdateFn @ runtime-core.esm-bundler.js:5468
+ReactiveEffect.run @ reactivity.esm-bundler.js:237
+ReactiveEffect.runIfDirty @ reactivity.esm-bundler.js:275
+callWithErrorHandling @ runtime-core.esm-bundler.js:199
+flushJobs @ runtime-core.esm-bundler.js:408
+flushJobs @ runtime-core.esm-bundler.js:430
+Promise.then
+queueFlush @ runtime-core.esm-bundler.js:322
+queuePostFlushCb @ runtime-core.esm-bundler.js:336
+queueEffectWithSuspense @ runtime-core.esm-bundler.js:7409
+baseWatchOptions.scheduler @ runtime-core.esm-bundler.js:6284
+anonymousFunction @ reactivity.esm-bundler.js:1854
+ReactiveEffect.trigger @ reactivity.esm-bundler.js:265
+endBatch @ reactivity.esm-bundler.js:323
+Dep.notify @ reactivity.esm-bundler.js:614
+Dep.trigger @ reactivity.esm-bundler.js:588
+RefImpl.set value @ reactivity.esm-bundler.js:1472
+finalizeNavigation @ vue-router.mjs:3503
+(匿名) @ vue-router.mjs:3368
+Promise.then
+pushWithRedirect @ vue-router.mjs:3335
+(匿名) @ vue-router.mjs:3351
+Promise.then
+pushWithRedirect @ vue-router.mjs:3335
+push @ vue-router.mjs:3260
+install @ vue-router.mjs:3704
+use @ runtime-core.esm-bundler.js:3928
+(匿名) @ index.ts:19
+bootstrap @ main.ts:25
+(匿名) @ main.ts:46
+pinia.mjs:281 🍍 "script-project" store installed 🆕
+index.vue:19 Property "handleScriptChange" was accessed during render but is not defined on instance. Proxy(Object) {…} at <ElCard>
+at <ScriptVersion>
+at <KeepAlive>
+at <BaseTransition>
+at <Transition>
+at <RouterView>
+at <ArtPageContent>
+at <AppLayout>
+at <RouterView>
+at <Index>
+at <ElConfigProvider>
+at <App> (12) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+(匿名) @ select.vue:387
+callWithErrorHandling @ runtime-core.esm-bundler.js:199
+warn$1 @ runtime-core.esm-bundler.js:27
+get @ runtime-core.esm-bundler.js:3196
+(匿名) @ index.vue:19
+renderFnWithContext @ runtime-core.esm-bundler.js:695
+renderSlot @ runtime-core.esm-bundler.js:3045
+(匿名) @ card.vue:33
+renderComponentRoot @ runtime-core.esm-bundler.js:6590
+componentUpdateFn @ runtime-core.esm-bundler.js:5468
+ReactiveEffect.run @ reactivity.esm-bundler.js:237
+ReactiveEffect.runIfDirty @ reactivity.esm-bundler.js:275
+callWithErrorHandling @ runtime-core.esm-bundler.js:199
+flushJobs @ runtime-core.esm-bundler.js:408
+Promise.then
+queueFlush @ runtime-core.esm-bundler.js:322
+queueJob @ runtime-core.esm-bundler.js:317
+baseWatchOptions.scheduler @ runtime-core.esm-bundler.js:6292
+anonymousFunction @ reactivity.esm-bundler.js:1854
+ReactiveEffect.trigger @ reactivity.esm-bundler.js:265
+endBatch @ reactivity.esm-bundler.js:323
+trigger @ reactivity.esm-bundler.js:741
+MutableReactiveHandler.set @ reactivity.esm-bundler.js:1031
+(匿名) @ utils.ts:16
+updateState @ utils.ts:15
+(匿名) @ useBaseQuery.ts:127
+(匿名) @ queryObserver.ts:735
+(匿名) @ queryObserver.ts:734
+(匿名) @ notifyManager.ts:56
+#notify @ queryObserver.ts:731
+updateResult @ queryObserver.ts:700
+onQueryUpdate @ queryObserver.ts:723
+(匿名) @ query.ts:702
+(匿名) @ query.ts:701
+(匿名) @ notifyManager.ts:56
+#dispatch @ query.ts:700
+setData @ query.ts:239
+fetch @ query.ts:578
+await in fetch
+#executeFetch @ queryObserver.ts:342
+onSubscribe @ queryObserver.ts:100
+subscribe @ subscribable.ts:11
+(匿名) @ useBaseQuery.ts:126
+callWithErrorHandling @ runtime-core.esm-bundler.js:199
+callWithAsyncErrorHandling @ runtime-core.esm-bundler.js:206
+baseWatchOptions.call @ runtime-core.esm-bundler.js:6280
+job @ reactivity.esm-bundler.js:1838
+watch @ reactivity.esm-bundler.js:1873
+doWatch @ runtime-core.esm-bundler.js:6308
+watch @ runtime-core.esm-bundler.js:6241
+useBaseQuery @ useBaseQuery.ts:121
+useQuery @ useQuery.ts:136
+(匿名) @ script.ts:49
+setup @ index.vue:604
+callWithErrorHandling @ runtime-core.esm-bundler.js:199
+setupStatefulComponent @ runtime-core.esm-bundler.js:7996
+setupComponent @ runtime-core.esm-bundler.js:7957
+mountComponent @ runtime-core.esm-bundler.js:5285
+processComponent @ runtime-core.esm-bundler.js:5251
+patch @ runtime-core.esm-bundler.js:4767
+componentUpdateFn @ runtime-core.esm-bundler.js:5397
+ReactiveEffect.run @ reactivity.esm-bundler.js:237
+setupRenderEffect @ runtime-core.esm-bundler.js:5525
+mountComponent @ runtime-core.esm-bundler.js:5299
+processComponent @ runtime-core.esm-bundler.js:5251
+patch @ runtime-core.esm-bundler.js:4767
+componentUpdateFn @ runtime-core.esm-bundler.js:5397
+ReactiveEffect.run @ reactivity.esm-bundler.js:237
+setupRenderEffect @ runtime-core.esm-bundler.js:5525
+mountComponent @ runtime-core.esm-bundler.js:5299
+processComponent @ runtime-core.esm-bundler.js:5251
+patch @ runtime-core.esm-bundler.js:4767
+componentUpdateFn @ runtime-core.esm-bundler.js:5397
+ReactiveEffect.run @ reactivity.esm-bundler.js:237
+setupRenderEffect @ runtime-core.esm-bundler.js:5525
+mountComponent @ runtime-core.esm-bundler.js:5299
+processComponent @ runtime-core.esm-bundler.js:5251
+patch @ runtime-core.esm-bundler.js:4767
+mountChildren @ runtime-core.esm-bundler.js:5001
+processFragment @ runtime-core.esm-bundler.js:5181
+patch @ runtime-core.esm-bundler.js:4741
+componentUpdateFn @ runtime-core.esm-bundler.js:5397
+ReactiveEffect.run @ reactivity.esm-bundler.js:237
+setupRenderEffect @ runtime-core.esm-bundler.js:5525
+mountComponent @ runtime-core.esm-bundler.js:5299
+processComponent @ runtime-core.esm-bundler.js:5251
+patch @ runtime-core.esm-bundler.js:4767
+mountChildren @ runtime-core.esm-bundler.js:5001
+mountElement @ runtime-core.esm-bundler.js:4924
+processElement @ runtime-core.esm-bundler.js:4889
+patch @ runtime-core.esm-bundler.js:4755
+componentUpdateFn @ runtime-core.esm-bundler.js:5397
+ReactiveEffect.run @ reactivity.esm-bundler.js:237
+setupRenderEffect @ runtime-core.esm-bundler.js:5525
+mountComponent @ runtime-core.esm-bundler.js:5299
+processComponent @ runtime-core.esm-bundler.js:5251
+patch @ runtime-core.esm-bundler.js:4767
+mountChildren @ runtime-core.esm-bundler.js:5001
+mountElement @ runtime-core.esm-bundler.js:4924
+processElement @ runtime-core.esm-bundler.js:4889
+patch @ runtime-core.esm-bundler.js:4755
+mountChildren @ runtime-core.esm-bundler.js:5001
+mountElement @ runtime-core.esm-bundler.js:4924
+processElement @ runtime-core.esm-bundler.js:4889
+patch @ runtime-core.esm-bundler.js:4755
+mountChildren @ runtime-core.esm-bundler.js:5001
+mountElement @ runtime-core.esm-bundler.js:4924
+processElement @ runtime-core.esm-bundler.js:4889
+patch @ runtime-core.esm-bundler.js:4755
+componentUpdateFn @ runtime-core.esm-bundler.js:5397
+ReactiveEffect.run @ reactivity.esm-bundler.js:237
+setupRenderEffect @ runtime-core.esm-bundler.js:5525
+mountComponent @ runtime-core.esm-bundler.js:5299
+processComponent @ runtime-core.esm-bundler.js:5251
+patch @ runtime-core.esm-bundler.js:4767
+componentUpdateFn @ runtime-core.esm-bundler.js:5477
+ReactiveEffect.run @ reactivity.esm-bundler.js:237
+ReactiveEffect.runIfDirty @ reactivity.esm-bundler.js:275
+callWithErrorHandling @ runtime-core.esm-bundler.js:199
+flushJobs @ runtime-core.esm-bundler.js:408
+Promise.then
+queueFlush @ runtime-core.esm-bundler.js:322
+queuePostFlushCb @ runtime-core.esm-bundler.js:336
+queueEffectWithSuspense @ runtime-core.esm-bundler.js:7409
+baseWatchOptions.scheduler @ runtime-core.esm-bundler.js:6284
+anonymousFunction @ reactivity.esm-bundler.js:1854
+ReactiveEffect.trigger @ reactivity.esm-bundler.js:265
+endBatch @ reactivity.esm-bundler.js:323
+Dep.notify @ reactivity.esm-bundler.js:614
+Dep.trigger @ reactivity.esm-bundler.js:588
+RefImpl.set value @ reactivity.esm-bundler.js:1472
+finalizeNavigation @ vue-router.mjs:3503
+(匿名) @ vue-router.mjs:3368
+Promise.then
+pushWithRedirect @ vue-router.mjs:3335
+(匿名) @ vue-router.mjs:3351
+Promise.then
+pushWithRedirect @ vue-router.mjs:3335
+push @ vue-router.mjs:3260
+install @ vue-router.mjs:3704
+use @ runtime-core.esm-bundler.js:3928
+(匿名) @ index.ts:19
+bootstrap @ main.ts:25
+(匿名) @ main.ts:46
+index.vue:19 Property "handleScriptChange" was accessed during render but is not defined on instance. Proxy(Object) {…} at <ElCard>
+at <ScriptVersion>
+at <KeepAlive>
+at <BaseTransition>
+at <Transition>
+at <RouterView>
+at <ArtPageContent>
+at <AppLayout>
+at <RouterView>
+at <Index>
+at <ElConfigProvider>
+at <App> (12) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+(匿名) @ select.vue:387
+callWithErrorHandling @ runtime-core.esm-bundler.js:199
+warn$1 @ runtime-core.esm-bundler.js:27
+get @ runtime-core.esm-bundler.js:3196
+(匿名) @ index.vue:19
+renderFnWithContext @ runtime-core.esm-bundler.js:695
+renderSlot @ runtime-core.esm-bundler.js:3045
+(匿名) @ card.vue:33
+renderComponentRoot @ runtime-core.esm-bundler.js:6590
+componentUpdateFn @ runtime-core.esm-bundler.js:5468
+ReactiveEffect.run @ reactivity.esm-bundler.js:237
+ReactiveEffect.runIfDirty @ reactivity.esm-bundler.js:275
+callWithErrorHandling @ runtime-core.esm-bundler.js:199
+flushJobs @ runtime-core.esm-bundler.js:408
+Promise.then
+queueFlush @ runtime-core.esm-bundler.js:322
+queueJob @ runtime-core.esm-bundler.js:317
+effect.scheduler @ runtime-core.esm-bundler.js:5519
+ReactiveEffect.trigger @ reactivity.esm-bundler.js:265
+endBatch @ reactivity.esm-bundler.js:323
+Dep.notify @ reactivity.esm-bundler.js:614
+Dep.trigger @ reactivity.esm-bundler.js:588
+RefImpl.set value @ reactivity.esm-bundler.js:1472
+(匿名) @ index.vue:666
+await in (匿名)
+(匿名) @ index.vue:714
+anonymousCallbackTo: injectHook @ runtime-core.esm-bundler.js:2876
+callWithErrorHandling @ runtime-core.esm-bundler.js:199
+callWithAsyncErrorHandling @ runtime-core.esm-bundler.js:206
+hook.__weh @ runtime-core.esm-bundler.js:2856
+flushPostFlushCbs @ runtime-core.esm-bundler.js:385
+flushJobs @ runtime-core.esm-bundler.js:427
+Promise.then
+queueFlush @ runtime-core.esm-bundler.js:322
+queuePostFlushCb @ runtime-core.esm-bundler.js:336
+queueEffectWithSuspense @ runtime-core.esm-bundler.js:7409
+baseWatchOptions.scheduler @ runtime-core.esm-bundler.js:6284
+anonymousFunction @ reactivity.esm-bundler.js:1854
+ReactiveEffect.trigger @ reactivity.esm-bundler.js:265
+endBatch @ reactivity.esm-bundler.js:323
+Dep.notify @ reactivity.esm-bundler.js:614
+Dep.trigger @ reactivity.esm-bundler.js:588
+RefImpl.set value @ reactivity.esm-bundler.js:1472
+finalizeNavigation @ vue-router.mjs:3503
+(匿名) @ vue-router.mjs:3368
+Promise.then
+pushWithRedirect @ vue-router.mjs:3335
+(匿名) @ vue-router.mjs:3351
+Promise.then
+pushWithRedirect @ vue-router.mjs:3335
+push @ vue-router.mjs:3260
+install @ vue-router.mjs:3704
+use @ runtime-core.esm-bundler.js:3928
+(匿名) @ index.ts:19
+bootstrap @ main.ts:25
+(匿名) @ main.ts:46
+index.vue:19 Property "handleScriptChange" was accessed during render but is not defined on instance. Proxy(Object) {…} at <ElCard>
+at <ScriptVersion>
+at <KeepAlive>
+at <BaseTransition>
+at <Transition>
+at <RouterView>
+at <ArtPageContent>
+at <AppLayout>
+at <RouterView>
+at <Index>
+at <ElConfigProvider>
+at <App> (12) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+(匿名) @ select.vue:387
+callWithErrorHandling @ runtime-core.esm-bundler.js:199
+warn$1 @ runtime-core.esm-bundler.js:27
+get @ runtime-core.esm-bundler.js:3196
+(匿名) @ index.vue:19
+renderFnWithContext @ runtime-core.esm-bundler.js:695
+renderSlot @ runtime-core.esm-bundler.js:3045
+(匿名) @ card.vue:33
+renderComponentRoot @ runtime-core.esm-bundler.js:6590
+componentUpdateFn @ runtime-core.esm-bundler.js:5468
+ReactiveEffect.run @ reactivity.esm-bundler.js:237
+ReactiveEffect.runIfDirty @ reactivity.esm-bundler.js:275
+callWithErrorHandling @ runtime-core.esm-bundler.js:199
+flushJobs @ runtime-core.esm-bundler.js:408
+Promise.then
+queueFlush @ runtime-core.esm-bundler.js:322
+queueJob @ runtime-core.esm-bundler.js:317
+effect.scheduler @ runtime-core.esm-bundler.js:5519
+ReactiveEffect.trigger @ reactivity.esm-bundler.js:265
+endBatch @ reactivity.esm-bundler.js:323
+trigger @ reactivity.esm-bundler.js:741
+MutableReactiveHandler.set @ reactivity.esm-bundler.js:1031
+(匿名) @ utils.ts:16
+updateState @ utils.ts:15
+(匿名) @ useBaseQuery.ts:127
+(匿名) @ queryObserver.ts:735
+(匿名) @ queryObserver.ts:734
+(匿名) @ notifyManager.ts:56
+#notify @ queryObserver.ts:731
+updateResult @ queryObserver.ts:700
+onQueryUpdate @ queryObserver.ts:723
+(匿名) @ query.ts:702
+(匿名) @ query.ts:701
+(匿名) @ notifyManager.ts:56
+#dispatch @ query.ts:700
+setData @ query.ts:239
+fetch @ query.ts:578
+await in fetch
+#executeFetch @ queryObserver.ts:342
+onSubscribe @ queryObserver.ts:100
+subscribe @ subscribable.ts:11
+(匿名) @ useBaseQuery.ts:126
+callWithErrorHandling @ runtime-core.esm-bundler.js:199
+callWithAsyncErrorHandling @ runtime-core.esm-bundler.js:206
+baseWatchOptions.call @ runtime-core.esm-bundler.js:6280
+job @ reactivity.esm-bundler.js:1838
+watch @ reactivity.esm-bundler.js:1873
+doWatch @ runtime-core.esm-bundler.js:6308
+watch @ runtime-core.esm-bundler.js:6241
+useBaseQuery @ useBaseQuery.ts:121
+useQuery @ useQuery.ts:136
+(匿名) @ project.ts:30
+setup @ index.vue:608
+callWithErrorHandling @ runtime-core.esm-bundler.js:199
+setupStatefulComponent @ runtime-core.esm-bundler.js:7996
+setupComponent @ runtime-core.esm-bundler.js:7957
+mountComponent @ runtime-core.esm-bundler.js:5285
+processComponent @ runtime-core.esm-bundler.js:5251
+patch @ runtime-core.esm-bundler.js:4767
+componentUpdateFn @ runtime-core.esm-bundler.js:5397
+ReactiveEffect.run @ reactivity.esm-bundler.js:237
+setupRenderEffect @ runtime-core.esm-bundler.js:5525
+mountComponent @ runtime-core.esm-bundler.js:5299
+processComponent @ runtime-core.esm-bundler.js:5251
+patch @ runtime-core.esm-bundler.js:4767
+componentUpdateFn @ runtime-core.esm-bundler.js:5397
+ReactiveEffect.run @ reactivity.esm-bundler.js:237
+setupRenderEffect @ runtime-core.esm-bundler.js:5525
+mountComponent @ runtime-core.esm-bundler.js:5299
+processComponent @ runtime-core.esm-bundler.js:5251
+patch @ runtime-core.esm-bundler.js:4767
+componentUpdateFn @ runtime-core.esm-bundler.js:5397
+ReactiveEffect.run @ reactivity.esm-bundler.js:237
+setupRenderEffect @ runtime-core.esm-bundler.js:5525
+mountComponent @ runtime-core.esm-bundler.js:5299
+processComponent @ runtime-core.esm-bundler.js:5251
+patch @ runtime-core.esm-bundler.js:4767
+mountChildren @ runtime-core.esm-bundler.js:5001
+processFragment @ runtime-core.esm-bundler.js:5181
+patch @ runtime-core.esm-bundler.js:4741
+componentUpdateFn @ runtime-core.esm-bundler.js:5397
+ReactiveEffect.run @ reactivity.esm-bundler.js:237
+setupRenderEffect @ runtime-core.esm-bundler.js:5525
+mountComponent @ runtime-core.esm-bundler.js:5299
+processComponent @ runtime-core.esm-bundler.js:5251
+patch @ runtime-core.esm-bundler.js:4767
+mountChildren @ runtime-core.esm-bundler.js:5001
+mountElement @ runtime-core.esm-bundler.js:4924
+processElement @ runtime-core.esm-bundler.js:4889
+patch @ runtime-core.esm-bundler.js:4755
+componentUpdateFn @ runtime-core.esm-bundler.js:5397
+ReactiveEffect.run @ reactivity.esm-bundler.js:237
+setupRenderEffect @ runtime-core.esm-bundler.js:5525
+mountComponent @ runtime-core.esm-bundler.js:5299
+processComponent @ runtime-core.esm-bundler.js:5251
+patch @ runtime-core.esm-bundler.js:4767
+mountChildren @ runtime-core.esm-bundler.js:5001
+mountElement @ runtime-core.esm-bundler.js:4924
+processElement @ runtime-core.esm-bundler.js:4889
+patch @ runtime-core.esm-bundler.js:4755
+mountChildren @ runtime-core.esm-bundler.js:5001
+mountElement @ runtime-core.esm-bundler.js:4924
+processElement @ runtime-core.esm-bundler.js:4889
+patch @ runtime-core.esm-bundler.js:4755
+mountChildren @ runtime-core.esm-bundler.js:5001
+mountElement @ runtime-core.esm-bundler.js:4924
+processElement @ runtime-core.esm-bundler.js:4889
+patch @ runtime-core.esm-bundler.js:4755
+componentUpdateFn @ runtime-core.esm-bundler.js:5397
+ReactiveEffect.run @ reactivity.esm-bundler.js:237
+setupRenderEffect @ runtime-core.esm-bundler.js:5525
+mountComponent @ runtime-core.esm-bundler.js:5299
+processComponent @ runtime-core.esm-bundler.js:5251
+patch @ runtime-core.esm-bundler.js:4767
+componentUpdateFn @ runtime-core.esm-bundler.js:5477
+ReactiveEffect.run @ reactivity.esm-bundler.js:237
+ReactiveEffect.runIfDirty @ reactivity.esm-bundler.js:275
+callWithErrorHandling @ runtime-core.esm-bundler.js:199
+flushJobs @ runtime-core.esm-bundler.js:408
+Promise.then
+queueFlush @ runtime-core.esm-bundler.js:322
+queuePostFlushCb @ runtime-core.esm-bundler.js:336
+queueEffectWithSuspense @ runtime-core.esm-bundler.js:7409
+baseWatchOptions.scheduler @ runtime-core.esm-bundler.js:6284
+anonymousFunction @ reactivity.esm-bundler.js:1854
+ReactiveEffect.trigger @ reactivity.esm-bundler.js:265
+endBatch @ reactivity.esm-bundler.js:323
+Dep.notify @ reactivity.esm-bundler.js:614
+Dep.trigger @ reactivity.esm-bundler.js:588
+RefImpl.set value @ reactivity.esm-bundler.js:1472
+finalizeNavigation @ vue-router.mjs:3503
+(匿名) @ vue-router.mjs:3368
+Promise.then
+pushWithRedirect @ vue-router.mjs:3335
+(匿名) @ vue-router.mjs:3351
+Promise.then
+pushWithRedirect @ vue-router.mjs:3335
+push @ vue-router.mjs:3260
+install @ vue-router.mjs:3704
+use @ runtime-core.esm-bundler.js:3928
+(匿名) @ index.ts:19
+bootstrap @ main.ts:25
+(匿名) @ main.ts:46
+content_main.js:4683 This page uses the built-in LanguageDetector feature. To learn more and leave feedback, see https://learn.microsoft.com/microsoft-edge/web-platform/languagedetector-api
+web-vitals.ts:13 [WebVitals] LCP: 1752.00ms (good)
+web-vitals.ts:13 [WebVitals] INP: 40.00ms (good)
+web-vitals.ts:13 [WebVitals] CLS: 0.00ms (good)
+index.ts:473  DELETE http://localhost:3006/api/script-assets/f5bb2a12c1916c5c196b6df65a298fcb 400 (Bad Request)
+dispatchXhrRequest @ xhr.js:198
+(匿名) @ xhr.js:15
+dispatchRequest @ dispatchRequest.js:51
+Promise.then
+_request @ Axios.js:163
+request @ Axios.js:40
+wrap @ bind.js:5
+_doRequest @ index.ts:473
+request @ index.ts:451
+retryRequest @ index.ts:401
+request @ index.ts:520
+(匿名) @ http-adapter.ts:17
+(匿名) @ http-adapter.ts:47
+(匿名) @ script-asset.ts:69
+(匿名) @ index.vue:991
+Promise.then
+(匿名) @ index.vue:989
+(匿名) @ index.vue:152
+callWithErrorHandling @ runtime-core.esm-bundler.js:199
+callWithAsyncErrorHandling @ runtime-core.esm-bundler.js:206
+emit @ runtime-core.esm-bundler.js:6473
+anonymousFunction @ runtime-core.esm-bundler.js:8188
+useButton @ use-button.ts:76
+callWithErrorHandling @ runtime-core.esm-bundler.js:199
+callWithAsyncErrorHandling @ runtime-core.esm-bundler.js:206
+invoker @ runtime-dom.esm-bundler.js:730
+error.ts:187 [HTTP Error] {code: 400, message: '缺少必填参数: projectId', data: {…}, timestamp: '2026-06-07T15:23:59.765Z', serverTimestamp: 1780845840157, …}
+(匿名) @ error.ts:187
+_doRequest @ index.ts:499
+await in _doRequest
+request @ index.ts:451
+retryRequest @ index.ts:401
+request @ index.ts:520
+(匿名) @ http-adapter.ts:17
+(匿名) @ http-adapter.ts:47
+(匿名) @ script-asset.ts:69
+(匿名) @ index.vue:991
+Promise.then
+(匿名) @ index.vue:989
+(匿名) @ index.vue:152
+callWithErrorHandling @ runtime-core.esm-bundler.js:199
+callWithAsyncErrorHandling @ runtime-core.esm-bundler.js:206
+emit @ runtime-core.esm-bundler.js:6473
+anonymousFunction @ runtime-core.esm-bundler.js:8188
+useButton @ use-button.ts:76
+callWithErrorHandling @ runtime-core.esm-bundler.js:199
+callWithAsyncErrorHandling @ runtime-core.esm-bundler.js:206
+invoker @ runtime-dom.esm-bundler.js:730
+web-vitals.ts:13 [WebVitals] INP: 48.00ms (good)

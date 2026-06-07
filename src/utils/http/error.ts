@@ -23,27 +23,38 @@
  */
 import { AxiosError } from 'axios'
 import { ApiStatus } from './status'
+import { extractResponseMessage, type BaseResponse } from '@/types'
+import { getBusinessErrorMessage } from './status'
 
-// 错误响应接口
+/**
+ * 错误响应接口（兼容 message 与 msg 两种字段命名）
+ * 文档规范字段为 `message`，`msg` 作为旧后端兼容字段保留
+ */
 export interface ErrorResponse {
   /** 错误状态码 */
   code: number
-  /** 错误消息 */
-  msg: string
+  /** 错误消息（文档规范字段） */
+  message?: string
+  /** @deprecated 旧字段，兼容存量后端 */
+  msg?: string
   /** 错误附加数据 */
   data?: unknown
+  /** 后端响应时间戳 */
+  timestamp?: number
 }
 
 // 错误日志数据接口
 export interface ErrorLogData {
-  /** 错误状态码 */
+  /** 错误状态码（业务码优先，HTTP 码兜底） */
   code: number
   /** 错误消息 */
   message: string
   /** 错误附加数据 */
   data?: unknown
-  /** 错误发生时间戳 */
+  /** 错误发生时间戳（前端） */
   timestamp: string
+  /** 后端响应时间戳 */
+  serverTimestamp?: number
   /** 请求 URL */
   url?: string
   /** 请求方法 */
@@ -57,6 +68,7 @@ export class HttpError extends Error {
   public readonly code: number
   public readonly data?: unknown
   public readonly timestamp: string
+  public readonly serverTimestamp?: number
   public readonly url?: string
   public readonly method?: string
 
@@ -67,6 +79,7 @@ export class HttpError extends Error {
       data?: unknown
       url?: string
       method?: string
+      serverTimestamp?: number
     }
   ) {
     super(message)
@@ -74,6 +87,7 @@ export class HttpError extends Error {
     this.code = code
     this.data = options?.data
     this.timestamp = new Date().toISOString()
+    this.serverTimestamp = options?.serverTimestamp
     this.url = options?.url
     this.method = options?.method
   }
@@ -84,6 +98,7 @@ export class HttpError extends Error {
       message: this.message,
       data: this.data,
       timestamp: this.timestamp,
+      serverTimestamp: this.serverTimestamp,
       url: this.url,
       method: this.method,
       stack: this.stack
@@ -92,8 +107,8 @@ export class HttpError extends Error {
 }
 
 /**
- * 获取错误消息
- * @param status 错误状态码
+ * 获取 HTTP 状态码对应的默认消息
+ * @param status HTTP 状态码
  * @returns 错误消息
  */
 const getErrorMessage = (status: number): string => {
@@ -113,9 +128,11 @@ const getErrorMessage = (status: number): string => {
 }
 
 /**
- * 处理错误
- * @param error 错误对象
- * @returns 错误对象
+ * 处理 Axios 错误（HTTP 非 2xx 响应/网络错误）
+ *
+ * 优先级策略：
+ * 1. 业务 code（response.data.code）> HTTP 状态码（作为 HttpError.code）
+ * 2. 消息：后端 message > 后端 msg > 业务错误码映射 > HTTP 状态码默认文案 > error.message
  */
 export function handleError(error: AxiosError<ErrorResponse>): never {
   // 处理取消的请求
@@ -125,7 +142,8 @@ export function handleError(error: AxiosError<ErrorResponse>): never {
   }
 
   const statusCode = error.response?.status
-  const errorMessage = error.response?.data?.msg || error.message
+  const responseData = error.response?.data
+  const backendMessage = extractResponseMessage(responseData as Partial<BaseResponse>)
   const requestConfig = error.config
 
   // 处理网络错误
@@ -136,14 +154,23 @@ export function handleError(error: AxiosError<ErrorResponse>): never {
     })
   }
 
-  // 处理 HTTP 状态码错误
-  const message = statusCode
-    ? getErrorMessage(statusCode)
-    : errorMessage || '请求失败'
-  throw new HttpError(message, statusCode || ApiStatus.error, {
-    data: error.response.data,
+  // 消息优先级：后端 message > 业务码映射 > HTTP 状态码文案 > error.message
+  const businessCode = responseData?.code
+  const message =
+    backendMessage ||
+    (businessCode ? getBusinessErrorMessage(businessCode) : '') ||
+    (statusCode ? getErrorMessage(statusCode) : '') ||
+    error.message ||
+    '请求失败'
+
+  // code 优先级：业务码 > HTTP 状态码（业务码可让上层做精细判定）
+  const finalCode = businessCode ?? statusCode ?? ApiStatus.error
+
+  throw new HttpError(message, finalCode, {
+    data: responseData,
     url: requestConfig?.url,
-    method: requestConfig?.method?.toUpperCase()
+    method: requestConfig?.method?.toUpperCase(),
+    serverTimestamp: responseData?.timestamp
   })
 }
 

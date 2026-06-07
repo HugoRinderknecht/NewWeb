@@ -110,24 +110,6 @@ export function useHeaderBar() {
   })
 
   /**
-   * 检查功能是否启用（别名）
-   * @param feature 功能名称
-   * @returns 是否启用
-   */
-  const isFeatureActive = (feature: keyof HeaderBarFeatureConfig): boolean => {
-    return isFeatureEnabled(feature)
-  }
-
-  /**
-   * 获取功能配置（别名）
-   * @param feature 功能名称
-   * @returns 功能配置
-   */
-  const getFeatureInfo = (feature: keyof HeaderBarFeatureConfig) => {
-    return getFeatureConfig(feature)
-  }
-
-  /**
    * 获取所有启用的功能列表
    * @returns 启用的功能名称数组
    */
@@ -145,22 +127,6 @@ export function useHeaderBar() {
     return Object.keys(headerBarConfigRef.value).filter(
       (key) => !headerBarConfigRef.value[key as keyof HeaderBarFeatureConfig]?.enabled
     ) as (keyof HeaderBarFeatureConfig)[]
-  }
-
-  /**
-   * 获取所有启用的功能（别名）
-   * @returns 启用的功能列表
-   */
-  const getActiveFeatures = () => {
-    return getEnabledFeatures()
-  }
-
-  /**
-   * 获取所有禁用的功能（别名）
-   * @returns 禁用的功能列表
-   */
-  const getInactiveFeatures = () => {
-    return getDisabledFeatures()
   }
 
   return {
@@ -184,12 +150,8 @@ export function useHeaderBar() {
 
     // 方法
     isFeatureEnabled, // 检查功能是否启用
-    isFeatureActive, // 检查功能是否启用（别名）
     getFeatureConfig, // 获取功能配置
-    getFeatureInfo, // 获取功能配置（别名）
     getEnabledFeatures, // 获取所有启用的功能
-    getDisabledFeatures, // 获取所有禁用的功能
-    getActiveFeatures, // 获取所有启用的功能（别名）
-    getInactiveFeatures // 获取所有禁用的功能（别名）
+    getDisabledFeatures // 获取所有禁用的功能
   }
 }

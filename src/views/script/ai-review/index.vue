@@ -291,12 +291,15 @@
 
 <script setup lang="ts">
   import { ElMessage } from 'element-plus'
-  import { storeToRefs } from 'pinia'
   import { useScriptProjectStore } from '@/store/modules/script-project'
+  import { useWritableProjectId } from '@/hooks/core/useCurrentProjectId'
   import { useScriptList, useReviewScriptContent, useProjectList } from '@/api/queries'
   // fetchGetScriptEpisodes 无对应的 Vue Query hook（useProjectEpisodes 是项目级，非剧本级），暂保留直接调用
   import { fetchGetScriptEpisodes } from '@/api/script'
-  import { fetchGetAiProcessStatus, fetchGetAiProcessHistoryDetail as fetchGetAiProcessDetail } from '@/api/ai-process'
+  import {
+    fetchGetAiProcessStatus,
+    fetchGetAiProcessHistoryDetail as fetchGetAiProcessDetail
+  } from '@/api/ai-process'
   import ProjectSwitcher from '@/components/ProjectSwitcher/index.vue'
 
   defineOptions({ name: 'AiReview' })
@@ -392,8 +395,8 @@
   }
 
   // ==================== Store ====================
-  const scriptProjectStore = useScriptProjectStore()
-  const { currentProjectId } = storeToRefs(scriptProjectStore)
+  const { currentProjectId, domainStore: scriptProjectStore } =
+    useWritableProjectId(useScriptProjectStore)
 
   // ==================== Vue Query Hooks ====================
   const scriptListQuery = useScriptList(currentProjectId)
@@ -501,9 +504,10 @@
     try {
       // 使用 GET /api/ai-process/status 查询已有的处理状态
       const res = await fetchGetAiProcessStatus({
+        projectId,
         type: 'SCRIPT_REVIEW',
         businessId: scriptId
-      } as any)
+      })
       const record = res as Api.AiProcess.AiProcessRecord | null
 
       if (!record) {

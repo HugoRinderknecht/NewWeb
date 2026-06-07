@@ -14,6 +14,7 @@ export function fetchGetReviewItems(params?: Api.Review.ReviewSearchParams) {
   )
 }
 
+/** 文档中类型名为 ReviewDetailVO */
 export function fetchGetReviewDetail(id: string) {
   return getApiAdapter().get<Api.Review.ReviewTask>(`/api/review/detail/${id}`)
 }
@@ -42,11 +43,15 @@ export function fetchArchiveReview(id: string) {
   return getApiAdapter().post<void>(`/api/review/${id}/archive`)
 }
 
-export function fetchDispatchReview(id: string) {
-  return getApiAdapter().post<void>(`/api/review/${id}/dispatch`)
+export function fetchDispatchReview(id: string, target: 'art' | 'video' | 'edit' | 'audio') {
+  return getApiAdapter().post<void>(`/api/review/${id}/dispatch`, undefined, { params: { target } })
 }
 
-export function fetchGetReviewStatus(reviewType: string, targetId: string) {
+/** 文档中类型名为 ReviewDetailVO */
+export function fetchGetReviewStatus(
+  reviewType: 'storyboard' | 'video' | 'first_frame' | 'script' | 'image' | 'prompt' | 'asset',
+  targetId: string
+) {
   return getApiAdapter().get<Api.Review.ReviewStatusVO>(
     `/api/review/status/${reviewType}/${targetId}`
   )
@@ -63,15 +68,19 @@ export function fetchGetMySubmissions(params?: Api.Review.ReviewSearchParams) {
   )
 }
 
-export function fetchGetReviewStatistics(projectId: string) {
+export function fetchGetReviewStatistics(
+  projectId: string,
+  params?: { startDate?: string; endDate?: string }
+) {
   return getApiAdapter().get<Api.Review.ReviewStatistics>(
-    `/api/review/projects/${projectId}/statistics`
+    `/api/review/projects/${projectId}/statistics`,
+    params
   )
 }
 
 export function fetchExportReviewRecords(projectId: string, params?: Api.Review.ExportParams) {
-  return getApiAdapter().post<Blob>(`/api/review/projects/${projectId}/export`, params, {
-    responseType: 'blob'
+  return getApiAdapter().post<string>(`/api/review/projects/${projectId}/export`, undefined, {
+    params
   })
 }
 

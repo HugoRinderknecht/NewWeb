@@ -3,7 +3,7 @@ import { useRoute } from 'vue-router'
 import type { Pinia, StoreDefinition } from 'pinia'
 
 /**
- * 业务域当前项目 ID 的统一数据层 Hook。
+ * 业务域当前项目 ID 的统一数据层 Hook（可写版）。
  *
  * 用途：在「剧本 / 分镜 / 资产」等业务域内，统一通过数据层获取与切换当前项目，
  * 避免各页面与全局 useProjectStore 直接耦合而产生跨业务域联动。
@@ -12,7 +12,7 @@ import type { Pinia, StoreDefinition } from 'pinia'
  * 写入：仅写入传入的「域 store」，不污染全局。
  *
  * @example
- * const { currentProjectId } = useCurrentProjectId(useStoryboardProjectStore)
+ * const { currentProjectId } = useWritableProjectId(useStoryboardProjectStore)
  */
 export interface DomainProjectStore {
   currentProjectId: string
@@ -29,7 +29,7 @@ export interface UseCurrentProjectIdResult {
   domainStore: DomainProjectStore
 }
 
-export function useCurrentProjectId(
+export function useWritableProjectId(
   useDomainStore: StoreDefinition<string, any, any, any>,
   pinia?: Pinia
 ): UseCurrentProjectIdResult {

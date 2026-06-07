@@ -12,7 +12,7 @@ import { useProjectStore } from './project'
  * 注意：资产域当前没有项目选择器 UI，本 store 提供 setter 供未来扩展。
  * 读取时若本域未设值，回退到全局 useProjectStore 作为默认值（兜底）。
  *
- * 推荐通过 useCurrentProjectId(useAssetProjectStore) 或 useCurrentContext('asset') 获取，
+ * 推荐通过 useWritableProjectId(useAssetProjectStore) 或 useCurrentContext('asset') 获取，
  * 以自动遵循 Route > Store 的优先级策略。
  *
  * @see src/config/state-policy.ts 状态管理策略

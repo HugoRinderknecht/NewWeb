@@ -31,37 +31,54 @@ export function fetchBatchCreateScriptAssets(
 ) {
   return getApiAdapter().post<Api.ScriptAsset.ScriptAssetDetail[]>(
     `/api/projects/${projectId}/script-assets/batch`,
-    { assets: data }
-  )
-}
-
-/** 获取创意资产详情 */
-export function fetchGetScriptAssetDetail(assetId: string) {
-  return getApiAdapter().get<Api.ScriptAsset.ScriptAssetDetail>(`/api/script-assets/${assetId}`)
-}
-
-/** 更新创意资产 */
-export function fetchUpdateScriptAsset(
-  assetId: string,
-  data: Api.ScriptAsset.UpdateScriptAssetParams
-) {
-  return getApiAdapter().put<Api.ScriptAsset.ScriptAssetDetail>(
-    `/api/script-assets/${assetId}`,
     data
   )
 }
 
-/** 删除创意资产 */
-export function fetchDeleteScriptAsset(assetId: string) {
-  return getApiAdapter().del<void>(`/api/script-assets/${assetId}`)
+/**
+ * 获取创意资产详情（文档：projectId 为必填 query 参数）
+ * GET /api/script-assets/{assetId}?projectId={projectId}
+ */
+export function fetchGetScriptAssetDetail(assetId: string, projectId: string) {
+  return getApiAdapter().get<Api.ScriptAsset.ScriptAssetDetail>(`/api/script-assets/${assetId}`, {
+    projectId
+  })
 }
 
-/** 上传资产参考图 */
-export function fetchUploadScriptAssetImage(assetId: string, file: File) {
+/**
+ * 更新创意资产（文档：projectId 为必填 query 参数）
+ * PUT /api/script-assets/{assetId}?projectId={projectId}
+ */
+export function fetchUpdateScriptAsset(
+  assetId: string,
+  data: Api.ScriptAsset.UpdateScriptAssetParams,
+  projectId: string
+) {
+  return getApiAdapter().put<Api.ScriptAsset.ScriptAssetDetail>(
+    `/api/script-assets/${assetId}`,
+    data,
+    { params: { projectId } }
+  )
+}
+
+/**
+ * 删除创意资产（文档：projectId 为必填 query 参数）
+ * DELETE /api/script-assets/{assetId}?projectId={projectId}
+ */
+export function fetchDeleteScriptAsset(assetId: string, projectId: string) {
+  return getApiAdapter().del<void>(`/api/script-assets/${assetId}`, { projectId })
+}
+
+/**
+ * 上传资产参考图（文档：projectId 为必填 query 参数）
+ * POST /api/script-assets/{assetId}/upload-image?projectId={projectId}
+ */
+export function fetchUploadScriptAssetImage(assetId: string, file: File, projectId: string) {
   const formData = new FormData()
   formData.append('file', file)
   return getApiAdapter().post<Api.ScriptAsset.UploadImageResult>(
     `/api/script-assets/${assetId}/upload-image`,
-    formData
+    formData,
+    { params: { projectId } }
   )
 }

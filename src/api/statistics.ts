@@ -18,6 +18,10 @@ export function fetchGetTrends(
   )
 }
 
+export function fetchGetPlatformTrends(params?: Omit<Api.Statistics.TrendParams, 'teamId'>) {
+  return getApiAdapter().get<Api.Statistics.TrendData>('/api/statistics/trends', params)
+}
+
 export function fetchGetCredits() {
   return getApiAdapter().get<Api.Statistics.CreditsData>('/api/statistics/credits')
 }
@@ -143,6 +147,7 @@ export function fetchGetProjectAnalysis() {
   )
 }
 
+/** ⚠️ 此端点文档未列出，需与后端确认 */
 export function fetchGetUserActivityRank() {
   return getApiAdapter().get<Api.Statistics.UserActivityRankItem[]>(
     '/api/statistics/users/activity-rank'

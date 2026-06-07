@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 
 /**
  * 团队 Store（轻量版）
@@ -18,8 +18,6 @@ export const useTeamStore = defineStore(
     /** 当前选中的团队 ID（由 route / 用户交互驱动） */
     const currentTeamId = ref<string>('')
 
-    const currentTeamName = computed(() => '')
-
     /** 设置当前团队 ID */
     const setCurrentTeamId = (teamId: string) => {
       currentTeamId.value = teamId
@@ -31,7 +29,6 @@ export const useTeamStore = defineStore(
 
     return {
       currentTeamId,
-      currentTeamName,
       setCurrentTeamId,
       clearAll
     }

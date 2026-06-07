@@ -29,7 +29,7 @@
 
 import axios, { AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios'
 import { useUserStore } from '@/store/modules/user'
-import { ApiStatus } from './status'
+import { ApiStatus, getBusinessErrorMessage } from './status'
 import { HttpError, handleError, showError, showSuccess } from './error'
 import { BaseResponse, extractResponseMessage } from '@/types'
 import { dataFlowMonitor } from '@/utils/data-flow'
@@ -50,12 +50,6 @@ let unauthorizedTimer: NodeJS.Timeout | null = null
 
 /** Token 刷新状态：保证并发 401 只触发一次刷新请求 */
 let refreshingPromise: Promise<string> | null = null
-/** 等待刷新成功后重发的请求队列 */
-const pendingRetryRequests: Array<{
-  config: ExtendedAxiosRequestConfig
-  resolve: (value: unknown) => void
-  reject: (reason?: unknown) => void
-}> = []
 
 /** 请求去重 Map */
 const pendingRequests = new Map<string, Promise<any>>()
@@ -175,8 +169,12 @@ const axiosInstance = axios.create({
 /** 请求拦截器 */
 axiosInstance.interceptors.request.use(
   (request: InternalAxiosRequestConfig) => {
+    const extConfig = request as InternalAxiosRequestConfig & ExtendedAxiosRequestConfig
     const { accessToken } = useUserStore()
-    if (accessToken) request.headers.set('Authorization', `Bearer ${accessToken}`)
+    // 刷新请求本身不应携带（可能过期的）AccessToken（文档标注"认证：无"）
+    if (accessToken && !extConfig._isRefreshRequest) {
+      request.headers.set('Authorization', `Bearer ${accessToken}`)
+    }
 
     if (request.data && !(request.data instanceof FormData) && !request.headers['Content-Type']) {
       request.headers.set('Content-Type', 'application/json')
@@ -193,6 +191,24 @@ axiosInstance.interceptors.request.use(
 /** 响应拦截器 */
 axiosInstance.interceptors.response.use(
   (response: AxiosResponse<BaseResponse>) => {
+    // 二进制响应（Blob/ArrayBuffer/文件下载等）直接放行，不走业务 code 校验
+    const responseType = response.config?.responseType
+    if (responseType === 'blob' || responseType === 'arraybuffer' || responseType === 'stream') {
+      return response
+    }
+    const contentType =
+      (response.headers?.['content-type'] as string | undefined) ||
+      (response.headers?.['Content-Type'] as string | undefined) ||
+      ''
+    // 非 JSON 响应（如 text/csv、application/octet-stream）也放行
+    if (contentType && !contentType.includes('application/json')) {
+      return response
+    }
+    // 响应体不是对象时也放行（防御性兜底）
+    if (!response.data || typeof response.data !== 'object') {
+      return response
+    }
+
     const errorMessage = extractResponseMessage(response.data)
     if (response.data.code === ApiStatus.success) return response
     if (response.data.code === ApiStatus.unauthorized) {
@@ -200,7 +216,10 @@ axiosInstance.interceptors.response.use(
       const config = response.config as ExtendedAxiosRequestConfig
       throw tryHandleUnauthorized(config, errorMessage)
     }
-    throw createHttpError(errorMessage || '请求失败', response.data.code)
+    // 业务错误：优先使用后端 message + 业务码映射，最后兜底
+    const businessMessage =
+      errorMessage || getBusinessErrorMessage(response.data.code) || '请求失败'
+    throw createHttpError(businessMessage, response.data.code)
   },
   (error) => {
     // HTTP 401 状态码也走自动刷新流程
@@ -257,7 +276,7 @@ function tryHandleUnauthorized(
 
 /**
  * 刷新 accessToken：使用单例 Promise 保证并发请求只触发一次刷新
- * 刷新成功后自动重发队列中所有等待的请求
+ * 等待中的请求通过 then 链等待同一个 Promise 解决，无需额外队列
  */
 function refreshAccessToken(): Promise<string> {
   if (refreshingPromise) return refreshingPromise
@@ -271,20 +290,9 @@ function refreshAccessToken(): Promise<string> {
     return Promise.reject(createHttpError('登录已过期，请重新登录', ApiStatus.unauthorized))
   }
 
-  refreshingPromise = doRefresh(refreshToken)
-    .then((newToken) => {
-      // 刷新成功后，重发队列中所有等待的请求
-      flushPendingRequests(newToken)
-      return newToken
-    })
-    .catch((error) => {
-      // 刷新失败：拒绝所有等待的请求
-      rejectPendingRequests(error)
-      throw error
-    })
-    .finally(() => {
-      refreshingPromise = null
-    })
+  refreshingPromise = doRefresh(refreshToken).finally(() => {
+    refreshingPromise = null
+  })
 
   return refreshingPromise
 }
@@ -292,11 +300,14 @@ function refreshAccessToken(): Promise<string> {
 /** 执行实际刷新请求（带超时保护，绕过应用层拦截器避免循环刷新） */
 async function doRefresh(refreshToken: string): Promise<string> {
   const refreshTimer = new Promise<never>((_, reject) => {
-    setTimeout(() => reject(createHttpError('刷新 Token 超时', ApiStatus.unauthorized)), REFRESH_TIMEOUT)
+    setTimeout(
+      () => reject(createHttpError('刷新 Token 超时', ApiStatus.unauthorized)),
+      REFRESH_TIMEOUT
+    )
   })
 
   // 直接调用 axiosInstance，避免经过应用层 401 拦截器导致循环刷新
-  const doAxiosRefresh = async (): Promise<string> => {
+  const doAxiosRefresh = async (): Promise<{ token: string; refreshToken?: string | null }> => {
     const res = await axiosInstance.request<BaseResponse<Api.Auth.LoginResponse>>({
       url: '/api/auth/refresh-token',
       method: 'POST',
@@ -305,47 +316,26 @@ async function doRefresh(refreshToken: string): Promise<string> {
     })
     const payload = (res as AxiosResponse<BaseResponse<Api.Auth.LoginResponse>>).data
     if (payload?.code !== ApiStatus.success || !payload.data?.token) {
-      throw createHttpError(payload?.message || payload?.msg || '刷新 Token 失败', ApiStatus.unauthorized)
+      throw createHttpError(
+        extractResponseMessage(payload) || '刷新 Token 失败',
+        ApiStatus.unauthorized
+      )
     }
-    return payload.data.token
+    return { token: payload.data.token, refreshToken: payload.data.refreshToken }
   }
 
   try {
-    const newToken = await Promise.race([doAxiosRefresh(), refreshTimer])
+    const result = await Promise.race([doAxiosRefresh(), refreshTimer])
     const userStore = useUserStore()
-    // 直接从最新响应中读取新 token 对应的 refreshToken 不可得，保留旧的
-    userStore.setToken(newToken, refreshToken)
-    return newToken
+    // 文档 §1.11：refresh-token 返回新 AccessToken + 新 RefreshToken 对
+    // 若响应包含新的 refreshToken 则轮换持久化，否则保留旧值
+    const nextRefreshToken = result.refreshToken ?? refreshToken
+    userStore.setToken(result.token, nextRefreshToken)
+    return result.token
   } catch (error) {
     throw error instanceof HttpError
       ? error
       : createHttpError('刷新 Token 失败', ApiStatus.unauthorized)
-  }
-}
-
-/** 重发队列中所有等待的请求 */
-function flushPendingRequests(newToken: string) {
-  while (pendingRetryRequests.length > 0) {
-    const task = pendingRetryRequests.shift()!
-    task.config._isRetryAfterRefresh = true
-    const headers = task.config.headers as Record<string, string> | undefined
-    if (headers) {
-      headers['Authorization'] = `Bearer ${newToken}`
-    } else {
-      task.config.headers = { Authorization: `Bearer ${newToken}` } as any
-    }
-    axiosInstance
-      .request(task.config)
-      .then((res) => task.resolve(res))
-      .catch((err) => task.reject(err))
-  }
-}
-
-/** 拒绝队列中所有等待的请求 */
-function rejectPendingRequests(error: unknown) {
-  while (pendingRetryRequests.length > 0) {
-    const task = pendingRetryRequests.shift()!
-    task.reject(error)
   }
 }
 
@@ -371,6 +361,7 @@ function handleUnauthorizedFinal(message?: string): HttpError {
 }
 
 /** 处理401错误（带防抖）—— 旧入口，保留兼容 */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function handleUnauthorizedError(message?: string): never {
   const error = handleUnauthorizedFinal(message)
   throw error

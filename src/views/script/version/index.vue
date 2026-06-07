@@ -11,6 +11,20 @@
               @change="handleProjectChange"
               @refresh="handleProjectRefresh"
             />
+            <ElSelect
+              v-model="currentScriptId"
+              placeholder="选择剧本"
+              clearable
+              style="width: 220px"
+              @change="handleScriptChange"
+            >
+              <ElOption
+                v-for="script in scriptOptions"
+                :key="script.id"
+                :label="script.title"
+                :value="script.id"
+              />
+            </ElSelect>
           </div>
           <ElSpace>
             <ElInput
@@ -529,9 +543,9 @@
 <script setup lang="ts">
   import { ElMessage, ElMessageBox } from 'element-plus'
   import type { FormInstance, FormRules, UploadFile, UploadInstance } from 'element-plus'
-  import { storeToRefs } from 'pinia'
   import { useScriptProjectStore } from '@/store/modules/script-project'
-  import { useExtractAssets, useProjectList } from '@/api/queries'
+  import { useWritableProjectId } from '@/hooks/core/useCurrentProjectId'
+  import { useExtractAssets, useProjectList, useScriptList } from '@/api/queries'
   // 以下 fetch 函数暂无对应 Vue Query hook，保留直接调用
   import {
     fetchGetScriptAssetList,
@@ -582,11 +596,12 @@
   }
 
   // ==================== Store ====================
-  const scriptProjectStore = useScriptProjectStore()
-  const { currentProjectId } = storeToRefs(scriptProjectStore)
+  const { currentProjectId, domainStore: scriptProjectStore } =
+    useWritableProjectId(useScriptProjectStore)
 
   // ==================== Vue Query Hooks ====================
   const extractAssetsMutation = useExtractAssets()
+  const scriptListQuery = useScriptList(currentProjectId)
 
   // ==================== 统一数据层：项目列表 ====================
   // store 中已废弃的 projectList 不再使用，改走 useProjectList Vue Query Hook
@@ -609,6 +624,17 @@
   const activeTab = ref('all')
   const loading = ref(false)
   const assetList = ref<Api.ScriptAsset.ScriptAssetListItem[]>([])
+  const currentScriptId = ref('')
+
+  // 剧本下拉选项
+  const scriptOptions = computed(() => {
+    const data = scriptListQuery.data?.value
+    if (!data?.records) return []
+    return data.records.map((s: Api.Script.ScriptListItem) => ({
+      id: String(s.id),
+      title: s.title ?? '未命名剧本'
+    }))
+  })
 
   const pagination = reactive({
     current: 1,
@@ -656,6 +682,10 @@
     loadAssetList()
   }
 
+  const handleScriptChange = (scriptId: string) => {
+    scriptProjectStore.setCurrentScript(scriptId || '')
+  }
+
   const handleTabChange = () => {
     filterAssetType.value = ''
     pagination.current = 1
@@ -692,9 +722,34 @@
   watch(currentProjectId, (newId) => {
     if (newId) {
       pagination.current = 1
+      currentScriptId.value = ''
+      scriptProjectStore.setCurrentScript('')
       loadAssetList()
     }
   })
+
+  // 自动选中剧本：优先沿用 store 中已记录的剧本；若不在当前项目下则取第一个
+  watch(
+    () => scriptListQuery.data?.value,
+    () => {
+      if (currentScriptId.value) return
+      const options = scriptOptions.value
+      const idsInCurrentProject = new Set(options.map((s) => s.id))
+      let sid = ''
+      if (
+        scriptProjectStore.currentScriptId &&
+        idsInCurrentProject.has(scriptProjectStore.currentScriptId)
+      ) {
+        sid = scriptProjectStore.currentScriptId
+      } else if (options.length > 0) {
+        sid = options[0].id
+      }
+      if (sid) {
+        currentScriptId.value = sid
+        scriptProjectStore.setCurrentScript(sid)
+      }
+    }
+  )
 
   // ==================== 提取资产 ====================
   const handleExtractAssets = () => {
@@ -850,8 +905,13 @@
 
   const handleOpenEditDialog = async (row: Api.ScriptAsset.ScriptAssetListItem) => {
     editingAssetId.value = row.id
+    const projectId = currentProjectId.value
+    if (!projectId) {
+      ElMessage.warning('请先选择项目')
+      return
+    }
     try {
-      const detail = await fetchGetScriptAssetDetail(row.id)
+      const detail = await fetchGetScriptAssetDetail(row.id, projectId)
       if (detail) {
         editForm.assetName = detail.assetName || ''
         editForm.assetType = detail.assetType || ''
@@ -878,6 +938,12 @@
     await editFormRef.value.validate(async (valid) => {
       if (!valid) return
       formLoading.value = true
+      const projectId = currentProjectId.value
+      if (!projectId) {
+        ElMessage.warning('请先选择项目')
+        formLoading.value = false
+        return
+      }
       try {
         const data: Api.ScriptAsset.UpdateScriptAssetParams = {
           assetName: editForm.assetName,
@@ -901,7 +967,7 @@
         if (editForm.assetType === 'scene') {
           data.assetSceneType = editForm.assetSceneType || undefined
         }
-        await fetchUpdateScriptAsset(editingAssetId.value, data)
+        await fetchUpdateScriptAsset(editingAssetId.value, data, projectId)
         editDialogVisible.value = false
         ElMessage.success('更新成功')
         loadAssetList()
@@ -918,8 +984,13 @@
   const assetDetail = ref<Api.ScriptAsset.ScriptAssetDetail | null>(null)
 
   const handleViewDetail = async (row: Api.ScriptAsset.ScriptAssetListItem) => {
+    const projectId = currentProjectId.value
+    if (!projectId) {
+      ElMessage.warning('请先选择项目')
+      return
+    }
     try {
-      const detail = await fetchGetScriptAssetDetail(row.id)
+      const detail = await fetchGetScriptAssetDetail(row.id, projectId)
       if (detail) {
         assetDetail.value = detail
         detailDialogVisible.value = true
@@ -936,8 +1007,13 @@
       cancelButtonText: '取消',
       type: 'warning'
     }).then(async () => {
+      const projectId = currentProjectId.value
+      if (!projectId) {
+        ElMessage.warning('请先选择项目')
+        return
+      }
       try {
-        await fetchDeleteScriptAsset(row.id)
+        await fetchDeleteScriptAsset(row.id, projectId)
         ElMessage.success('删除成功')
         loadAssetList()
       } catch {
@@ -977,9 +1053,14 @@
       ElMessage.warning('请选择要上传的图片')
       return
     }
+    const projectId = currentProjectId.value
+    if (!projectId) {
+      ElMessage.warning('请先选择项目')
+      return
+    }
     uploadLoading.value = true
     try {
-      await fetchUploadScriptAssetImage(uploadingAssetId.value, uploadFile.value)
+      await fetchUploadScriptAssetImage(uploadingAssetId.value, uploadFile.value, projectId)
       ElMessage.success('上传成功')
       uploadDialogVisible.value = false
       loadAssetList()

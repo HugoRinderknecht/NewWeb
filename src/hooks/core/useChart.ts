@@ -49,6 +49,7 @@
  * @author Dreamcraft_Astra Team
  */
 
+import { ref, nextTick } from 'vue'
 import { loadECharts, type EChartsOption } from '@/plugins/echarts'
 import { storeToRefs } from 'pinia'
 import { useSettingStore } from '@/store/modules/setting'

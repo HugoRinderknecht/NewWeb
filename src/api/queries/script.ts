@@ -152,8 +152,8 @@ export function useDeleteScript() {
 export function useSubmitScriptReview() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (payload: { scriptId: string; projectId?: string }) =>
-      fetchSubmitScriptReview(payload.scriptId),
+    mutationFn: (payload: { scriptId: string; note?: string; projectId?: string }) =>
+      fetchSubmitScriptReview(payload.scriptId, payload.note),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: scriptKeys.detail(variables.scriptId) })
       queryClient.invalidateQueries({ queryKey: scriptKeys.reviewStatus(variables.scriptId) })
@@ -168,8 +168,8 @@ export function useSubmitScriptReview() {
 export function useWithdrawScriptReview() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (payload: { scriptId: string; projectId?: string }) =>
-      fetchWithdrawScriptReview(payload.scriptId),
+    mutationFn: (payload: { scriptId: string; reason?: string; projectId?: string }) =>
+      fetchWithdrawScriptReview(payload.scriptId, payload.reason),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: scriptKeys.detail(variables.scriptId) })
       queryClient.invalidateQueries({ queryKey: scriptKeys.reviewStatus(variables.scriptId) })
@@ -231,18 +231,20 @@ export function useDecomposeScript() {
 
 /** 分集详情 */
 export function useEpisodeDetail(
+  projectId: MaybeRefOrGetter<string | undefined>,
   scriptId: MaybeRefOrGetter<string | undefined>,
   episodeId: MaybeRefOrGetter<string | undefined>
 ) {
   return useQuery({
-    queryKey: scriptKeys.episode(scriptId, episodeId),
+    queryKey: scriptKeys.episode(projectId, scriptId, episodeId),
     queryFn: async () => {
+      const pid = toValue(projectId)
       const sid = toValue(scriptId)
       const eid = toValue(episodeId)
-      if (!sid || !eid) return null
-      return await fetchGetEpisodeDetail(sid, eid)
+      if (!pid || !sid || !eid) return null
+      return await fetchGetEpisodeDetail(pid, sid, eid)
     },
-    enabled: () => !!toValue(scriptId) && !!toValue(episodeId),
+    enabled: () => !!toValue(projectId) && !!toValue(scriptId) && !!toValue(episodeId),
     staleTime: 60 * 1000
   })
 }
@@ -251,10 +253,39 @@ export function useEpisodeDetail(
 export function useCreateEpisode() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (payload: { projectId: string; params: Api.Script.EpisodeParams }) =>
-      fetchCreateEpisode(payload.projectId, payload.params),
-    onSuccess: (_data, variables) => {
+    mutationFn: (payload: {
+      projectId: string
+      scriptId: string
+      params: Api.Script.EpisodeParams
+    }) => fetchCreateEpisode(payload.projectId, payload.params),
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: scriptKeys.episodes(variables.projectId) })
+      queryClient.invalidateQueries({
+        queryKey: scriptKeys.scriptEpisodes(variables.projectId, variables.scriptId)
+      })
+
+      if (data) {
+        queryClient.setQueryData(
+          scriptKeys.scriptEpisodes(variables.projectId, variables.scriptId),
+          (old: Api.Script.Episode[] | undefined) => {
+            if (!old) return old
+
+            const createdEpisode: Api.Script.Episode = {
+              ...data,
+              id: data.id,
+              projectId: data.projectId ?? variables.projectId,
+              scriptId: data.scriptId ?? variables.scriptId,
+              episodeName: data.episodeName ?? variables.params.episodeName ?? '',
+              content: data.content ?? variables.params.content ?? '',
+              episodeIndex: data.episodeIndex ?? variables.params.episodeIndex ?? 0,
+              createTime: data.createTime ?? '',
+              updateTime: data.updateTime ?? ''
+            }
+
+            return [...old, createdEpisode]
+          }
+        )
+      }
     }
   })
 }
@@ -264,17 +295,46 @@ export function useUpdateEpisode() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (payload: {
+      projectId: string
       scriptId: string
       episodeId: string
       params: Api.Script.EpisodeParams
-      projectId?: string
-    }) => fetchUpdateEpisode(payload.scriptId, payload.episodeId, payload.params),
-    onSuccess: (_data, variables) => {
+    }) =>
+      fetchUpdateEpisode(payload.projectId, payload.scriptId, payload.episodeId, payload.params),
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({
-        queryKey: scriptKeys.episode(variables.scriptId, variables.episodeId)
+        queryKey: scriptKeys.episode(variables.projectId, variables.scriptId, variables.episodeId)
       })
-      if (variables.projectId) {
-        queryClient.invalidateQueries({ queryKey: scriptKeys.episodes(variables.projectId) })
+      queryClient.invalidateQueries({
+        queryKey: scriptKeys.scriptEpisodes(variables.projectId, variables.scriptId)
+      })
+      queryClient.invalidateQueries({ queryKey: scriptKeys.episodes(variables.projectId) })
+
+      if (data) {
+        queryClient.setQueryData(
+          scriptKeys.episode(variables.projectId, variables.scriptId, variables.episodeId),
+          data
+        )
+        queryClient.setQueryData(
+          scriptKeys.scriptEpisodes(variables.projectId, variables.scriptId),
+          (old: Api.Script.Episode[] | undefined) =>
+            old?.map((item) =>
+              String(item.id) === String(variables.episodeId)
+                ? {
+                    ...item,
+                    ...data,
+                    id: item.id,
+                    projectId: data.projectId ?? item.projectId,
+                    scriptId: data.scriptId ?? item.scriptId,
+                    episodeName: data.episodeName ?? item.episodeName,
+                    content: data.content ?? item.content,
+                    episodeIndex: data.episodeIndex ?? item.episodeIndex,
+                    createTime: data.createTime ?? item.createTime,
+                    updateTime: data.updateTime ?? item.updateTime
+                  }
+                : item
+            ) ?? old
+        )
       }
     }
   })
@@ -284,16 +344,17 @@ export function useUpdateEpisode() {
 export function useDeleteEpisode() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (payload: { scriptId: string; episodeId: string; projectId?: string }) =>
-      fetchDeleteEpisode(payload.scriptId, payload.episodeId),
+    mutationFn: (payload: { projectId: string; scriptId: string; episodeId: string }) =>
+      fetchDeleteEpisode(payload.projectId, payload.scriptId, payload.episodeId),
     onSuccess: (_data, variables) => {
       // 失效分集列表
-      if (variables.projectId) {
-        queryClient.invalidateQueries({ queryKey: scriptKeys.episodes(variables.projectId) })
-      }
-      // 失效分集详情（之前缺失，导致详情页缓存了已删除的分集）
+      queryClient.invalidateQueries({ queryKey: scriptKeys.episodes(variables.projectId) })
       queryClient.invalidateQueries({
-        queryKey: scriptKeys.episode(variables.scriptId, variables.episodeId)
+        queryKey: scriptKeys.scriptEpisodes(variables.projectId, variables.scriptId)
+      })
+      // 失效分集详情
+      queryClient.invalidateQueries({
+        queryKey: scriptKeys.episode(variables.projectId, variables.scriptId, variables.episodeId)
       })
       queryClient.invalidateQueries({ queryKey: scriptKeys.episodeById(variables.episodeId) })
     }
@@ -322,19 +383,23 @@ export function useGenerateCharacterProfiles() {
       queryClient.invalidateQueries({ queryKey: scriptKeys.detail(variables.scriptId) })
       // 生成完成后失效人物小传缓存，使列表自动刷新
       queryClient.invalidateQueries({
-        queryKey: scriptKeys.characterProfiles(variables.scriptId)
+        queryKey: scriptKeys.characterProfiles(variables.projectId, variables.scriptId)
       })
     }
   })
 }
 
 /** 获取人物小传 */
-export function useCharacterProfiles(scriptId: MaybeRefOrGetter<string | undefined>) {
+export function useCharacterProfiles(
+  projectId: MaybeRefOrGetter<string | undefined>,
+  scriptId: MaybeRefOrGetter<string | undefined>
+) {
   return useQuery({
-    queryKey: scriptKeys.characterProfiles(scriptId),
+    queryKey: scriptKeys.characterProfiles(projectId, scriptId),
     queryFn: async () => {
+      const pid = toValue(projectId)
       const id = toValue(scriptId)
-      if (!id) return null
+      if (!pid || !id) return null
       try {
         const res = await fetchGetCharacterProfiles(id)
         // Vue Query 不允许 queryFn 返回 undefined，统一 ?? null
@@ -345,7 +410,7 @@ export function useCharacterProfiles(scriptId: MaybeRefOrGetter<string | undefin
         throw err
       }
     },
-    enabled: () => !!toValue(scriptId),
+    enabled: () => !!toValue(projectId) && !!toValue(scriptId),
     staleTime: 30 * 1000,
     retry: false
   })
@@ -369,15 +434,19 @@ export function useExtractAssets() {
 }
 
 /** 获取资产提取结果 */
-export function useExtractedAssets(scriptId: MaybeRefOrGetter<string | undefined>) {
+export function useExtractedAssets(
+  projectId: MaybeRefOrGetter<string | undefined>,
+  scriptId: MaybeRefOrGetter<string | undefined>
+) {
   return useQuery({
-    queryKey: scriptKeys.extractedAssets(scriptId),
+    queryKey: scriptKeys.extractedAssets(projectId, scriptId),
     queryFn: async () => {
+      const pid = toValue(projectId)
       const id = toValue(scriptId)
-      if (!id) return null
-      return await fetchGetExtractedAssets(id)
+      if (!pid || !id) return null
+      return await fetchGetExtractedAssets(pid, id)
     },
-    enabled: () => !!toValue(scriptId),
+    enabled: () => !!toValue(projectId) && !!toValue(scriptId),
     staleTime: 30 * 1000
   })
 }
@@ -420,44 +489,65 @@ export function useGenerateStyleConfig() {
 }
 
 /** 获取风格配置 */
-export function useStyleConfig(scriptId: MaybeRefOrGetter<string | undefined>) {
+export function useStyleConfig(
+  projectId: MaybeRefOrGetter<string | undefined>,
+  scriptId: MaybeRefOrGetter<string | undefined>
+) {
   return useQuery({
-    queryKey: scriptKeys.styleConfig(scriptId),
+    queryKey: scriptKeys.styleConfig(projectId, scriptId),
     queryFn: async () => {
+      const pid = toValue(projectId)
       const id = toValue(scriptId)
-      if (!id) return null
+      if (!pid || !id) return null
+      // 文档：GET /api/scripts/{scriptId}/style-config（不含 projects 前缀）
+      // projectId 仅作为 queryKey 缓存维度，不参与请求
       return await fetchGetStyleConfig(id)
     },
-    enabled: () => !!toValue(scriptId),
+    enabled: () => !!toValue(projectId) && !!toValue(scriptId),
     staleTime: 60 * 1000
   })
 }
 
-/** 参考图风格反推 */
+/**
+ * 参考图风格反推
+ * 文档：POST /api/projects/{projectId}/ref-analysis（项目级触发）
+ */
 export function useRefAnalysis() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (payload: {
       projectId: string
-      scriptId: string
+      scriptId?: string
       params: Api.Script.RefAnalysisParams
-    }) => fetchRefAnalysis(payload.projectId, payload.scriptId, payload.params),
+    }) => fetchRefAnalysis(payload.projectId, payload.params),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: scriptKeys.detail(variables.scriptId) })
+      if (variables.scriptId) {
+        queryClient.invalidateQueries({ queryKey: scriptKeys.detail(variables.scriptId) })
+        queryClient.invalidateQueries({
+          queryKey: scriptKeys.refAnalysis(variables.projectId, variables.scriptId)
+        })
+      }
     }
   })
 }
 
-/** 获取参考图分析结果 */
-export function useRefAnalysisResult(scriptId: MaybeRefOrGetter<string | undefined>) {
+/**
+ * 获取参考图分析结果（剧本级）
+ * 文档：GET /api/scripts/{scriptId}/ref-analysis（不含 projects 前缀）
+ */
+export function useRefAnalysisResult(
+  projectId: MaybeRefOrGetter<string | undefined>,
+  scriptId: MaybeRefOrGetter<string | undefined>
+) {
   return useQuery({
-    queryKey: scriptKeys.refAnalysis(scriptId),
+    queryKey: scriptKeys.refAnalysis(projectId, scriptId),
     queryFn: async () => {
+      const pid = toValue(projectId)
       const id = toValue(scriptId)
-      if (!id) return null
+      if (!pid || !id) return null
       return await fetchGetRefAnalysis(id)
     },
-    enabled: () => !!toValue(scriptId),
+    enabled: () => !!toValue(projectId) && !!toValue(scriptId),
     staleTime: 60 * 1000
   })
 }
@@ -484,16 +574,20 @@ export function useGenerateVoicePrompts() {
   })
 }
 
-/** 获取音色提示词 */
-export function useVoicePrompts(scriptId: MaybeRefOrGetter<string | undefined>) {
+/** 获取音色提示词（文档：GET /api/scripts/{id}/voice-prompts，projectId 仅作缓存维度） */
+export function useVoicePrompts(
+  projectId: MaybeRefOrGetter<string | undefined>,
+  scriptId: MaybeRefOrGetter<string | undefined>
+) {
   return useQuery({
-    queryKey: scriptKeys.voicePrompts(scriptId),
+    queryKey: scriptKeys.voicePrompts(projectId, scriptId),
     queryFn: async () => {
+      const pid = toValue(projectId)
       const id = toValue(scriptId)
-      if (!id) return null
+      if (!pid || !id) return null
       return await fetchGetVoicePrompts(id)
     },
-    enabled: () => !!toValue(scriptId),
+    enabled: () => !!toValue(projectId) && !!toValue(scriptId),
     staleTime: 60 * 1000
   })
 }
@@ -513,16 +607,20 @@ export function useGenerateAssetPrompts() {
   })
 }
 
-/** 获取资产提示词 */
-export function useAssetPrompts(scriptId: MaybeRefOrGetter<string | undefined>) {
+/** 获取资产提示词（文档：GET /api/scripts/{id}/asset-prompts，projectId 仅作缓存维度） */
+export function useAssetPrompts(
+  projectId: MaybeRefOrGetter<string | undefined>,
+  scriptId: MaybeRefOrGetter<string | undefined>
+) {
   return useQuery({
-    queryKey: scriptKeys.assetPrompts(scriptId),
+    queryKey: scriptKeys.assetPrompts(projectId, scriptId),
     queryFn: async () => {
+      const pid = toValue(projectId)
       const id = toValue(scriptId)
-      if (!id) return null
+      if (!pid || !id) return null
       return await fetchGetAssetPrompts(id)
     },
-    enabled: () => !!toValue(scriptId),
+    enabled: () => !!toValue(projectId) && !!toValue(scriptId),
     staleTime: 60 * 1000
   })
 }
@@ -538,21 +636,27 @@ export function useGenerateAssetImages() {
     }) => fetchGenerateAssetImages(payload.projectId, payload.scriptId, payload.params),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: scriptKeys.detail(variables.scriptId) })
-      queryClient.invalidateQueries({ queryKey: scriptKeys.assetImages(variables.scriptId) })
+      queryClient.invalidateQueries({
+        queryKey: scriptKeys.assetImages(variables.projectId, variables.scriptId)
+      })
     }
   })
 }
 
-/** 获取资产图片 */
-export function useAssetImages(scriptId: MaybeRefOrGetter<string | undefined>) {
+/** 获取资产图片（文档：GET /api/scripts/{id}/asset-images，projectId 仅作缓存维度） */
+export function useAssetImages(
+  projectId: MaybeRefOrGetter<string | undefined>,
+  scriptId: MaybeRefOrGetter<string | undefined>
+) {
   return useQuery({
-    queryKey: scriptKeys.assetImages(scriptId),
+    queryKey: scriptKeys.assetImages(projectId, scriptId),
     queryFn: async () => {
+      const pid = toValue(projectId)
       const id = toValue(scriptId)
-      if (!id) return []
+      if (!pid || !id) return []
       return await fetchGetAssetImages(id)
     },
-    enabled: () => !!toValue(scriptId),
+    enabled: () => !!toValue(projectId) && !!toValue(scriptId),
     staleTime: 30 * 1000
   })
 }
@@ -567,7 +671,9 @@ export function useReviewAssetImages() {
       params: Api.ScriptAsset.ReviewAssetImagesParams
     }) => fetchReviewAssetImages(payload.projectId, payload.scriptId, payload.params),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: scriptKeys.assetImages(variables.scriptId) })
+      queryClient.invalidateQueries({
+        queryKey: scriptKeys.assetImages(variables.projectId, variables.scriptId)
+      })
     }
   })
 }
@@ -592,22 +698,26 @@ export function useGenerateVideoPrompts() {
       ),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
-        queryKey: scriptKeys.episode(variables.scriptId, variables.episodeId)
+        queryKey: scriptKeys.episode(variables.projectId, variables.scriptId, variables.episodeId)
       })
     }
   })
 }
 
 /** 获取视频提示词 */
-export function useVideoPrompts(episodeId: MaybeRefOrGetter<string | undefined>) {
+export function useVideoPrompts(
+  projectId: MaybeRefOrGetter<string | undefined>,
+  episodeId: MaybeRefOrGetter<string | undefined>
+) {
   return useQuery({
-    queryKey: scriptKeys.videoPrompts(episodeId),
+    queryKey: scriptKeys.videoPrompts(projectId, episodeId),
     queryFn: async () => {
+      const pid = toValue(projectId)
       const id = toValue(episodeId)
-      if (!id) return null
+      if (!pid || !id) return null
       return await fetchGetVideoPrompts(id)
     },
-    enabled: () => !!toValue(episodeId),
+    enabled: () => !!toValue(projectId) && !!toValue(episodeId),
     staleTime: 60 * 1000
   })
 }

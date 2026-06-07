@@ -102,6 +102,14 @@ declare namespace Api {
       email: string
     }
 
+    /**
+     * 已登录态刷新接口响应（文档 §1.10）
+     * 同 LoginVO 但 refreshToken 字段为 null（不轮换刷新令牌）
+     */
+    interface RefreshResponse extends Omit<LoginResponse, 'refreshToken'> {
+      refreshToken: string | null
+    }
+
     /** 注册参数 (RegisterRequest) */
     interface RegisterParams {
       username?: string
@@ -136,7 +144,9 @@ declare namespace Api {
     interface CaptchaResponse {
       key: string
       image: string
+      /** @deprecated 旧字段，已替换为 key */
       captchaKey?: string
+      /** @deprecated 旧字段，已替换为 image */
       captchaImage?: string
     }
 
@@ -151,8 +161,11 @@ declare namespace Api {
       createTime?: string
       updateTime?: string
       roles?: string[]
+      /** @deprecated 文档未定义字段；前端按钮权限内部用法，建议改用 permissions */
       buttons?: string[]
+      /** @deprecated 旧字段，请使用 username */
       userName?: string
+      /** @deprecated 旧字段，请使用 id */
       userId?: string | number
     }
 
@@ -343,6 +356,16 @@ declare namespace Api {
 
   /** 剧本类型 */
   namespace Script {
+    /**
+     * 推送到美术团队请求参数（文档 §4.1.22）
+     * 后端定义为 PushToArtRequest，结构未完全公开，预留可扩展
+     */
+    interface PushToArtParams {
+      episodeIds?: string[]
+      note?: string
+      [key: string]: unknown
+    }
+
     /** 剧本列表项 (ScriptVO) */
     interface ScriptListItem {
       id: string
@@ -731,6 +754,7 @@ declare namespace Api {
   namespace AiProcess {
     /** AI处理状态查询参数 */
     interface StatusQueryParams {
+      projectId: string
       type: string
       businessId: string
     }
@@ -950,6 +974,17 @@ declare namespace Api {
       scriptId: string
       scriptName: string
       storyboards: StoryboardListItem[]
+    }
+
+    /** 分镜板 */
+    interface StoryboardBoard {
+      id: string
+      projectId: string
+      name: string
+      description?: string
+      sortOrder: number
+      createTime?: string
+      updateTime?: string
     }
   }
 

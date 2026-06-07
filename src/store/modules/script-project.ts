@@ -13,7 +13,7 @@ import { useProjectStore } from './project'
  * - 写：只写本域，不污染全局。
  * - 持久化：独立 sessionStorage key (project:script)。
  *
- * 推荐通过 useCurrentProjectId(useScriptProjectStore) 或 useCurrentContext('script') 获取，
+ * 推荐通过 useWritableProjectId(useScriptProjectStore) 或 useCurrentContext('script') 获取，
  * 以自动遵循 Route > Store 的优先级策略。
  *
  * 历史保留：`projectList` / `currentProject` getter 已废弃，请改用 useProjectList / useProjectDetail Vue Query Hook。
@@ -74,6 +74,6 @@ export const useScriptProjectStore = defineStore('script-project', {
   persist: {
     key: 'project:script',
     storage: sessionStorage,
-    pick: ['scopedProjectId']
+    pick: ['scopedProjectId', 'currentScriptId']
   }
 })

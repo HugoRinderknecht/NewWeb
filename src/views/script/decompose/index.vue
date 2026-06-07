@@ -172,8 +172,8 @@
 <script setup lang="ts">
   import { ElMessage, ElMessageBox } from 'element-plus'
   import type { FormInstance, FormRules } from 'element-plus'
-  import { storeToRefs } from 'pinia'
   import { useScriptProjectStore } from '@/store/modules/script-project'
+  import { useWritableProjectId } from '@/hooks/core/useCurrentProjectId'
   import {
     useScriptList,
     useEpisodeDetail,
@@ -212,8 +212,8 @@
   }
 
   // Store
-  const scriptProjectStore = useScriptProjectStore()
-  const { currentProjectId } = storeToRefs(scriptProjectStore)
+  const { currentProjectId, domainStore: scriptProjectStore } =
+    useWritableProjectId(useScriptProjectStore)
 
   // ==================== 状态变量（需先于 Vue Query Hooks 定义，避免 TDZ） ====================
   // 剧本相关
@@ -260,6 +260,7 @@
   })
 
   const episodeDetailQuery = useEpisodeDetail(
+    currentProjectId,
     computed(() => currentScriptId.value || undefined),
     computed(() => selectedEpisodeId.value || undefined)
   )
@@ -343,17 +344,20 @@
   watch(
     () => episodeDetailQuery.data?.value,
     (detail) => {
-      if (!detail || !selectedEpisodeId.value) return
-      const ep = detail as Api.Script.EpisodeDetail
+      if (!selectedEpisodeId.value) return
+      const listFallback = episodeList.value.find((item) => item.id === selectedEpisodeId.value) ?? null
+      const source = (detail as Api.Script.EpisodeDetail | null) ?? listFallback
+      if (!source) return
+
       currentEpisode.value = {
-        id: String(ep.id),
-        projectId: String(ep.projectId ?? currentProjectId.value),
-        scriptId: String(ep.scriptId ?? currentScriptId.value),
-        episodeName: ep.episodeName ?? '',
-        content: ep.content ?? '',
-        episodeIndex: ep.episodeIndex ?? 0,
-        createTime: ep.createTime ?? '',
-        updateTime: ep.updateTime ?? ''
+        id: String(source.id),
+        projectId: String(source.projectId ?? currentProjectId.value),
+        scriptId: String(source.scriptId ?? currentScriptId.value),
+        episodeName: source.episodeName ?? '',
+        content: source.content ?? '',
+        episodeIndex: source.episodeIndex ?? 0,
+        createTime: source.createTime ?? '',
+        updateTime: source.updateTime ?? ''
       }
       episodeForm.episodeName = currentEpisode.value.episodeName
       episodeForm.content = currentEpisode.value.content
@@ -400,6 +404,14 @@
   // 保存分集
   const handleSaveEpisode = async () => {
     if (!episodeFormRef.value || !currentEpisode.value) return
+    if (!currentProjectId.value || !currentScriptId.value || !currentEpisode.value.id) {
+      ElMessage.error('当前分集上下文不完整，无法保存')
+      return
+    }
+    if (String(currentEpisode.value.scriptId) !== String(currentScriptId.value)) {
+      ElMessage.error('当前分集与所选剧本不一致，请重新选择分集后再保存')
+      return
+    }
     await episodeFormRef.value.validate(async (valid) => {
       if (!valid) return
       saving.value = true
@@ -409,18 +421,26 @@
           content: episodeForm.content,
           episodeIndex: episodeForm.episodeIndex
         }
-        await updateEpisodeMutation.mutateAsync({
+        const savedEpisode = (await updateEpisodeMutation.mutateAsync({
+          projectId: currentProjectId.value,
           scriptId: currentScriptId.value,
-          episodeId: currentEpisode.value!.id,
-          params,
-          projectId: currentProjectId.value
-        })
+          episodeId: currentEpisode.value.id,
+          params
+        })) as Api.Script.EpisodeDetail
         ElMessage.success('分集保存成功')
-        // 同步更新currentEpisode
+        // 同步更新 currentEpisode 与表单，避免被旧列表数据回填
         currentEpisode.value = {
           ...currentEpisode.value!,
-          ...params
+          ...params,
+          projectId: String(savedEpisode?.projectId ?? currentProjectId.value),
+          scriptId: String(savedEpisode?.scriptId ?? currentScriptId.value),
+          createTime: savedEpisode?.createTime ?? currentEpisode.value.createTime,
+          updateTime: savedEpisode?.updateTime ?? currentEpisode.value.updateTime
         }
+        episodeForm.episodeName = currentEpisode.value.episodeName
+        episodeForm.content = currentEpisode.value.content
+        episodeForm.episodeIndex = currentEpisode.value.episodeIndex
+        await Promise.all([scriptEpisodesQuery.refetch(), episodeDetailQuery.refetch()])
       } catch {
         ElMessage.error('分集保存失败')
       } finally {
@@ -483,6 +503,7 @@
         }
         const res = await createEpisodeMutation.mutateAsync({
           projectId: currentProjectId.value,
+          scriptId: currentScriptId.value,
           params
         })
         ElMessage.success('分集创建成功')

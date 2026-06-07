@@ -20,7 +20,8 @@ import {
   fetchUpdateDndSettings,
   fetchGetSubscriptions,
   fetchAddSubscription,
-  fetchCancelSubscription
+  fetchCancelSubscription,
+  fetchCreateNotification
 } from '@/api/notification'
 
 import { notificationKeys } from './keys'
@@ -151,9 +152,10 @@ export function useMarkAsRead() {
       // 乐观更新列表：将目标项标记为已读
       queryClient.setQueriesData<any>({ queryKey: notificationKeys.lists() }, (old: any) => {
         if (!old) return old
-        const markRead = (item: any) => (item?.id === id || item?.noticeId === id
-          ? { ...item, read: true, isRead: true, readTime: Date.now() }
-          : item)
+        const markRead = (item: any) =>
+          item?.id === id || item?.noticeId === id
+            ? { ...item, read: true, isRead: true, readTime: Date.now() }
+            : item
         if (Array.isArray(old)) return old.map(markRead)
         if (old.records && Array.isArray(old.records)) {
           return { ...old, records: old.records.map(markRead) }
@@ -305,8 +307,7 @@ export function useUpdateDndSettings() {
 export function useAddSubscription() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (params: Api.Notification.SubscriptionParams) =>
-      fetchAddSubscription(params),
+    mutationFn: (params: Api.Notification.SubscriptionParams) => fetchAddSubscription(params),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: notificationKeys.subscriptions() })
     }
@@ -320,6 +321,17 @@ export function useCancelSubscription() {
     mutationFn: (id: string) => fetchCancelSubscription(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: notificationKeys.subscriptions() })
+    }
+  })
+}
+
+/** 创建通知 */
+export function useCreateNotification() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) => fetchCreateNotification(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: notificationKeys.all() })
     }
   })
 }

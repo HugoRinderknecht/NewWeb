@@ -2,7 +2,11 @@ import { getApiAdapter } from './adapter'
 
 // ==================== 团队剧本 ====================
 
-/** 查询团队剧本列表(分页) */
+/**
+ * 查询团队剧本列表(分页)
+ * ⚠️ 该端点未在 docs/api-overview.md 中列出，可能为平台扩展接口。
+ * 请与后端核对端点归属或更新文档。
+ */
 export function fetchGetTeamScripts(
   teamId: string,
   params?: { page?: number; pageSize?: number; [key: string]: any }
@@ -43,14 +47,22 @@ export function fetchDeleteScript(scriptId: string) {
   return getApiAdapter().del<void>(`/api/scripts/${scriptId}`)
 }
 
-/** 提交剧本审核 */
-export function fetchSubmitScriptReview(scriptId: string) {
-  return getApiAdapter().post<void>(`/api/scripts/${scriptId}/submit-review`)
+/** 提交剧本审核（文档：note 为 query 参数） */
+export function fetchSubmitScriptReview(scriptId: string, note?: string) {
+  return getApiAdapter().post<void>(
+    `/api/scripts/${scriptId}/submit-review`,
+    undefined,
+    note ? { params: { note } } : undefined
+  )
 }
 
-/** 撤回剧本审核 */
-export function fetchWithdrawScriptReview(scriptId: string) {
-  return getApiAdapter().post<void>(`/api/scripts/${scriptId}/withdraw-review`)
+/** 撤回剧本审核（文档：reason 为 query 参数） */
+export function fetchWithdrawScriptReview(scriptId: string, reason?: string) {
+  return getApiAdapter().post<void>(
+    `/api/scripts/${scriptId}/withdraw-review`,
+    undefined,
+    reason ? { params: { reason } } : undefined
+  )
 }
 
 /** 获取剧本审核状态 */
@@ -86,15 +98,19 @@ export function fetchGetScriptEpisodes(projectId: string, scriptId: string) {
 
 /** 查询项目所有分集 — 辅助请求，关闭全局弹错 */
 export function fetchGetProjectEpisodes(projectId: string) {
-  return getApiAdapter().get<Api.Script.Episode[]>(`/api/projects/${projectId}/episodes`, undefined, {
-    showErrorMessage: false
-  })
+  return getApiAdapter().get<Api.Script.Episode[]>(
+    `/api/projects/${projectId}/episodes`,
+    undefined,
+    {
+      showErrorMessage: false
+    }
+  )
 }
 
 /** 查询分集详情 — 次级请求，关闭全局弹错 */
-export function fetchGetEpisodeDetail(scriptId: string, episodeId: string) {
+export function fetchGetEpisodeDetail(projectId: string, scriptId: string, episodeId: string) {
   return getApiAdapter().get<Api.Script.EpisodeDetail>(
-    `/api/scripts/${scriptId}/episodes/${episodeId}`,
+    `/api/projects/${projectId}/scripts/${scriptId}/episodes/${episodeId}`,
     undefined,
     { showErrorMessage: false }
   )
@@ -102,19 +118,22 @@ export function fetchGetEpisodeDetail(scriptId: string, episodeId: string) {
 
 /** 修改分集 */
 export function fetchUpdateEpisode(
+  projectId: string,
   scriptId: string,
   episodeId: string,
   params: Api.Script.EpisodeParams
 ) {
   return getApiAdapter().put<Api.Script.EpisodeDetail>(
-    `/api/scripts/${scriptId}/episodes/${episodeId}`,
+    `/api/projects/${projectId}/scripts/${scriptId}/episodes/${episodeId}`,
     params
   )
 }
 
 /** 删除分集 */
-export function fetchDeleteEpisode(scriptId: string, episodeId: string) {
-  return getApiAdapter().del<void>(`/api/scripts/${scriptId}/episodes/${episodeId}`)
+export function fetchDeleteEpisode(projectId: string, scriptId: string, episodeId: string) {
+  return getApiAdapter().del<void>(
+    `/api/projects/${projectId}/scripts/${scriptId}/episodes/${episodeId}`
+  )
 }
 
 /** 手动创建分集 */
@@ -161,9 +180,9 @@ export function fetchExtractAssets(
 }
 
 /** 获取资产提取结果 */
-export function fetchGetExtractedAssets(scriptId: string) {
+export function fetchGetExtractedAssets(projectId: string, scriptId: string) {
   return getApiAdapter().get<Api.Script.ExtractedAssets>(
-    `/api/scripts/${scriptId}/extracted-assets`
+    `/api/projects/${projectId}/scripts/${scriptId}/extracted-assets`
   )
 }
 
@@ -192,24 +211,36 @@ export function fetchGenerateStyleConfig(
   )
 }
 
-/** 获取风格配置结果 */
+/** 获取风格配置结果（文档：GET 不含 projects 前缀） */
 export function fetchGetStyleConfig(scriptId: string) {
   return getApiAdapter().get<Api.Script.StyleConfig>(`/api/scripts/${scriptId}/style-config`)
 }
 
-/** 参考图风格反推 */
-export function fetchRefAnalysis(
-  projectId: string,
-  scriptId: string,
-  params: Api.Script.RefAnalysisParams
-) {
+/**
+ * 项目级：参考图风格反推（触发分析）
+ * 文档：POST /api/projects/{projectId}/ref-analysis
+ */
+export function fetchRefAnalysis(projectId: string, params: Api.Script.RefAnalysisParams) {
   return getApiAdapter().post<Api.Script.AiProcessResult<Api.Script.RefAnalysisResult>>(
-    `/api/projects/${projectId}/scripts/${scriptId}/ref-analysis`,
+    `/api/projects/${projectId}/ref-analysis`,
     params
   )
 }
 
-/** 获取参考图分析结果 */
+/**
+ * 项目级：查询项目参考图分析结果
+ * 文档：GET /api/projects/{projectId}/ref-analysis
+ */
+export function fetchGetProjectRefAnalysis(projectId: string) {
+  return getApiAdapter().get<Api.Script.RefAnalysisResult>(
+    `/api/projects/${projectId}/ref-analysis`
+  )
+}
+
+/**
+ * 剧本级：查询剧本参考图分析结果
+ * 文档：GET /api/scripts/{scriptId}/ref-analysis
+ */
 export function fetchGetRefAnalysis(scriptId: string) {
   return getApiAdapter().get<Api.Script.RefAnalysisResult>(`/api/scripts/${scriptId}/ref-analysis`)
 }
@@ -227,7 +258,7 @@ export function fetchGenerateVoicePrompts(
   )
 }
 
-/** 获取音色提示词结果 */
+/** 获取音色提示词结果（文档：GET 不含 projects 前缀） */
 export function fetchGetVoicePrompts(scriptId: string) {
   return getApiAdapter().get<Api.Script.VoicePromptResult>(`/api/scripts/${scriptId}/voice-prompts`)
 }
@@ -244,7 +275,7 @@ export function fetchGenerateAssetPrompts(
   )
 }
 
-/** 获取资产提示词结果 */
+/** 获取资产提示词结果（文档：GET 不含 projects 前缀） */
 export function fetchGetAssetPrompts(scriptId: string) {
   return getApiAdapter().get<Api.Script.AssetPromptsResult>(
     `/api/scripts/${scriptId}/asset-prompts`
@@ -263,7 +294,7 @@ export function fetchGenerateAssetImages(
   )
 }
 
-/** 获取资产图片结果 */
+/** 获取资产图片结果（文档：GET 不含 projects 前缀） */
 export function fetchGetAssetImages(scriptId: string) {
   return getApiAdapter().get<Api.Script.AssetImageItem[]>(`/api/scripts/${scriptId}/asset-images`)
 }
@@ -294,11 +325,61 @@ export function fetchGenerateVideoPrompts(
   )
 }
 
-/** 获取视频提示词结果 */
+/** 获取视频提示词结果（文档：路径仅含 episodeId，与 projectId 无关） */
 export function fetchGetVideoPrompts(episodeId: string) {
   return getApiAdapter().get<Api.Script.VideoPromptResult>(
     `/api/episodes/${episodeId}/video-prompts`
   )
 }
 
+// ==================== 文档补全：导出 / 推送美术 / 分集父子关系 ====================
 
+/**
+ * 导出剧集（文档 §4.1.20）
+ * GET /api/projects/{projectId}/episodes/export?episodeIds={ids}&format={csv|xlsx}
+ */
+export function fetchExportEpisodes(
+  projectId: string,
+  params: { episodeIds?: string[]; format?: 'csv' | 'xlsx' }
+) {
+  return getApiAdapter().get<Blob>(`/api/projects/${projectId}/episodes/export`, params, {
+    responseType: 'blob'
+  })
+}
+
+/**
+ * 导出资产数据（文档 §4.1.21）
+ * GET /api/scripts/{scriptId}/extracted-assets/export?format={csv|xlsx}
+ */
+export function fetchExportExtractedAssets(scriptId: string, params?: { format?: 'csv' | 'xlsx' }) {
+  return getApiAdapter().get<Blob>(`/api/scripts/${scriptId}/extracted-assets/export`, params, {
+    responseType: 'blob'
+  })
+}
+
+/**
+ * 推送到美术团队（文档 §4.1.22）
+ * POST /api/projects/{projectId}/scripts/{scriptId}/push-to-art
+ */
+export function fetchPushToArt(
+  projectId: string,
+  scriptId: string,
+  params?: Api.Script.PushToArtParams
+) {
+  return getApiAdapter().post<{ success: boolean; notifiedCount: number }>(
+    `/api/projects/${projectId}/scripts/${scriptId}/push-to-art`,
+    params
+  )
+}
+
+/**
+ * 设置分集父子关系（文档 §4.2.8）
+ * PATCH /api/projects/{projectId}/episodes/{episodeId}/child-of?childOf={childOf}
+ */
+export function fetchSetEpisodeChildOf(projectId: string, episodeId: string, childOf?: string) {
+  return getApiAdapter().patch<Api.Script.EpisodeDetail>(
+    `/api/projects/${projectId}/episodes/${episodeId}/child-of`,
+    undefined,
+    { params: childOf !== undefined ? { childOf } : undefined }
+  )
+}

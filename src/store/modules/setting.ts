@@ -35,6 +35,7 @@
  */
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { ElMessage } from 'element-plus'
 import { MenuThemeType } from '@/types/store'
 import AppConfig from '@/config'
 import { SystemThemeEnum, MenuThemeEnum, MenuTypeEnum, ContainerWidthEnum } from '@/enums/appEnum'
@@ -165,9 +166,10 @@ export const useSettingStore = defineStore(
      * @param type 菜单类型
      */
     const switchMenuLayouts = (type: MenuTypeEnum) => {
-      // 固定为双列菜单布局，不允许切换
       menuType.value = MenuTypeEnum.DUAL_MENU
-      console.log('Menu layout switch ignored, always DUAL_MENU. Requested:', type)
+      if (type !== MenuTypeEnum.DUAL_MENU) {
+        ElMessage.warning('当前系统仅支持双列菜单布局，已自动切换')
+      }
     }
 
     /**

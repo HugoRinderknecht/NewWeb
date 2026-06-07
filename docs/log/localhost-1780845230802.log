@@ -1,0 +1,116 @@
+pinia.mjs:281 🍍 "userStore" store installed 🆕
+web-vitals.ts:13 [WebVitals] FCP: 388.00ms (good)
+bus.ts:157 [DataFlow] 轻量级数据流总线已初始化 ✅
+pinia.mjs:281 🍍 "team" store installed 🆕
+pinia.mjs:281 🍍 "notification" store installed 🆕
+pinia.mjs:281 🍍 "review" store installed 🆕
+pinia.mjs:281 🍍 "project" store installed 🆕
+web-vitals.ts:13 [WebVitals] TTFB: 32.30ms (good)
+ComponentLoader.ts:36 [ComponentLoader] 未找到组件: /team/settings，尝试过的路径: ../../views/team/settings.vue 和 ../../views/team/settings/index.vue
+(匿名) @ ComponentLoader.ts:36
+(匿名) @ RouteTransformer.ts:121
+(匿名) @ RouteTransformer.ts:48
+(匿名) @ RouteTransformer.ts:53
+(匿名) @ RouteTransformer.ts:53
+(匿名) @ RouteRegistry.ts:51
+(匿名) @ RouteRegistry.ts:49
+handleDynamicRoutes @ beforeEach.ts:308
+await in handleDynamicRoutes
+handleRouteGuard @ beforeEach.ts:188
+(匿名) @ beforeEach.ts:118
+(匿名) @ vue-router.mjs:2107
+(匿名) @ vue-router.mjs:2074
+(匿名) @ vue-router.mjs:2107
+(匿名) @ vue-router.mjs:2079
+runWithContext @ runtime-core.esm-bundler.js:4065
+runWithContext @ vue-router.mjs:3387
+(匿名) @ vue-router.mjs:3743
+Promise.then
+(匿名) @ vue-router.mjs:3743
+runGuardQueue @ vue-router.mjs:3743
+(匿名) @ vue-router.mjs:3413
+Promise.then
+navigate @ vue-router.mjs:3406
+pushWithRedirect @ vue-router.mjs:3327
+push @ vue-router.mjs:3260
+install @ vue-router.mjs:3704
+use @ runtime-core.esm-bundler.js:3928
+(匿名) @ index.ts:19
+bootstrap @ main.ts:25
+(匿名) @ main.ts:46
+pinia.mjs:281 🍍 "worktabStore" store installed 🆕
+web-vitals.ts:13 [WebVitals] CLS: 0.00ms (good)
+web-vitals.ts:13 [WebVitals] LCP: 1256.00ms (good)
+content_main.js:4683 This page uses the built-in LanguageDetector feature. To learn more and leave feedback, see https://learn.microsoft.com/microsoft-edge/web-platform/languagedetector-api
+index.vue:175 [Vue Router warn]: No match found for location with path "/"
+warn @ vue-router.mjs:51
+resolve @ vue-router.mjs:3161
+pushWithRedirect @ vue-router.mjs:3295
+push @ vue-router.mjs:3260
+(匿名) @ index.vue:175
+await in (匿名)
+(匿名) @ runtime-core.esm-bundler.js:199
+(匿名) @ runtime-core.esm-bundler.js:206
+(匿名) @ runtime-core.esm-bundler.js:6473
+(匿名) @ runtime-core.esm-bundler.js:8188
+(匿名) @ use-button.ts:76
+callWithErrorHandling @ runtime-core.esm-bundler.js:199
+callWithAsyncErrorHandling @ runtime-core.esm-bundler.js:206
+invoker @ runtime-dom.esm-bundler.js:730
+index.vue:175 [Vue Router warn]: uncaught error during route navigation:
+warn @ vue-router.mjs:51
+triggerError @ vue-router.mjs:3621
+anonymousCallbackTo: computedProperty.catch @ vue-router.mjs:3334
+Promise.catch
+pushWithRedirect @ vue-router.mjs:3328
+anonymousCallbackTo: (failure ? Promise.resolve(failure) : navigate(toLocation, from))
+            .catch((error) => isNavigationFailure(error)
+            ? // navigation redirects still mark the router as ready
+                isNavigationFailure(error, 2 /* ErrorTypes.NAVIGATION_GUARD_REDIRECT */)
+                    ? error
+                    : markAsReady(error) // also returns the error
+            : // reject any unknown error
+                triggerError(error, toLocation, from)).then @ vue-router.mjs:3351
+Promise.then
+pushWithRedirect @ vue-router.mjs:3335
+push @ vue-router.mjs:3260
+(匿名) @ index.vue:175
+await in (匿名)
+(匿名) @ runtime-core.esm-bundler.js:199
+(匿名) @ runtime-core.esm-bundler.js:206
+(匿名) @ runtime-core.esm-bundler.js:6473
+(匿名) @ runtime-core.esm-bundler.js:8188
+(匿名) @ use-button.ts:76
+callWithErrorHandling @ runtime-core.esm-bundler.js:199
+callWithAsyncErrorHandling @ runtime-core.esm-bundler.js:206
+invoker @ runtime-dom.esm-bundler.js:730
+index.vue:175 SyntaxError: The requested module '/src/api/statistics.ts?t=1780845208345' does not provide an export named 'fetchGetPlatformTrends' (at statistics.ts:7:3)
+triggerError @ vue-router.mjs:3623
+anonymousCallbackTo: computedProperty.catch @ vue-router.mjs:3334
+Promise.catch
+pushWithRedirect @ vue-router.mjs:3328
+anonymousCallbackTo: (failure ? Promise.resolve(failure) : navigate(toLocation, from))
+            .catch((error) => isNavigationFailure(error)
+            ? // navigation redirects still mark the router as ready
+                isNavigationFailure(error, 2 /* ErrorTypes.NAVIGATION_GUARD_REDIRECT */)
+                    ? error
+                    : markAsReady(error) // also returns the error
+            : // reject any unknown error
+                triggerError(error, toLocation, from)).then @ vue-router.mjs:3351
+Promise.then
+pushWithRedirect @ vue-router.mjs:3335
+push @ vue-router.mjs:3260
+(匿名) @ index.vue:175
+await in (匿名)
+(匿名) @ runtime-core.esm-bundler.js:199
+(匿名) @ runtime-core.esm-bundler.js:206
+(匿名) @ runtime-core.esm-bundler.js:6473
+(匿名) @ runtime-core.esm-bundler.js:8188
+(匿名) @ use-button.ts:76
+callWithErrorHandling @ runtime-core.esm-bundler.js:199
+callWithAsyncErrorHandling @ runtime-core.esm-bundler.js:206
+invoker @ runtime-dom.esm-bundler.js:730
+error-handle.ts:104 [PromiseError] SyntaxError: The requested module '/src/api/statistics.ts?t=1780845208345' does not provide an export named 'fetchGetPlatformTrends' (at statistics.ts:7:3)
+(匿名) @ error-handle.ts:104
+statistics.ts:7 Uncaught (in promise) SyntaxError: The requested module '/src/api/statistics.ts?t=1780845208345' does not provide an export named 'fetchGetPlatformTrends' (at statistics.ts:7:3)
+web-vitals.ts:13 [WebVitals] INP: 32.00ms (good)

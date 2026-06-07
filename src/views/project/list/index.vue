@@ -119,10 +119,13 @@
                   <ArtSvgIcon icon="ri:team-line" class="text-g-400" />
                   {{ item.memberCount }} 人
                 </span>
+                <span class="meta-item">
+                  <ArtSvgIcon icon="ri:calendar-line" class="text-g-400" />
+                  {{ formatDate(item.createTime) }}
+                </span>
               </ElSpace>
             </div>
             <div class="project-footer flex-cb">
-              <span class="update-time">{{ item.createTime }}</span>
               <ElSpace>
                 <ElButton type="primary" link size="small" @click.stop="handleEdit(item)">
                   编辑
@@ -368,6 +371,16 @@
     }
   }
 
+  // 简化创建时间显示（只保留 YYYY-MM-DD）
+  const formatDate = (date: string): string => {
+    if (!date) return ''
+    const d = new Date(date)
+    if (isNaN(d.getTime())) return date
+    const month = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${d.getFullYear()}-${month}-${day}`
+  }
+
   const handleSelectionChange = (selection: Api.Project.ProjectListItem[]) => {
     selectedProjects.value = selection
   }
@@ -541,16 +554,55 @@
 </script>
 
 <style lang="scss" scoped>
+  .project-list-page {
+    display: flex;
+    flex-direction: column;
+
+    :deep(.art-table-card) {
+      display: flex;
+      flex: 1;
+      flex-direction: column;
+      min-height: 0;
+      overflow: hidden;
+
+      .el-card__body {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        min-height: 0;
+        overflow: hidden;
+      }
+    }
+  }
+
   .project-card-grid {
+    flex: 1;
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 16px;
+    padding-right: 4px;
     padding-bottom: 16px;
+    overflow-y: auto;
+    min-height: 0;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background-color: var(--el-border-color-darker);
+      border-radius: 3px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background-color: transparent;
+    }
   }
 
   .project-card {
     cursor: pointer;
-    transition: transform 0.2s;
+    border: 1px solid var(--el-border-color-lighter);
+    transition: transform 0.2s, box-shadow 0.2s;
 
     &:hover {
       transform: translateY(-2px);

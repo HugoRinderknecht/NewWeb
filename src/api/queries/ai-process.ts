@@ -13,16 +13,16 @@ export function useAiProcessStatus(
   params?: MaybeRefOrGetter<Api.AiProcess.StatusQueryParams | undefined>
 ) {
   return useQuery({
-    queryKey: aiProcessKeys.status(params),
+    queryKey: aiProcessKeys.status(toValue(params)),
     queryFn: async () => {
       const p = toValue(params)
-      if (!p?.type || !p?.businessId) return null
+      if (!p?.projectId || !p?.type || !p?.businessId) return null
       const res = await fetchGetAiProcessStatus(p)
       return res ?? null
     },
     enabled: () => {
       const p = toValue(params)
-      return !!(p?.type && p?.businessId)
+      return !!(p?.projectId && p?.type && p?.businessId)
     },
     staleTime: 10 * 1000,
     refetchInterval: 5000,
@@ -35,16 +35,16 @@ export function useAiProcessHistory(
   params?: MaybeRefOrGetter<Api.AiProcess.HistoryQueryParams | undefined>
 ) {
   return useQuery({
-    queryKey: aiProcessKeys.history(params),
+    queryKey: aiProcessKeys.history(toValue(params)),
     queryFn: async () => {
       const p = toValue(params)
-      if (!p?.type || !p?.businessId) return []
+      if (!p?.projectId || !p?.type || !p?.businessId) return []
       const res = await fetchGetAiProcessHistory(p)
       return res ?? []
     },
     enabled: () => {
       const p = toValue(params)
-      return !!(p?.type && p?.businessId)
+      return !!(p?.projectId && p?.type && p?.businessId)
     },
     retry: false,
     staleTime: 30 * 1000

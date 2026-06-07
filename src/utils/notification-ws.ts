@@ -7,7 +7,7 @@ export async function initNotificationWebSocket() {
     const { fetchGetWsToken } = await import('@/api/notification')
     const token = await fetchGetWsToken()
 
-    const wsUrl = buildWsUrl(token)
+    const wsUrl = buildWsUrl(token.token)
 
     wsInstance = WebSocketClient.getInstance({
       url: wsUrl,

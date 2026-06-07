@@ -26,7 +26,8 @@ import {
   fetchUpdateScene,
   fetchDecomposeStoryboard,
   fetchRebuildStoryboard,
-  fetchGetScriptStoryboards
+  fetchGetScriptStoryboards,
+  fetchGetStoryboardBoards
 } from '@/api/storyboard'
 
 import { storyboardKeys } from './keys'
@@ -141,7 +142,7 @@ export function useSubmitStoryboardReview() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (payload: { storyboardId: string; note?: string; projectId?: string }) =>
-      fetchSubmitStoryboardReview(payload.storyboardId),
+      fetchSubmitStoryboardReview(payload.storyboardId, payload.note),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
         queryKey: storyboardKeys.detail(variables.storyboardId)
@@ -492,6 +493,21 @@ export function useScriptStoryboards(
       return res ?? null
     },
     enabled: () => !!toValue(projectId) && !!toValue(scriptId),
+    staleTime: 60 * 1000
+  })
+}
+
+/** 项目分镜板列表 */
+export function useStoryboardBoards(projectId: MaybeRefOrGetter<string | undefined>) {
+  return useQuery({
+    queryKey: storyboardKeys.boards(projectId),
+    queryFn: async () => {
+      const id = toValue(projectId)
+      if (!id) return []
+      const res = await fetchGetStoryboardBoards(id)
+      return res ?? []
+    },
+    enabled: () => !!toValue(projectId),
     staleTime: 60 * 1000
   })
 }

@@ -172,8 +172,8 @@ export function useCopyProject() {
 export function useUploadProjectCover() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (payload: { projectId: string; file: File }) =>
-      fetchUploadProjectCover(payload.projectId, payload.file),
+    mutationFn: (payload: { projectId: string; file?: File; url?: string }) =>
+      fetchUploadProjectCover(payload.projectId, { file: payload.file, url: payload.url }),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: projectKeys.detail(variables.projectId) })
     }

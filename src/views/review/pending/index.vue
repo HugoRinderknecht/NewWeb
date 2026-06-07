@@ -286,6 +286,15 @@
     budget: '预算'
   }
 
+  const contentTypeToTarget: Record<ContentType, 'art' | 'video' | 'edit' | 'audio'> = {
+    animation: 'edit',
+    video: 'video',
+    audio: 'audio',
+    script: 'edit',
+    design: 'art',
+    budget: 'edit'
+  }
+
   const priorityTypeMap: Record<Priority, 'danger' | 'warning' | 'info'> = {
     high: 'danger',
     medium: 'warning',
@@ -427,7 +436,7 @@
     }
     if (!currentRow.value) return
     try {
-      await dispatchMutation.mutateAsync(String(currentRow.value.id))
+      await dispatchMutation.mutateAsync({ id: String(currentRow.value.id), target: contentTypeToTarget[currentRow.value.typeValue] })
       ElMessage.success('转审成功')
     } catch {
       ElMessage.error('转审失败')

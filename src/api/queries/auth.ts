@@ -8,6 +8,7 @@ import {
   fetchGetPermissions,
   fetchCaptcha
 } from '@/api/auth'
+import { useUserStore } from '@/store/modules/user'
 
 import { authKeys } from './keys'
 
@@ -58,10 +59,18 @@ export function useCaptcha() {
 /** 更新个人资料 */
 export function useUpdateProfile() {
   const queryClient = useQueryClient()
+  const userStore = useUserStore()
   return useMutation({
     mutationFn: (params: Api.Auth.UpdateProfileParams) => fetchUpdateProfile(params),
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // 文档 §1.6：用户名变更时后端会重新签发 Token，需同步写回 store
+      if (data?.token) {
+        const nextRefreshToken = data.refreshToken ?? userStore.refreshToken
+        userStore.setToken(data.token, nextRefreshToken)
+      }
       queryClient.invalidateQueries({ queryKey: authKeys.userInfo() })
+      // 角色/团队上下文可能受用户名变更影响，主动失效权限缓存
+      queryClient.invalidateQueries({ queryKey: authKeys.permissions() })
     }
   })
 }

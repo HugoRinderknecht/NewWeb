@@ -35,8 +35,11 @@ export function fetchUnarchiveProject(projectId: string) {
   return getApiAdapter().post<void>(`/api/projects/${projectId}/unarchive`)
 }
 
+/** 更新项目状态（文档：status 为 query 参数） */
 export function fetchUpdateProjectStatus(projectId: string, status: number) {
-  return getApiAdapter().put<void>(`/api/projects/${projectId}/status`, { status })
+  return getApiAdapter().put<void>(`/api/projects/${projectId}/status`, undefined, {
+    params: { status }
+  })
 }
 
 export function fetchCopyProject(projectId: string, projectName?: string) {
@@ -46,9 +49,15 @@ export function fetchCopyProject(projectId: string, projectName?: string) {
   )
 }
 
-export function fetchUploadProjectCover(projectId: string, file: File) {
+/**
+ * 上传项目封面（文档：multipart/form-data，file 或 url 二选一）
+ * @param projectId 项目 ID
+ * @param payload `{ file?: File; url?: string }`
+ */
+export function fetchUploadProjectCover(projectId: string, payload: { file?: File; url?: string }) {
   const formData = new FormData()
-  formData.append('file', file)
+  if (payload.file) formData.append('file', payload.file)
+  if (payload.url) formData.append('url', payload.url)
   return getApiAdapter().post<Api.Project.CoverUploadResponse>(
     `/api/projects/${projectId}/cover`,
     formData
@@ -66,12 +75,14 @@ export function fetchAddProjectMember(projectId: string, params: Api.Project.Add
   return getApiAdapter().post<void>(`/api/projects/${projectId}/members`, params)
 }
 
+/** 更新项目成员角色（文档：memberId/role 均为 query 参数） */
 export function fetchUpdateProjectMemberRole(
   projectId: string,
   params: Api.Project.UpdateMemberRoleParams
 ) {
-  const query = new URLSearchParams({ memberId: params.memberId, role: params.role }).toString()
-  return getApiAdapter().put<void>(`/api/projects/${projectId}/members/role?${query}`)
+  return getApiAdapter().put<void>(`/api/projects/${projectId}/members/role`, undefined, {
+    params
+  })
 }
 
 export function fetchRemoveProjectMember(projectId: string, memberId: string) {

@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 
 /**
  * 项目 Store（轻量版）
@@ -21,8 +21,6 @@ export const useProjectStore = defineStore(
     /** 当前选中的项目 ID（由 route / 用户交互驱动） */
     const currentProjectId = ref<string>('')
 
-    const currentProjectName = computed(() => '')
-
     /** 设置当前项目 */
     const setCurrentProject = (projectId: string) => {
       currentProjectId.value = projectId
@@ -34,7 +32,6 @@ export const useProjectStore = defineStore(
 
     return {
       currentProjectId,
-      currentProjectName,
       setCurrentProject,
       clearCurrentProject
     }

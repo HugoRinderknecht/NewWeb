@@ -38,6 +38,7 @@ export function fetchDeleteStoryboard(storyboardId: string) {
   return getApiAdapter().del<void>(`/api/storyboards/${storyboardId}`)
 }
 
+/** ⚠️ hardDelete 参数文档未列出，需与后端确认 */
 export function fetchBatchDeleteStoryboards(storyboardIds: string[], hardDelete?: boolean) {
   return getApiAdapter().post<void>('/api/storyboards/batch-delete', {
     storyboardIds,
@@ -45,8 +46,12 @@ export function fetchBatchDeleteStoryboards(storyboardIds: string[], hardDelete?
   })
 }
 
-export function fetchSubmitStoryboardReview(storyboardId: string) {
-  return getApiAdapter().post<void>(`/api/storyboards/${storyboardId}/submit-review`)
+export function fetchSubmitStoryboardReview(storyboardId: string, note?: string) {
+  return getApiAdapter().post<void>(
+    `/api/storyboards/${storyboardId}/submit-review`,
+    undefined,
+    note !== undefined ? { params: { note } } : undefined
+  )
 }
 
 export function fetchBatchSubmitStoryboardReview(storyboardIds: string[], note?: string) {
@@ -56,8 +61,12 @@ export function fetchBatchSubmitStoryboardReview(storyboardIds: string[], note?:
   })
 }
 
-export function fetchWithdrawStoryboardReview(storyboardId: string) {
-  return getApiAdapter().post<void>(`/api/storyboards/${storyboardId}/withdraw-review`)
+export function fetchWithdrawStoryboardReview(storyboardId: string, reason?: string) {
+  return getApiAdapter().post<void>(
+    `/api/storyboards/${storyboardId}/withdraw-review`,
+    undefined,
+    reason !== undefined ? { params: { reason } } : undefined
+  )
 }
 
 export function fetchGetStoryboardReviewStatus(storyboardId: string) {
@@ -98,11 +107,9 @@ export function fetchLinkAssetToStoryboard(
   assetId: string,
   assetType: string
 ) {
-  return getApiAdapter().post<void>(
-    `/api/storyboards/${storyboardId}/assets`,
-    undefined,
-    { params: { assetId, assetType } }
-  )
+  return getApiAdapter().post<void>(`/api/storyboards/${storyboardId}/assets`, undefined, {
+    params: { assetId, assetType }
+  })
 }
 
 export function fetchUnlinkAssetFromStoryboard(storyboardId: string, assetId: string) {
@@ -128,18 +135,22 @@ export function fetchReorderStoryboards(
   return getApiAdapter().put<void>(`/api/scenes/${sceneId}/storyboards/reorder`, { items })
 }
 
+/** ⚠️ 此端点文档未列出，需与后端确认 */
 export function fetchGetSceneList(episodeId: string) {
   return getApiAdapter().get<Api.Storyboard.Scene[]>(`/api/episodes/${episodeId}/scenes`)
 }
 
+/** ⚠️ 此端点文档未列出，需与后端确认 */
 export function fetchCreateScene(params: Api.Storyboard.CreateSceneParams) {
   return getApiAdapter().post<Api.Storyboard.Scene>('/api/scenes', params)
 }
 
+/** ⚠️ 此端点文档未列出，需与后端确认 */
 export function fetchDeleteScene(sceneId: string) {
   return getApiAdapter().del<void>(`/api/scenes/${sceneId}`)
 }
 
+/** ⚠️ 此端点文档未列出，需与后端确认 */
 export function fetchUpdateScene(
   sceneId: string,
   params: Partial<Api.Storyboard.CreateSceneParams>
@@ -147,6 +158,7 @@ export function fetchUpdateScene(
   return getApiAdapter().put<Api.Storyboard.Scene>(`/api/scenes/${sceneId}`, params)
 }
 
+/** ⚠️ 此端点文档未列出，需与后端确认 */
 export function fetchDecomposeStoryboard(
   projectId: string,
   scriptId: string,
@@ -159,6 +171,7 @@ export function fetchDecomposeStoryboard(
   )
 }
 
+/** ⚠️ 此端点文档未列出，需与后端确认 */
 export function fetchRebuildStoryboard(
   projectId: string,
   scriptId: string,
@@ -171,8 +184,16 @@ export function fetchRebuildStoryboard(
   )
 }
 
+/** ⚠️ 此端点文档未列出，需与后端确认 */
 export function fetchGetScriptStoryboards(projectId: string, scriptId: string) {
   return getApiAdapter().get<Api.Storyboard.ScriptStoryboards>(
     `/api/projects/${projectId}/scripts/${scriptId}/storyboards`
+  )
+}
+
+/** 获取项目分镜板列表 */
+export function fetchGetStoryboardBoards(projectId: string) {
+  return getApiAdapter().get<Api.Storyboard.StoryboardBoard[]>(
+    `/api/projects/${projectId}/storyboard-boards`
   )
 }

@@ -4,6 +4,7 @@ import {
   fetchGetDashboard,
   fetchGetRealtimeData,
   fetchGetTrends,
+  fetchGetPlatformTrends,
   fetchGetCredits,
   fetchGetAlerts,
   fetchGetTeamRanking,
@@ -29,11 +30,10 @@ import {
 import {
   fetchGetCreditTransactions,
   fetchGetTokenUsageRecords,
-  fetchGetMyCredits
+  fetchGetMyCredits,
+  fetchUpdateAlertThreshold,
+  fetchExportCreditTransactions
 } from '@/api/points'
-
-
-
 
 import { statisticsKeys } from './keys'
 
@@ -78,6 +78,20 @@ export function useStatsTrends(
       return res ?? null
     },
     enabled: () => !!toValue(teamId) && !!toValue(params)?.eventType
+  })
+}
+
+/** 平台级趋势数据 */
+export function useStatsPlatformTrends(
+  params?: MaybeRefOrGetter<Omit<Api.Statistics.TrendParams, 'teamId'> | undefined>
+) {
+  return useQuery({
+    queryKey: statisticsKeys.platformTrends(params),
+    queryFn: async () => {
+      const p = toValue(params)
+      const res = await fetchGetPlatformTrends(p)
+      return res ?? null
+    }
   })
 }
 
@@ -388,5 +402,28 @@ export function useExportReport() {
   return useMutation({
     mutationFn: (payload: { teamId: string; data?: Api.Statistics.ExportParams }) =>
       fetchExportReport(payload.teamId, payload.data)
+  })
+}
+
+/** 更新积分预警阈值 */
+export function useUpdateAlertThreshold() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (data: { threshold: number; enabled: boolean }) => fetchUpdateAlertThreshold(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: statisticsKeys.credits()
+      })
+      queryClient.invalidateQueries({
+        queryKey: statisticsKeys.myCredits()
+      })
+    }
+  })
+}
+
+/** 导出积分交易记录 */
+export function useExportCreditTransactions() {
+  return useMutation({
+    mutationFn: (params?: Api.Common.CommonSearchParams) => fetchExportCreditTransactions(params)
   })
 }

@@ -25,6 +25,24 @@
                 :value="script.id"
               />
             </ElSelect>
+            <ElSelect
+              v-model="selectedEpisodeIds"
+              multiple
+              collapse-tags
+              collapse-tags-tooltip
+              clearable
+              placeholder="选择分集（可选）"
+              style="width: 260px"
+              :disabled="!currentScriptId || episodesQuery.isLoading.value || episodeOptions.length === 0"
+              :loading="episodesQuery.isLoading.value"
+            >
+              <ElOption
+                v-for="episode in episodeOptions"
+                :key="episode.id"
+                :label="episode.episodeName"
+                :value="episode.id"
+              />
+            </ElSelect>
           </div>
           <ElSpace>
             <ElInput
@@ -186,12 +204,12 @@
 
 <script setup lang="ts">
   import { ElMessage, ElMessageBox } from 'element-plus'
-  import { storeToRefs } from 'pinia'
   import { useScriptProjectStore } from '@/store/modules/script-project'
+  import { useWritableProjectId } from '@/hooks/core/useCurrentProjectId'
   import {
     useScriptList,
     useCharacterProfiles,
-    useProjectEpisodes,
+    useScriptEpisodes,
     useGenerateCharacterProfiles,
     useProjectList,
     useAiProcessStatus
@@ -224,11 +242,12 @@
   }
 
   // ==================== Store ====================
-  const scriptProjectStore = useScriptProjectStore()
-  const { currentProjectId } = storeToRefs(scriptProjectStore)
+  const { currentProjectId, domainStore: scriptProjectStore } =
+    useWritableProjectId(useScriptProjectStore)
 
   // ==================== 响应式状态 ====================
   const currentScriptId = ref('')
+  const selectedEpisodeIds = ref<string[]>([])
   const searchQuery = ref('')
   const currentProfile = ref<CharacterProfileItem | null>(null)
   const activeTab = ref('basic')
@@ -239,9 +258,13 @@
   // 与其他页面保持一致：scriptId 使用 computed 包装，确保 queryKey 响应式更新
   const scriptListQuery = useScriptList(currentProjectId)
   const characterProfilesQuery = useCharacterProfiles(
+    currentProjectId,
     computed(() => currentScriptId.value || undefined)
   )
-  const episodesQuery = useProjectEpisodes(currentProjectId)
+  const episodesQuery = useScriptEpisodes(
+    currentProjectId,
+    computed(() => currentScriptId.value || undefined)
+  )
   const generateMutation = useGenerateCharacterProfiles()
   /**
    * AI 处理状态轮询（统一数据层）：
@@ -250,8 +273,9 @@
    */
   const aiStatusQuery = useAiProcessStatus(
     computed<Api.AiProcess.StatusQueryParams | undefined>(() =>
-      generateRecordId.value && currentScriptId.value
+      generateRecordId.value && currentProjectId.value && currentScriptId.value
         ? {
+            projectId: currentProjectId.value,
             type: 'CHARACTER_PROFILE',
             businessId: currentScriptId.value
           }
@@ -310,6 +334,14 @@
     }))
   })
 
+  const episodeOptions = computed<EpisodeOption[]>(() => {
+    const arr = episodesQuery.data.value ?? []
+    return arr.map((ep: Api.Script.Episode) => ({
+      id: String(ep.id),
+      episodeName: ep.episodeName ?? `第${ep.episodeIndex ?? '-'}集`
+    }))
+  })
+
   const profileList = computed<CharacterProfileItem[]>(() => {
     const res = characterProfilesQuery.data.value as any
     if (!res) return []
@@ -361,7 +393,15 @@
 
   // ==================== 自动选择剧本 ====================
   watch(scriptOptions, (options) => {
-    if (options.length === 0) return
+    if (options.length === 0) {
+      if (currentScriptId.value) {
+        currentScriptId.value = ''
+        scriptProjectStore.setCurrentScript('')
+      }
+      selectedEpisodeIds.value = []
+      return
+    }
+
     const idsInCurrentProject = new Set(options.map((s) => s.id))
     let sid = ''
     if (
@@ -369,13 +409,27 @@
       idsInCurrentProject.has(scriptProjectStore.currentScriptId)
     ) {
       sid = scriptProjectStore.currentScriptId
-    } else if (options.length > 0) {
+    } else if (idsInCurrentProject.has(currentScriptId.value)) {
+      sid = currentScriptId.value
+    } else {
       sid = options[0].id
     }
-    if (sid && sid !== currentScriptId.value) {
+
+    if (sid !== currentScriptId.value) {
       currentScriptId.value = sid
+    }
+    if (sid !== scriptProjectStore.currentScriptId) {
       scriptProjectStore.setCurrentScript(sid)
     }
+  })
+
+  watch(episodeOptions, (options) => {
+    if (options.length === 0) {
+      selectedEpisodeIds.value = []
+      return
+    }
+    const validIds = new Set(options.map((item) => item.id))
+    selectedEpisodeIds.value = selectedEpisodeIds.value.filter((id) => validIds.has(id))
   })
 
   // ==================== 自动选择人物 ====================
@@ -390,15 +444,18 @@
 
   // ==================== 事件处理 ====================
   const handleProjectChange = (projectId: string) => {
+    selectedEpisodeIds.value = []
     scriptProjectStore.setCurrentProject(projectId)
   }
 
   const handleProjectRefresh = () => {
     scriptListQuery.refetch()
+    episodesQuery.refetch()
     ElMessage.success('数据已刷新')
   }
 
   const handleScriptChange = (scriptId: string) => {
+    selectedEpisodeIds.value = []
     scriptProjectStore.setCurrentScript(scriptId)
   }
 
@@ -412,17 +469,20 @@
       ElMessage.warning('请先选择剧本')
       return
     }
+    if (episodesQuery.isLoading.value) {
+      ElMessage.info('分集列表加载中，请稍候后再试')
+      return
+    }
     try {
-      const episodeData = episodesQuery.data.value
-      const episodeOptions: EpisodeOption[] = (episodeData ?? []).map((ep: Api.Script.Episode) => ({
-        id: String(ep.id),
-        episodeName: ep.episodeName ?? ''
-      }))
-
-      const hasEpisodes = episodeOptions.length > 0
-      const episodeHint = hasEpisodes
-        ? `\n\n可选择指定分集（可选，不选则处理全部）：\n${episodeOptions.map((ep) => `• ${ep.episodeName}`).join('\n')}`
-        : ''
+      const selectedEpisodes = episodeOptions.value.filter((ep) =>
+        selectedEpisodeIds.value.includes(ep.id)
+      )
+      const hasSelectedEpisodes = selectedEpisodes.length > 0
+      const episodeHint = hasSelectedEpisodes
+        ? `\n\n本次仅处理以下分集：\n${selectedEpisodes.map((ep) => `• ${ep.episodeName}`).join('\n')}`
+        : episodeOptions.value.length > 0
+          ? '\n\n未选择分集，将处理当前剧本下全部分集。'
+          : '\n\n当前剧本暂无可用分集，将基于剧本整体内容处理。'
 
       await ElMessageBox.confirm(`将调用AI生成人物小传，是否继续？${episodeHint}`, 'AI生成确认', {
         confirmButtonText: '确定生成',
@@ -438,7 +498,8 @@
       ElMessage.info('AI人物小传生成中，请稍候...')
       const res = await generateMutation.mutateAsync({
         projectId: currentProjectId.value,
-        scriptId: currentScriptId.value
+        scriptId: currentScriptId.value,
+        episodeIds: selectedEpisodeIds.value.length > 0 ? [...selectedEpisodeIds.value] : undefined
       })
       if (res?.status === 'PROCESSING') {
         ElMessage.success('AI生成任务已提交，正在轮询进度...')
@@ -476,6 +537,7 @@
   watch(currentProjectId, (newId) => {
     if (newId) {
       currentScriptId.value = ''
+      selectedEpisodeIds.value = []
       scriptProjectStore.setCurrentScript('')
       currentProfile.value = null
       activeTab.value = 'basic'

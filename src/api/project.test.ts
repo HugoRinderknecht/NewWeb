@@ -96,7 +96,7 @@ describe('project API 函数', () => {
 
   it('fetchUploadProjectCover 应调用 POST /api/projects/:id/cover', async () => {
     const file = new File(['test'], 'cover.png', { type: 'image/png' })
-    const res = await projectApi.fetchUploadProjectCover('1', file)
+    const res = await projectApi.fetchUploadProjectCover('1', { file })
     expect(res).toBeDefined()
   })
 })

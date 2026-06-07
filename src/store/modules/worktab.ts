@@ -499,9 +499,35 @@ export const useWorktabStore = defineStore(
      */
     const getStateSnapshot = (): WorktabState => {
       return {
+        // 使用浅拷贝避免 current.value 与 opened 数组中的对象产生引用纠缠
         current: { ...current.value },
-        opened: [...opened.value],
+        opened: opened.value.map((tab) => ({ ...tab })),
         keepAliveExclude: [...keepAliveExclude.value]
+      }
+    }
+
+    /**
+     * 恢复快照（从持久化数据中恢复状态）
+     * 恢复后会将 current.value 重新指向 opened 数组中的对应元素，
+     * 以确保后续对 current 的修改能正确反映到 opened 数组中。
+     */
+    const restoreFromSnapshot = (snapshot: WorktabState): void => {
+      if (!snapshot) return
+
+      keepAliveExclude.value = snapshot.keepAliveExclude ?? []
+
+      if (snapshot.opened?.length) {
+        opened.value = snapshot.opened.map((tab) => ({ ...tab }))
+      } else {
+        opened.value = []
+      }
+
+      // 尝试将 current 恢复为 opened 数组中的引用
+      if (snapshot.current?.path) {
+        const match = opened.value.find((tab) => tab.path === snapshot.current.path)
+        current.value = match ?? {}
+      } else {
+        current.value = {}
       }
     }
 
@@ -555,6 +581,7 @@ export const useWorktabStore = defineStore(
       validateWorktabs,
       clearAll,
       getStateSnapshot,
+      restoreFromSnapshot,
 
       // 工具方法
       findTabIndex,
