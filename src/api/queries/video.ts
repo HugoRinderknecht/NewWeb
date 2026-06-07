@@ -9,7 +9,7 @@ import {
   fetchCancelVideoTask
 } from '@/api/video'
 
-const QUERY_KEY = 'video' as const
+import { videoKeys } from './keys'
 
 // ==================== 查询 ====================
 
@@ -18,7 +18,7 @@ export function useVideoTaskList(
   params?: MaybeRefOrGetter<Api.Video.VideoTaskSearchParams | undefined>
 ) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'tasks', params] as const,
+    queryKey: videoKeys.tasks(params),
     queryFn: async () => {
       const res = await fetchGetVideoTaskList(toValue(params))
       return res ?? null
@@ -30,7 +30,7 @@ export function useVideoTaskList(
 /** 视频任务详情 */
 export function useVideoTaskDetail(taskId: MaybeRefOrGetter<string | undefined>) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'detail', taskId] as const,
+    queryKey: videoKeys.detail(taskId),
     queryFn: async () => {
       const id = toValue(taskId)
       if (!id) return null
@@ -47,7 +47,7 @@ export function useVideoTaskResult(
   params?: MaybeRefOrGetter<{ resolution?: string } | undefined>
 ) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'result', taskId, params] as const,
+    queryKey: videoKeys.result(taskId, params),
     queryFn: async () => {
       const id = toValue(taskId)
       if (!id) return null
@@ -74,7 +74,7 @@ export function useSubmitVideoGeneration() {
   return useMutation({
     mutationFn: (params: Api.Video.VideoGenerateParams) => fetchSubmitVideoGeneration(params),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'tasks'] })
+      queryClient.invalidateQueries({ queryKey: videoKeys.taskLists() })
     }
   })
 }
@@ -85,8 +85,8 @@ export function useCancelVideoTask() {
   return useMutation({
     mutationFn: (taskId: string) => fetchCancelVideoTask(taskId),
     onSuccess: (_data, taskId) => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'detail', taskId] })
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'tasks'] })
+      queryClient.invalidateQueries({ queryKey: videoKeys.detail(taskId) })
+      queryClient.invalidateQueries({ queryKey: videoKeys.taskLists() })
     }
   })
 }

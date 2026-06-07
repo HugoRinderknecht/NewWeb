@@ -10,6 +10,19 @@
  * - 统一的成功/错误消息提示
  * - 支持 GET/POST/PUT/DELETE 等常用方法
  *
+ * ## 缓存策略说明
+ *
+ * 本模块提供两层缓存能力，职责边界如下：
+ *
+ * 1. **请求去重（dedup）**：对同一 GET 请求的并发调用进行去重，避免重复网络请求。
+ *    这是 HTTP 层的合理职责，默认启用（可通过 `dedup: false` 关闭）。
+ *
+ * 2. **LRU 响应缓存（cacheTTL）**：按 TTL 缓存 GET 响应数据。
+ *    ⚠️ 此能力与 Vue Query 的 staleTime/gcTime 职责重叠。
+ *    当请求同时被 Vue Query 管理时，应使用 `disableHttpCache: true` 跳过 HTTP 层缓存，
+ *    由 Vue Query 统一管理缓存生命周期，避免双重缓存导致数据过期判断困难。
+ *    默认已禁用（RESPONSE_CACHE_MAX_SIZE = 0），仅在明确不使用 Vue Query 的场景下启用。
+ *
  * @module utils/http
  * @author Dreamcraft_Astra Team
  */
@@ -20,6 +33,7 @@ import { ApiStatus } from './status'
 import { HttpError, handleError, showError, showSuccess } from './error'
 import { BaseResponse, extractResponseMessage } from '@/types'
 import { dataFlowMonitor } from '@/utils/data-flow'
+import { HTTP_RESPONSE_CACHE_MAX_SIZE } from '@/config/cache-policy'
 
 /** 请求配置常量 */
 const REQUEST_TIMEOUT = 15000
@@ -52,8 +66,13 @@ interface CacheEntry<T> {
   timestamp: number
 }
 
-/** LRU 缓存最大条目数（防止长时间运行后内存泄漏） */
-const RESPONSE_CACHE_MAX_SIZE = 200
+/**
+ * LRU 缓存最大条目数。
+ * 设为 0 表示默认禁用 HTTP 层响应缓存，由 Vue Query 统一管理缓存生命周期。
+ * 仅在明确不使用 Vue Query 的特殊场景下，可通过运行时配置启用。
+ * 值来自 src/config/cache-policy.ts
+ */
+const RESPONSE_CACHE_MAX_SIZE = HTTP_RESPONSE_CACHE_MAX_SIZE
 
 /**
  * LRU 响应缓存：按访问时间淘汰最久未使用的条目
@@ -118,6 +137,12 @@ interface ExtendedAxiosRequestConfig extends AxiosRequestConfig {
   showSuccessMessage?: boolean
   dedup?: boolean
   cacheTTL?: number
+  /**
+   * 禁用 HTTP 层 LRU 响应缓存。
+   * 当请求由 Vue Query 管理时，应设为 true，避免双重缓存导致数据过期判断困难。
+   * 默认 false（但由于 RESPONSE_CACHE_MAX_SIZE = 0，HTTP 缓存默认不生效）。
+   */
+  disableHttpCache?: boolean
   /** 内部标记：标记为刷新 Token 的请求，避免触发自动刷新逻辑 */
   _isRefreshRequest?: boolean
   /** 内部标记：标记为 Token 刷新后重试的请求，避免无限循环 */
@@ -408,7 +433,9 @@ async function request<T = any>(config: ExtendedAxiosRequestConfig): Promise<T> 
     config.params = undefined
   }
 
-  if (config.cacheTTL && config.cacheTTL > 0) {
+  // HTTP 层响应缓存：仅在 cacheTTL > 0 且未禁用时生效
+  // 当请求由 Vue Query 管理时，应通过 disableHttpCache: true 跳过此缓存
+  if (!config.disableHttpCache && config.cacheTTL && config.cacheTTL > 0) {
     const key = getRequestKey(config)
     const cached = responseCache.get(key)
     if (cached && Date.now() - cached.timestamp < config.cacheTTL) {
@@ -460,7 +487,8 @@ async function _doRequest<T = any>(config: ExtendedAxiosRequestConfig): Promise<
 
     const result = res.data.data as T
 
-    if (config.cacheTTL && config.cacheTTL > 0) {
+    // 写入 HTTP 层响应缓存：仅在未禁用且配置了 cacheTTL 时生效
+    if (!config.disableHttpCache && config.cacheTTL && config.cacheTTL > 0) {
       const key = getRequestKey(config)
       responseCache.set(key, { data: result, timestamp: Date.now() })
     }

@@ -32,55 +32,11 @@
 </template>
 
 <script setup lang="ts">
-  import { useStatsTrends, useStatsCredits, useStatsDashboard } from '@/api/queries'
-  import { useTeamStore } from '@/store/modules/team'
+  import { useSalesOverviewModel } from '@/domain/statistics/composables'
 
   defineOptions({ name: 'SalesOverview' })
 
-  const teamStore = useTeamStore()
-  const teamId = computed(() => teamStore.currentTeamId || undefined)
-
-  // 统一数据层：趋势数据
-  const trendParams = computed<Omit<Api.Statistics.TrendParams, 'teamId'>>(() => ({
-    eventType: 'credits',
-    granularity: 'day',
-    metrics: ['credits']
-  }))
-  const { data: trendData } = useStatsTrends(teamId, trendParams)
-
-  // 统一数据层：积分概览
-  const { data: creditsData } = useStatsCredits()
-  const { data: dashboardData } = useStatsDashboard()
-
-  // X 轴：日期
-  const xAxisData = computed<string[]>(() => {
-    if (!trendData.value) return []
-    return trendData.value.dates ?? trendData.value.data?.labels ?? []
-  })
-
-  // Y 轴：每日消耗
-  const data = computed<number[]>(() => {
-    if (!trendData.value) return []
-    return trendData.value.metrics?.[0]?.values ?? trendData.value.data?.values ?? []
-  })
-
-  // 剩余积分
-  const remainingCredits = computed(() => {
-    if (creditsData.value) return creditsData.value.balance
-    return dashboardData.value?.creditsBalance ?? 0
-  })
-
-  // 本月累计百分比
-  const monthChange = computed(() => {
-    const data = creditsData.value
-    if (!data) return '+0%'
-    if (data.totalEarned === 0) return '+0%'
-    const ratio = ((data.totalEarned - data.totalSpent) / data.totalEarned) * 100
-    return `${ratio >= 0 ? '+' : ''}${ratio.toFixed(0)}%`
-  })
-
-  // 总消耗
-  const totalSpent = computed(() => creditsData.value?.totalSpent ?? 0)
+  const { xAxisData, data, remainingCredits, monthChange, totalSpent } = useSalesOverviewModel()
 </script>
 
 <style lang="scss" scoped>

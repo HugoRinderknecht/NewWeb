@@ -21,7 +21,7 @@ import {
   fetchGetTeamAssetCategories
 } from '@/api/asset'
 
-const QUERY_KEY = 'assets' as const
+import { assetKeys } from './keys'
 
 // ==================== 项目资产 ====================
 
@@ -31,7 +31,7 @@ export function useAssetList(
   params?: MaybeRefOrGetter<Api.Asset.AssetSearchParams | undefined>
 ) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'list', projectId, params] as const,
+    queryKey: assetKeys.list(projectId, params),
     queryFn: async () => {
       const id = toValue(projectId)
       if (!id) return null
@@ -49,7 +49,7 @@ export function useAssetDetail(
   assetId: MaybeRefOrGetter<string | undefined>
 ) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'detail', projectId, assetId] as const,
+    queryKey: assetKeys.detail(projectId, assetId),
     queryFn: async () => {
       const pid = toValue(projectId)
       const aid = toValue(assetId)
@@ -67,7 +67,7 @@ export function useAssetVersions(
   assetId: MaybeRefOrGetter<string | undefined>
 ) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'versions', projectId, assetId] as const,
+    queryKey: assetKeys.versions(projectId, assetId),
     queryFn: async () => {
       const pid = toValue(projectId)
       const aid = toValue(assetId)
@@ -88,7 +88,7 @@ export function useUploadAsset() {
     mutationFn: (payload: { projectId: string; params: Api.Asset.UploadAssetParams }) =>
       fetchUploadAsset(payload.projectId, payload.params),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'list', variables.projectId] })
+      queryClient.invalidateQueries({ queryKey: assetKeys.listByProject(variables.projectId) })
     }
   })
 }
@@ -104,9 +104,9 @@ export function useUpdateAsset() {
     }) => fetchUpdateAsset(payload.projectId, payload.assetId, payload.params),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
-        queryKey: [QUERY_KEY, 'detail', variables.projectId, variables.assetId]
+        queryKey: assetKeys.detail(variables.projectId, variables.assetId)
       })
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'list', variables.projectId] })
+      queryClient.invalidateQueries({ queryKey: assetKeys.listByProject(variables.projectId) })
     }
   })
 }
@@ -118,8 +118,8 @@ export function useDeleteAsset() {
     mutationFn: (payload: { projectId: string; assetId: string }) =>
       fetchDeleteAsset(payload.projectId, payload.assetId),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'detail', variables.projectId, variables.assetId] })
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'list', variables.projectId] })
+      queryClient.invalidateQueries({ queryKey: assetKeys.detail(variables.projectId, variables.assetId) })
+      queryClient.invalidateQueries({ queryKey: assetKeys.listByProject(variables.projectId) })
     }
   })
 }
@@ -131,7 +131,7 @@ export function useBatchDeleteAssets() {
     mutationFn: (payload: { projectId: string; assetIds: string[] }) =>
       fetchBatchDeleteAssets(payload.projectId, payload.assetIds),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'list', variables.projectId] })
+      queryClient.invalidateQueries({ queryKey: assetKeys.listByProject(variables.projectId) })
     }
   })
 }
@@ -144,10 +144,10 @@ export function useRollbackAsset() {
       fetchRollbackAsset(payload.projectId, payload.assetId, payload.versionId),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
-        queryKey: [QUERY_KEY, 'detail', variables.projectId, variables.assetId]
+        queryKey: assetKeys.detail(variables.projectId, variables.assetId)
       })
       queryClient.invalidateQueries({
-        queryKey: [QUERY_KEY, 'versions', variables.projectId, variables.assetId]
+        queryKey: assetKeys.versions(variables.projectId, variables.assetId)
       })
     }
   })
@@ -160,7 +160,7 @@ export function useBatchAddTags() {
     mutationFn: (payload: { projectId: string; params: Api.Asset.BatchTagParams }) =>
       fetchBatchAddTags(payload.projectId, payload.params),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'list', variables.projectId] })
+      queryClient.invalidateQueries({ queryKey: assetKeys.listByProject(variables.projectId) })
     }
   })
 }
@@ -172,7 +172,7 @@ export function useBatchRemoveTags() {
     mutationFn: (payload: { projectId: string; params: Api.Asset.BatchTagParams }) =>
       fetchBatchRemoveTags(payload.projectId, payload.params),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'list', variables.projectId] })
+      queryClient.invalidateQueries({ queryKey: assetKeys.listByProject(variables.projectId) })
     }
   })
 }
@@ -184,7 +184,7 @@ export function useBatchMoveCategory() {
     mutationFn: (payload: { projectId: string; params: Api.Asset.BatchMoveParams }) =>
       fetchBatchMoveCategory(payload.projectId, payload.params),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'list', variables.projectId] })
+      queryClient.invalidateQueries({ queryKey: assetKeys.listByProject(variables.projectId) })
     }
   })
 }
@@ -196,7 +196,7 @@ export function useAiGenerateAsset() {
     mutationFn: (payload: { projectId: string; params: Api.Asset.AiGenerateParams }) =>
       fetchAiGenerateAsset(payload.projectId, payload.params),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'list', variables.projectId] })
+      queryClient.invalidateQueries({ queryKey: assetKeys.listByProject(variables.projectId) })
     }
   })
 }
@@ -208,7 +208,7 @@ export function useImportFromTeam() {
     mutationFn: (payload: { projectId: string; teamAssetIds: string[] }) =>
       fetchImportFromTeam(payload.projectId, payload.teamAssetIds),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'list', variables.projectId] })
+      queryClient.invalidateQueries({ queryKey: assetKeys.listByProject(variables.projectId) })
     }
   })
 }
@@ -218,7 +218,7 @@ export function useImportFromTeam() {
 /** 参考图列表 */
 export function useReferenceImages(projectId: MaybeRefOrGetter<string | undefined>) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'reference-images', projectId] as const,
+    queryKey: assetKeys.referenceImages(projectId),
     queryFn: async () => {
       const id = toValue(projectId)
       if (!id) return []
@@ -236,7 +236,7 @@ export function useUploadReferenceImage() {
     mutationFn: (payload: { projectId: string; file: File; assetName?: string }) =>
       fetchUploadReferenceImage(payload.projectId, payload.file, payload.assetName),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'reference-images', variables.projectId] })
+      queryClient.invalidateQueries({ queryKey: assetKeys.referenceImages(variables.projectId) })
     }
   })
 }
@@ -248,7 +248,7 @@ export function useDeleteReferenceImage() {
     mutationFn: (payload: { projectId: string; assetId: string }) =>
       fetchDeleteReferenceImage(payload.projectId, payload.assetId),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'reference-images', variables.projectId] })
+      queryClient.invalidateQueries({ queryKey: assetKeys.referenceImages(variables.projectId) })
     }
   })
 }
@@ -261,7 +261,7 @@ export function useTeamAssetList(
   params?: MaybeRefOrGetter<Api.Asset.TeamAssetSearchParams | undefined>
 ) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'team-list', teamId, params] as const,
+    queryKey: assetKeys.teamList(teamId, params),
     queryFn: async () => {
       const id = toValue(teamId)
       if (!id) return null
@@ -276,7 +276,7 @@ export function useTeamAssetList(
 /** 团队资产分类 */
 export function useTeamAssetCategories(teamId: MaybeRefOrGetter<string | undefined>) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'team-categories', teamId] as const,
+    queryKey: assetKeys.teamCategories(teamId),
     queryFn: async () => {
       const id = toValue(teamId)
       if (!id) return []

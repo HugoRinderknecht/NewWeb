@@ -10,12 +10,12 @@ import {
   fetchGetWorkflowCatalog
 } from '@/api/workflow'
 
-const QUERY_KEY = 'workflow' as const
+import { workflowKeys } from './keys'
 
 /** 工作流目录 */
 export function useWorkflowCatalog() {
   return useQuery({
-    queryKey: [QUERY_KEY, 'catalog'] as const,
+    queryKey: workflowKeys.catalog(),
     queryFn: async () => {
       const res = await fetchGetWorkflowCatalog()
       return res ?? []
@@ -30,7 +30,7 @@ export function useWorkflowRunStatus(
   runId: MaybeRefOrGetter<string | undefined>
 ) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'run-status', workflowCode, runId] as const,
+    queryKey: workflowKeys.runStatus(workflowCode, runId),
     queryFn: async () => {
       const code = toValue(workflowCode)
       const rid = toValue(runId)
@@ -52,7 +52,7 @@ export function useExecuteWorkflow() {
     mutationFn: (payload: { workflowCode: string; params: Record<string, any> }) =>
       fetchExecuteWorkflow(payload.workflowCode, payload.params),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'run-status'] })
+      queryClient.invalidateQueries({ queryKey: workflowKeys.runStatuses() })
     }
   })
 }
@@ -64,7 +64,7 @@ export function useStopWorkflow() {
     mutationFn: (payload: { workflowCode: string; taskId: string }) =>
       fetchStopWorkflow(payload.workflowCode, payload.taskId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'run-status'] })
+      queryClient.invalidateQueries({ queryKey: workflowKeys.runStatuses() })
     }
   })
 }
@@ -75,7 +75,7 @@ export function useMultimodalExecute() {
   return useMutation({
     mutationFn: (params: Api.Workflow.MultimodalParams) => fetchMultimodalExecute(params),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'run-status'] })
+      queryClient.invalidateQueries({ queryKey: workflowKeys.runStatuses() })
     }
   })
 }
@@ -86,7 +86,7 @@ export function useExecuteWorkflowChain() {
   return useMutation({
     mutationFn: (params: Api.Workflow.ChainParams) => fetchExecuteWorkflowChain(params),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'run-status'] })
+      queryClient.invalidateQueries({ queryKey: workflowKeys.runStatuses() })
     }
   })
 }

@@ -32,12 +32,15 @@ import {
   fetchGetMyCredits
 } from '@/api/points'
 
-const QUERY_KEY = 'statistics' as const
+
+
+
+import { statisticsKeys } from './keys'
 
 /** 仪表盘核心指标 */
 export function useStatsDashboard(teamId?: MaybeRefOrGetter<string | undefined>) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'dashboard', teamId] as const,
+    queryKey: statisticsKeys.dashboard(teamId),
     queryFn: async () => {
       const res = await fetchGetDashboard()
       return res ?? null
@@ -49,7 +52,7 @@ export function useStatsDashboard(teamId?: MaybeRefOrGetter<string | undefined>)
 /** 实时数据 */
 export function useStatsRealtime(options?: { refetchInterval?: number }) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'realtime'] as const,
+    queryKey: statisticsKeys.realtime(),
     queryFn: async () => {
       const res = await fetchGetRealtimeData()
       return res ?? null
@@ -65,7 +68,7 @@ export function useStatsTrends(
   params: MaybeRefOrGetter<Omit<Api.Statistics.TrendParams, 'teamId'> | undefined>
 ) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'trends', teamId, params] as const,
+    queryKey: statisticsKeys.trends(teamId, params),
     queryFn: async () => {
       const id = toValue(teamId)
       if (!id) return null
@@ -81,7 +84,7 @@ export function useStatsTrends(
 /** 积分余额 */
 export function useStatsCredits() {
   return useQuery({
-    queryKey: [QUERY_KEY, 'credits'] as const,
+    queryKey: statisticsKeys.credits(),
     queryFn: async () => {
       const res = await fetchGetCredits()
       return res ?? null
@@ -92,7 +95,7 @@ export function useStatsCredits() {
 /** 我的积分 */
 export function useMyCredits() {
   return useQuery({
-    queryKey: [QUERY_KEY, 'my-credits'] as const,
+    queryKey: statisticsKeys.myCredits(),
     queryFn: async () => {
       const res = await fetchGetMyCredits()
       return res ?? null
@@ -103,7 +106,7 @@ export function useMyCredits() {
 /** 数据预警 */
 export function useStatsAlerts() {
   return useQuery({
-    queryKey: [QUERY_KEY, 'alerts'] as const,
+    queryKey: statisticsKeys.alerts(),
     queryFn: async () => {
       const res = await fetchGetAlerts()
       return res ?? []
@@ -114,7 +117,7 @@ export function useStatsAlerts() {
 /** 团队排名 */
 export function useStatsTeamRanking() {
   return useQuery({
-    queryKey: [QUERY_KEY, 'team-ranking'] as const,
+    queryKey: statisticsKeys.teamRanking(),
     queryFn: async () => {
       const res = await fetchGetTeamRanking()
       return res ?? []
@@ -125,7 +128,7 @@ export function useStatsTeamRanking() {
 /** 团队工作量 */
 export function useTeamWorkload(teamId: MaybeRefOrGetter<string | undefined>) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'team-workload', teamId] as const,
+    queryKey: statisticsKeys.teamWorkload(teamId),
     queryFn: async () => {
       const id = toValue(teamId)
       if (!id) return null
@@ -139,7 +142,7 @@ export function useTeamWorkload(teamId: MaybeRefOrGetter<string | undefined>) {
 /** 用户贡献度 */
 export function useUserContribution(teamId: MaybeRefOrGetter<string | undefined>) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'user-contribution', teamId] as const,
+    queryKey: statisticsKeys.userContribution(teamId),
     queryFn: async () => {
       const id = toValue(teamId)
       if (!id) return []
@@ -153,7 +156,7 @@ export function useUserContribution(teamId: MaybeRefOrGetter<string | undefined>
 /** 用户活跃度 */
 export function useUserActivity(teamId: MaybeRefOrGetter<string | undefined>) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'user-activity', teamId] as const,
+    queryKey: statisticsKeys.userActivity(teamId),
     queryFn: async () => {
       const id = toValue(teamId)
       if (!id) return []
@@ -167,7 +170,7 @@ export function useUserActivity(teamId: MaybeRefOrGetter<string | undefined>) {
 /** 项目完成率 */
 export function useProjectCompletion(teamId: MaybeRefOrGetter<string | undefined>) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'project-completion', teamId] as const,
+    queryKey: statisticsKeys.projectCompletion(teamId),
     queryFn: async () => {
       const id = toValue(teamId)
       if (!id) return null
@@ -181,7 +184,7 @@ export function useProjectCompletion(teamId: MaybeRefOrGetter<string | undefined
 /** 项目分析列表 */
 export function useProjectAnalysis() {
   return useQuery({
-    queryKey: [QUERY_KEY, 'project-analysis'] as const,
+    queryKey: statisticsKeys.projectAnalysis(),
     queryFn: async () => {
       const res = await fetchGetProjectAnalysis()
       return res ?? []
@@ -192,7 +195,7 @@ export function useProjectAnalysis() {
 /** 用户活跃度排行 */
 export function useUserActivityRank() {
   return useQuery({
-    queryKey: [QUERY_KEY, 'user-activity-rank'] as const,
+    queryKey: statisticsKeys.userActivityRank(),
     queryFn: async () => {
       const res = await fetchGetUserActivityRank()
       return res ?? []
@@ -203,7 +206,7 @@ export function useUserActivityRank() {
 /** 项目用量概览 */
 export function useProjectUsage(projectId: MaybeRefOrGetter<string | undefined>) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'project-usage', projectId] as const,
+    queryKey: statisticsKeys.projectUsage(projectId),
     queryFn: async () => {
       const id = toValue(projectId)
       if (!id) return null
@@ -220,7 +223,7 @@ export function useProjectUsageDetail(
   params?: MaybeRefOrGetter<Api.Statistics.ProjectUsageDetailParams | undefined>
 ) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'project-usage-detail', projectId, params] as const,
+    queryKey: statisticsKeys.projectUsageDetail(projectId, params),
     queryFn: async () => {
       const id = toValue(projectId)
       if (!id) return null
@@ -234,7 +237,7 @@ export function useProjectUsageDetail(
 /** 项目视频统计 */
 export function useProjectVideoStats(projectId: MaybeRefOrGetter<string | undefined>) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'project-video-stats', projectId] as const,
+    queryKey: statisticsKeys.projectVideoStats(projectId),
     queryFn: async () => {
       const id = toValue(projectId)
       if (!id) return null
@@ -248,7 +251,7 @@ export function useProjectVideoStats(projectId: MaybeRefOrGetter<string | undefi
 /** 项目分镜统计 */
 export function useProjectStoryboardStats(projectId: MaybeRefOrGetter<string | undefined>) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'project-storyboard-stats', projectId] as const,
+    queryKey: statisticsKeys.projectStoryboardStats(projectId),
     queryFn: async () => {
       const id = toValue(projectId)
       if (!id) return null
@@ -262,7 +265,7 @@ export function useProjectStoryboardStats(projectId: MaybeRefOrGetter<string | u
 /** 项目资源消耗 */
 export function useProjectResources(projectId: MaybeRefOrGetter<string | undefined>) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'project-resources', projectId] as const,
+    queryKey: statisticsKeys.projectResources(projectId),
     queryFn: async () => {
       const id = toValue(projectId)
       if (!id) return null
@@ -276,7 +279,7 @@ export function useProjectResources(projectId: MaybeRefOrGetter<string | undefin
 /** 项目 AI 使用统计 */
 export function useProjectAiUsage(projectId: MaybeRefOrGetter<string | undefined>) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'project-ai-usage', projectId] as const,
+    queryKey: statisticsKeys.projectAiUsage(projectId),
     queryFn: async () => {
       const id = toValue(projectId)
       if (!id) return null
@@ -292,7 +295,7 @@ export function useCreditTransactions(
   params?: MaybeRefOrGetter<Api.Common.CommonSearchParams | undefined>
 ) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'credit-transactions', params] as const,
+    queryKey: statisticsKeys.creditTransactions(params),
     queryFn: async () => {
       const res = await fetchGetCreditTransactions(toValue(params))
       return res ?? null
@@ -305,7 +308,7 @@ export function useTokenUsageRecords(
   params?: MaybeRefOrGetter<Api.Common.CommonSearchParams | undefined>
 ) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'token-usage-records', params] as const,
+    queryKey: statisticsKeys.tokenUsageRecords(params),
     queryFn: async () => {
       const res = await fetchGetTokenUsageRecords(toValue(params))
       return res ?? null
@@ -316,7 +319,7 @@ export function useTokenUsageRecords(
 /** 定时报表列表 */
 export function useScheduledReports(teamId: MaybeRefOrGetter<string | undefined>) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'scheduled-reports', teamId] as const,
+    queryKey: statisticsKeys.scheduledReports(teamId),
     queryFn: async () => {
       const id = toValue(teamId)
       if (!id) return []
@@ -335,7 +338,7 @@ export function useCreateScheduledReport() {
       fetchCreateScheduledReport(payload.teamId, payload.data),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
-        queryKey: [QUERY_KEY, 'scheduled-reports', variables.teamId]
+        queryKey: statisticsKeys.scheduledReports(variables.teamId)
       })
     }
   })
@@ -352,7 +355,7 @@ export function useUpdateScheduledReport() {
     }) => fetchUpdateScheduledReport(payload.teamId, payload.id, payload.data),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
-        queryKey: [QUERY_KEY, 'scheduled-reports', variables.teamId]
+        queryKey: statisticsKeys.scheduledReports(variables.teamId)
       })
     }
   })
@@ -366,7 +369,7 @@ export function useDeleteScheduledReport() {
       fetchDeleteScheduledReport(payload.teamId, payload.id),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
-        queryKey: [QUERY_KEY, 'scheduled-reports', variables.teamId]
+        queryKey: statisticsKeys.scheduledReports(variables.teamId)
       })
     }
   })

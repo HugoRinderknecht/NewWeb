@@ -9,12 +9,12 @@ import {
   fetchCaptcha
 } from '@/api/auth'
 
-const QUERY_KEY = 'auth' as const
+import { authKeys } from './keys'
 
 /** 当前用户信息 */
 export function useCurrentUser() {
   return useQuery({
-    queryKey: [QUERY_KEY, 'user-info'] as const,
+    queryKey: authKeys.userInfo(),
     queryFn: async () => await fetchGetUserInfo(),
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: true
@@ -24,7 +24,7 @@ export function useCurrentUser() {
 /** 用户头像 */
 export function useAvatar(userId: MaybeRefOrGetter<string | undefined>) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'avatar', userId] as const,
+    queryKey: authKeys.avatar(userId),
     queryFn: async () => {
       const id = toValue(userId)
       if (!id) return null
@@ -38,7 +38,7 @@ export function useAvatar(userId: MaybeRefOrGetter<string | undefined>) {
 /** 权限信息 */
 export function usePermissions(teamId?: MaybeRefOrGetter<string | undefined>) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'permissions', teamId] as const,
+    queryKey: authKeys.permissions(teamId),
     queryFn: async () => await fetchGetPermissions(toValue(teamId)),
     staleTime: 5 * 60 * 1000
   })
@@ -47,7 +47,7 @@ export function usePermissions(teamId?: MaybeRefOrGetter<string | undefined>) {
 /** 验证码 */
 export function useCaptcha() {
   return useQuery({
-    queryKey: [QUERY_KEY, 'captcha'] as const,
+    queryKey: authKeys.captcha(),
     queryFn: async () => await fetchCaptcha(),
     staleTime: 0,
     refetchOnMount: true,
@@ -61,7 +61,7 @@ export function useUpdateProfile() {
   return useMutation({
     mutationFn: (params: Api.Auth.UpdateProfileParams) => fetchUpdateProfile(params),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'user-info'] })
+      queryClient.invalidateQueries({ queryKey: authKeys.userInfo() })
     }
   })
 }
@@ -72,7 +72,7 @@ export function useUploadAvatar() {
   return useMutation({
     mutationFn: (file: File) => fetchUploadAvatar(file),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'user-info'] })
+      queryClient.invalidateQueries({ queryKey: authKeys.userInfo() })
     }
   })
 }

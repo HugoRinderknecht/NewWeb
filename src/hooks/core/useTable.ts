@@ -35,6 +35,10 @@ import {
   createErrorHandler
 } from '../../utils/table/tableUtils'
 import { tableConfig } from '../../utils/table/tableConfig'
+import {
+  TABLE_CACHE_DEFAULT_TIME,
+  TABLE_CACHE_DEFAULT_MAX_SIZE
+} from '@/config/cache-policy'
 
 // Vue Query 集成（延迟导入，避免强制依赖）
 let _queryClient: any = null
@@ -100,6 +104,7 @@ export interface UseTableConfig<
     /**
      * Vue Query queryKey，启用后使用 Vue Query 缓存替代自建缓存。
      * 传入 queryKey 后，enableCache 选项将被忽略，缓存统一由 Vue Query 管理。
+     * TableCache 仅用于不使用 Vue Query 的特殊场景（如无需全局缓存管理的简单表格）。
      * 示例：['projects', 'list']
      */
     queryKey?: readonly unknown[]
@@ -162,9 +167,9 @@ function useTableImpl<TApiFn extends (params: any) => Promise<any>>(
     transform: { dataTransformer, responseAdapter = defaultResponseAdapter } = {},
     performance: {
       enableCache = false,
-      cacheTime = 5 * 60 * 1000,
+      cacheTime = TABLE_CACHE_DEFAULT_TIME,
       debounceTime = 300,
-      maxCacheSize = 50,
+      maxCacheSize = TABLE_CACHE_DEFAULT_MAX_SIZE,
       queryKey
     } = {},
     hooks: { onSuccess, onError, onCacheHit, resetFormCallback } = {},
@@ -173,6 +178,15 @@ function useTableImpl<TApiFn extends (params: any) => Promise<any>>(
 
   // 是否使用 Vue Query 缓存后端
   const useVueQueryCache = !!queryKey
+
+  // ⚠️ 当同时启用 queryKey 和 enableCache 时，优先使用 Vue Query 缓存，
+  // 并发出警告提示开发者避免双重缓存
+  if (useVueQueryCache && enableCache) {
+    console.warn(
+      '[useTable] 同时启用了 queryKey 和 enableCache，将优先使用 Vue Query 缓存。' +
+        'TableCache 仅用于不使用 Vue Query 的特殊场景，建议将 enableCache 设为 false。'
+    )
+  }
 
   // 分页字段名配置：优先使用传入的配置，否则使用全局配置
   const pageKey = paginationKey?.current || tableConfig.paginationKey.current

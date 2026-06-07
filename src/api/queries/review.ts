@@ -22,7 +22,7 @@ import {
   fetchUpdateReviewRouteConfig
 } from '@/api/review'
 
-const QUERY_KEY = 'reviews' as const
+import { reviewKeys } from './keys'
 
 // ==================== 查询 ====================
 
@@ -31,7 +31,7 @@ export function useReviewList(
   params?: MaybeRefOrGetter<Api.Review.ReviewSearchParams | undefined>
 ) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'list', params] as const,
+    queryKey: reviewKeys.list(params),
     queryFn: async () => {
       const res = await fetchGetReviewList(toValue(params))
       return res ?? null
@@ -45,7 +45,7 @@ export function useReviewItems(
   params?: MaybeRefOrGetter<Api.Review.ReviewSearchParams | undefined>
 ) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'items', params] as const,
+    queryKey: reviewKeys.items(params),
     queryFn: async () => {
       const res = await fetchGetReviewItems(toValue(params))
       return res ?? null
@@ -57,7 +57,7 @@ export function useReviewItems(
 /** 审核任务详情 */
 export function useReviewDetail(id: MaybeRefOrGetter<string | undefined>) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'detail', id] as const,
+    queryKey: reviewKeys.detail(id),
     queryFn: async () => {
       const reviewId = toValue(id)
       if (!reviewId) return null
@@ -74,7 +74,7 @@ export function useReviewStatus(
   targetId: MaybeRefOrGetter<string | undefined>
 ) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'status', reviewType, targetId] as const,
+    queryKey: reviewKeys.status(reviewType, targetId),
     queryFn: async () => {
       const type = toValue(reviewType)
       const tid = toValue(targetId)
@@ -89,7 +89,7 @@ export function useReviewStatus(
 /** 待审核数量 */
 export function usePendingReviewCount() {
   return useQuery({
-    queryKey: [QUERY_KEY, 'pending-count'] as const,
+    queryKey: reviewKeys.pendingCount(),
     queryFn: async () => {
       const res = await fetchGetPendingReviewCount()
       return typeof res === 'number' ? res : 0
@@ -104,7 +104,7 @@ export function useMySubmissions(
   params?: MaybeRefOrGetter<Api.Review.ReviewSearchParams | undefined>
 ) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'my-submissions', params] as const,
+    queryKey: reviewKeys.mySubmissions(params),
     queryFn: async () => {
       const res = await fetchGetMySubmissions(toValue(params))
       return res ?? null
@@ -116,7 +116,7 @@ export function useMySubmissions(
 /** 项目审核统计 */
 export function useReviewStatistics(projectId: MaybeRefOrGetter<string | undefined>) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'statistics', projectId] as const,
+    queryKey: reviewKeys.statistics(projectId),
     queryFn: async () => {
       const id = toValue(projectId)
       if (!id) return null
@@ -130,7 +130,7 @@ export function useReviewStatistics(projectId: MaybeRefOrGetter<string | undefin
 /** 驳回原因列表 */
 export function useRejectReasons(projectId: MaybeRefOrGetter<string | undefined>) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'reject-reasons', projectId] as const,
+    queryKey: reviewKeys.rejectReasons(projectId),
     queryFn: async () => {
       const id = toValue(projectId)
       if (!id) return []
@@ -144,7 +144,7 @@ export function useRejectReasons(projectId: MaybeRefOrGetter<string | undefined>
 /** 审核路由配置 */
 export function useReviewRouteConfig(projectId: MaybeRefOrGetter<string | undefined>) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'route-config', projectId] as const,
+    queryKey: reviewKeys.routeConfig(projectId),
     queryFn: async () => {
       const id = toValue(projectId)
       if (!id) return null
@@ -163,8 +163,8 @@ export function useCreateReview() {
   return useMutation({
     mutationFn: (params: Api.Review.CreateReviewParams) => fetchCreateReview(params),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'list'] })
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'pending-count'] })
+      queryClient.invalidateQueries({ queryKey: reviewKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: reviewKeys.pendingCount() })
     }
   })
 }
@@ -175,8 +175,8 @@ export function useClaimReview() {
   return useMutation({
     mutationFn: (id: string) => fetchClaimReview(id),
     onSuccess: (_data, id) => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'detail', id] })
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'list'] })
+      queryClient.invalidateQueries({ queryKey: reviewKeys.detail(id) })
+      queryClient.invalidateQueries({ queryKey: reviewKeys.lists() })
     }
   })
 }
@@ -187,8 +187,8 @@ export function useReviewDecision() {
   return useMutation({
     mutationFn: (params: Api.Review.DecisionParams) => fetchReviewDecision(params),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'list'] })
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'pending-count'] })
+      queryClient.invalidateQueries({ queryKey: reviewKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: reviewKeys.pendingCount() })
     }
   })
 }
@@ -199,8 +199,8 @@ export function useBatchReviewDecision() {
   return useMutation({
     mutationFn: (params: Api.Review.BatchDecisionParams) => fetchBatchReviewDecision(params),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'list'] })
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'pending-count'] })
+      queryClient.invalidateQueries({ queryKey: reviewKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: reviewKeys.pendingCount() })
     }
   })
 }
@@ -211,8 +211,8 @@ export function useWithdrawReview() {
   return useMutation({
     mutationFn: (id: string) => fetchWithdrawReview(id),
     onSuccess: (_data, id) => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'detail', id] })
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'list'] })
+      queryClient.invalidateQueries({ queryKey: reviewKeys.detail(id) })
+      queryClient.invalidateQueries({ queryKey: reviewKeys.lists() })
     }
   })
 }
@@ -223,8 +223,8 @@ export function useArchiveReview() {
   return useMutation({
     mutationFn: (id: string) => fetchArchiveReview(id),
     onSuccess: (_data, id) => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'detail', id] })
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'list'] })
+      queryClient.invalidateQueries({ queryKey: reviewKeys.detail(id) })
+      queryClient.invalidateQueries({ queryKey: reviewKeys.lists() })
     }
   })
 }
@@ -235,8 +235,8 @@ export function useDispatchReview() {
   return useMutation({
     mutationFn: (id: string) => fetchDispatchReview(id),
     onSuccess: (_data, id) => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'detail', id] })
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'list'] })
+      queryClient.invalidateQueries({ queryKey: reviewKeys.detail(id) })
+      queryClient.invalidateQueries({ queryKey: reviewKeys.lists() })
     }
   })
 }
@@ -248,7 +248,7 @@ export function useAddRejectReason() {
     mutationFn: (payload: { projectId: string; params: Api.Review.RejectReasonParams }) =>
       fetchAddRejectReason(payload.projectId, payload.params),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'reject-reasons', variables.projectId] })
+      queryClient.invalidateQueries({ queryKey: reviewKeys.rejectReasons(variables.projectId) })
     }
   })
 }
@@ -260,7 +260,7 @@ export function useDeleteRejectReason() {
     mutationFn: (payload: { projectId: string; reasonId: string }) =>
       fetchDeleteRejectReason(payload.projectId, payload.reasonId),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'reject-reasons', variables.projectId] })
+      queryClient.invalidateQueries({ queryKey: reviewKeys.rejectReasons(variables.projectId) })
     }
   })
 }
@@ -272,7 +272,7 @@ export function useUpdateReviewRouteConfig() {
     mutationFn: (payload: { projectId: string; params: Api.Review.RouteConfig }) =>
       fetchUpdateReviewRouteConfig(payload.projectId, payload.params),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'route-config', variables.projectId] })
+      queryClient.invalidateQueries({ queryKey: reviewKeys.routeConfig(variables.projectId) })
     }
   })
 }

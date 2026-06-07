@@ -1,6 +1,8 @@
 /**
  * 用户状态管理模块
  *
+ * 【状态类别：客户端 UI 状态 · Pinia】
+ *
  * 提供用户相关的状态管理
  *
  * ## 主要功能
@@ -26,6 +28,7 @@
  * - 存储键：sys-v{version}-user
  * - 登出时自动清理
  *
+ * @see src/config/state-policy.ts 状态管理策略
  * @module store/modules/user
  * @author Dreamcraft_Astra Team
  */

@@ -5,12 +5,16 @@ import { useProjectStore } from './project'
 /**
  * 项目数据 Store（轻量版）
  *
+ * 【状态类别：客户端 UI 状态 · Pinia】
+ *
  * 本 store 仅负责追踪当前项目/剧集/分镜选中状态、视频播放器状态等 UI 相关状态。
  * 所有服务端数据（项目列表、剧集、分镜、角色等）统一通过
  * `useProjectList`、`useProjectEpisodes`、`useStoryboardList` 等 Vue Query Hook 获取。
  *
  * 当前项目 ID 的唯一真实来源为 useProjectStore（带 sessionStorage 持久化），
  * 本 store 通过 computed 引用，不再维护独立副本，消除循环依赖。
+ *
+ * @see src/config/state-policy.ts 状态管理策略
  */
 
 // ==================== UI 状态类型 ====================

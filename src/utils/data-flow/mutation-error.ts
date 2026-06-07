@@ -5,9 +5,16 @@
  * 使用方式：
  * 1. 在 useMutation 的 onError 中调用 handleMutationError
  * 2. 或者通过包装的 useApiMutation 自动应用
+ *
+ * 已集成错误分层系统：
+ * - 传输错误自动 toast
+ * - 领域错误使用用户友好消息
+ * - 可配置静默处理
  */
 import { HttpError, showError } from '@/utils/http/error'
 import { getBusinessErrorMessage } from '@/utils/http/status'
+import { toDomainError, getUserMessage, isUserFacingError } from '@/utils/error/domain-errors'
+import { DomainError } from '@/utils/error/types'
 
 /** Mutation 错误处理配置 */
 export interface MutationErrorOptions {
@@ -21,24 +28,20 @@ export interface MutationErrorOptions {
 
 /**
  * 提取可读的错误消息
- * 优先从 HttpError 提取，然后是业务码映射，最后是兜底文案
+ * 优先从 DomainError 提取，然后从 HttpError 提取，最后是兜底文案
+ *
+ * 已集成错误分层系统，优先使用 getUserMessage
  */
 export function extractErrorMessage(error: unknown, fallback = '操作失败'): string {
-  if (error instanceof HttpError) {
-    if (error.message && error.message !== '请求失败') return error.message
-    if (error.code && error.code !== 0) {
-      const msg = getBusinessErrorMessage(error.code)
-      if (msg && msg !== '未知错误') return msg
-    }
-  }
-  if (error instanceof Error && error.message) return error.message
-  return fallback
+  // 优先使用错误分层系统的消息提取
+  return getUserMessage(error, fallback)
 }
 
 /**
  * 统一处理 mutation 错误
- * - 自动从错误中提取业务消息
- * - 默认显示 ElMessage 错误提示
+ * - 自动从错误中提取业务消息（通过错误分层系统）
+ * - 传输错误自动 toast，领域错误使用用户友好消息
+ * - 可通过 userFacing 判断是否需要用户感知
  * - 记录详细错误到控制台
  * - 支持自定义处理器和上下文前缀
  */
@@ -55,13 +58,19 @@ export function handleMutationError(
     if (result === false) return
   }
 
+  // 转换为领域错误，获取分层信息
+  const domainError = toDomainError(error)
+
   // 输出到控制台便于调试
   const contextPrefix = context ? `[${context}] ` : ''
   // eslint-disable-next-line no-console
-  console.error(`${contextPrefix}Mutation 错误:`, error)
+  console.error(`${contextPrefix}Mutation 错误:`, domainError)
 
   if (showMessage) {
-    const message = extractErrorMessage(error)
+    // 使用错误分层系统判断是否需要用户感知
+    if (!isUserFacingError(domainError)) return
+
+    const message = domainError.userMessage
     showError(new HttpError(message, 0), true)
   }
 }
@@ -82,3 +91,7 @@ export function createDefaultOnError(
     handleMutationError(error, variables, options)
   }
 }
+
+// 重新导出错误分层系统类型，方便从 data-flow 模块使用
+export type { DomainError } from '@/utils/error/types'
+export { isDomainError } from '@/utils/error/types'

@@ -269,12 +269,8 @@
   import { useProjectList } from '@/api/queries/project'
   import { useStoryboardProjectStore } from '@/store/modules/storyboard-project'
   import ProjectSwitcher from '@/components/ProjectSwitcher/index.vue'
-  import {
-    useStoryboardList,
-    useBatchSubmitStoryboardReview,
-    useBatchDeleteStoryboards,
-    useUpdateStoryboard
-  } from '@/api/queries/storyboard'
+  import { useStoryboardList } from '@/api/queries/storyboard'
+  import { useStoryboardBatchActions } from '@/domain/storyboard'
 
   defineOptions({ name: 'StoryboardBatchEdit' })
 
@@ -416,9 +412,7 @@
     return selectedStoryboards.value.slice(0, 5)
   })
 
-  const { mutateAsync: batchSubmitReview } = useBatchSubmitStoryboardReview()
-  const { mutateAsync: batchDeleteStoryboards } = useBatchDeleteStoryboards()
-  const { mutateAsync: updateStoryboard } = useUpdateStoryboard()
+  const { batchDelete, batchSubmitReview, batchApplyChanges } = useStoryboardBatchActions()
 
   const handleRemoveItem = (item: StoryboardItem) => {
     ElMessageBox.confirm(`确定要从列表中移除「${item.name}」吗？`, '确认', {
@@ -484,46 +478,23 @@
     ).then(async () => {
       try {
         const ids = selectedStoryboards.value.map((item) => String(item.id))
-
-        // 如果修改了审核状态为已通过，提交审核
-        if (batchForm.status === 'approved') {
-          await batchSubmitReview({ storyboardIds: ids, projectId: projectId.value })
-        }
-
-        // 逐个更新分镜属性
-        const updatePromises = ids.map((id) => {
-          const item = storyboardList.value.find((s) => String(s.id) === id)
-          if (!item) return Promise.resolve()
-
-          const updateParams: any = {}
-          if (batchForm.sceneType) updateParams.title = item.name
-          if (batchForm.remark) updateParams.description = batchForm.remark
-
-          // 合并标签变化
-          let newTags = [...item.tags]
-          if (batchForm.addTags.length > 0) {
-            newTags = [...new Set([...newTags, ...batchForm.addTags])]
-          }
-          if (batchForm.removeTags.length > 0) {
-            newTags = newTags.filter((t) => !batchForm.removeTags.includes(t))
-          }
-          if (JSON.stringify(newTags) !== JSON.stringify(item.tags)) {
-            updateParams.tags = newTags
-          }
-
-          if (Object.keys(updateParams).length > 0) {
-            return updateStoryboard({
-              storyboardId: id,
-              params: updateParams,
-              projectId: projectId.value
-            })
-          }
-          return Promise.resolve()
+        await batchApplyChanges({
+          ids,
+          projectId: projectId.value,
+          sceneType: batchForm.sceneType || undefined,
+          timeOfDay: batchForm.timeOfDay || undefined,
+          cameraType: batchForm.cameraType || undefined,
+          addTags: batchForm.addTags,
+          removeTags: batchForm.removeTags,
+          status: batchForm.status || undefined,
+          remark: batchForm.remark || undefined,
+          items: selectedStoryboards.value.map((item) => ({
+            id: item.id,
+            tags: item.tags,
+            name: item.name
+          }))
         })
-
-        await Promise.all(updatePromises)
         await refetchStoryboardList()
-        ElMessage.success('批量修改已应用')
 
         batchForm.sceneType = ''
         batchForm.timeOfDay = ''
@@ -533,7 +504,7 @@
         batchForm.status = ''
         batchForm.remark = ''
       } catch {
-        ElMessage.error('批量操作失败')
+        // 错误已在 domain action 中处理
       }
     })
   }
@@ -554,14 +525,13 @@
     ).then(async () => {
       try {
         const ids = selectedStoryboards.value.map((item) => String(item.id))
-        await batchDeleteStoryboards({ storyboardIds: ids, projectId: projectId.value })
+        await batchDelete(ids, projectId.value)
         const data = storyboardListData.value as any
         if (data && Array.isArray(data.records)) {
           data.records = []
         }
-        ElMessage.success('批量删除成功')
       } catch {
-        ElMessage.error('批量删除失败')
+        // 错误已在 domain action 中处理
       }
     })
   }
@@ -582,13 +552,12 @@
     ).then(async () => {
       try {
         const ids = selectedStoryboards.value.map((item) => String(item.id))
-        await batchSubmitReview({ storyboardIds: ids, projectId: projectId.value })
+        await batchSubmitReview(ids, projectId.value)
         storyboardList.value.forEach((item) => {
           item.status = 'pending' as StatusType
         })
-        ElMessage.success('批量提交审核成功')
       } catch {
-        ElMessage.error('批量提交审核失败')
+        // 错误已在 domain action 中处理
       }
     })
   }

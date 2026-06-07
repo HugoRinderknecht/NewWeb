@@ -273,6 +273,7 @@
     useRestoreProject,
     useCopyProject
   } from '@/api/queries/project'
+  import { useProjectBatchActions } from '@/domain/project'
 
   defineOptions({ name: 'ProjectList' })
 
@@ -356,6 +357,7 @@
   const archiveMutation = useArchiveProject()
   const restoreMutation = useRestoreProject()
   const copyMutation = useCopyProject()
+  const { batchDelete, batchArchive, batchRestore } = useProjectBatchActions()
 
   const handleSort = (field: 'name' | 'createTime') => {
     if (sortField.value === field) {
@@ -437,6 +439,7 @@
       return
     }
     const names = selectedProjects.value.map((p) => p.projectName).join('、')
+    const ids = selectedProjects.value.map((p) => p.id)
     if (command === 'archive') {
       ElMessageBox.confirm(
         `确定要归档以下 ${selectedProjects.value.length} 个项目吗？\n${names}`,
@@ -448,12 +451,9 @@
         }
       ).then(async () => {
         try {
-          for (const p of selectedProjects.value) {
-            await archiveMutation.mutateAsync(p.id)
-          }
-          ElMessage.success('归档成功')
+          await batchArchive(ids)
         } catch {
-          ElMessage.error('归档失败')
+          // 错误已在 domain action 中处理
         }
       })
     } else if (command === 'restore') {
@@ -467,12 +467,9 @@
         }
       ).then(async () => {
         try {
-          for (const p of selectedProjects.value) {
-            await restoreMutation.mutateAsync(p.id)
-          }
-          ElMessage.success('恢复成功')
+          await batchRestore(ids)
         } catch {
-          ElMessage.error('恢复失败')
+          // 错误已在 domain action 中处理
         }
       })
     } else if (command === 'delete') {
@@ -486,12 +483,9 @@
         }
       ).then(async () => {
         try {
-          for (const p of selectedProjects.value) {
-            await deleteMutation.mutateAsync(p.id)
-          }
-          ElMessage.success('删除成功')
+          await batchDelete(ids)
         } catch {
-          ElMessage.error('删除失败')
+          // 错误已在 domain action 中处理
         }
       })
     }

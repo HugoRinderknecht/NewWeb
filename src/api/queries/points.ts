@@ -10,7 +10,7 @@ import {
   fetchGetTeamTokenUsage
 } from '@/api/points'
 
-const QUERY_KEY = 'points' as const
+import { pointsKeys } from './keys'
 
 // ==================== 积分/配额 ====================
 
@@ -19,7 +19,7 @@ export function useCreditTransactionList(
   params?: MaybeRefOrGetter<Api.Common.CommonSearchParams | undefined>
 ) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'transactions', params] as const,
+    queryKey: pointsKeys.transactions(params),
     queryFn: async () => {
       const res = await fetchGetCreditTransactions(toValue(params))
       return res ?? null
@@ -31,7 +31,7 @@ export function useCreditTransactionList(
 /** 项目积分余额 */
 export function useProjectCredits(projectId: MaybeRefOrGetter<string | undefined>) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'project-credits', projectId] as const,
+    queryKey: pointsKeys.projectCredits(projectId),
     queryFn: async () => {
       const id = toValue(projectId)
       if (!id) return null
@@ -45,7 +45,7 @@ export function useProjectCredits(projectId: MaybeRefOrGetter<string | undefined
 /** 积分定价列表 */
 export function usePricingList() {
   return useQuery({
-    queryKey: [QUERY_KEY, 'pricing'] as const,
+    queryKey: pointsKeys.pricing(),
     queryFn: async () => {
       const res = await fetchGetPricingList()
       return res ?? []
@@ -59,7 +59,7 @@ export function usePricingList() {
 /** 我的 Token 使用情况 */
 export function useMyTokenUsage() {
   return useQuery({
-    queryKey: [QUERY_KEY, 'token-usage'] as const,
+    queryKey: pointsKeys.tokenUsage(),
     queryFn: async () => await fetchGetMyTokenUsage(),
     staleTime: 60 * 1000
   })
@@ -70,7 +70,7 @@ export function useTokenUsageRecords(
   params?: MaybeRefOrGetter<Api.Common.CommonSearchParams | undefined>
 ) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'token-records', params] as const,
+    queryKey: pointsKeys.tokenRecords(params),
     queryFn: async () => {
       const res = await fetchGetTokenUsageRecords(toValue(params))
       return res ?? null
@@ -82,7 +82,7 @@ export function useTokenUsageRecords(
 /** 项目 Token 使用情况 */
 export function useProjectTokenUsage(projectId: MaybeRefOrGetter<string | undefined>) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'project-token', projectId] as const,
+    queryKey: pointsKeys.projectToken(projectId),
     queryFn: async () => {
       const id = toValue(projectId)
       if (!id) return null
@@ -96,7 +96,7 @@ export function useProjectTokenUsage(projectId: MaybeRefOrGetter<string | undefi
 /** 团队 Token 使用情况 */
 export function useTeamTokenUsage(teamId: MaybeRefOrGetter<string | undefined>) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'team-token', teamId] as const,
+    queryKey: pointsKeys.teamToken(teamId),
     queryFn: async () => {
       const id = toValue(teamId)
       if (!id) return null

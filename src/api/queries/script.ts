@@ -37,7 +37,7 @@ import {
   fetchGetVideoPrompts
 } from '@/api/script'
 
-const QUERY_KEY = 'scripts' as const
+import { scriptKeys } from './keys'
 
 // ==================== 剧本列表 ====================
 
@@ -47,7 +47,7 @@ export function useScriptList(
   params?: MaybeRefOrGetter<Api.Script.ScriptSearchParams | undefined>
 ) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'list', projectId, params] as const,
+    queryKey: scriptKeys.list(projectId, params),
     queryFn: async () => {
       const id = toValue(projectId)
       if (!id) return null
@@ -61,7 +61,7 @@ export function useScriptList(
 /** 剧本详情 */
 export function useScriptDetail(scriptId: MaybeRefOrGetter<string | undefined>) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'detail', scriptId] as const,
+    queryKey: scriptKeys.detail(scriptId),
     queryFn: async () => {
       const id = toValue(scriptId)
       if (!id) return null
@@ -75,7 +75,7 @@ export function useScriptDetail(scriptId: MaybeRefOrGetter<string | undefined>) 
 /** 剧本审核状态 */
 export function useScriptReviewStatus(scriptId: MaybeRefOrGetter<string | undefined>) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'review-status', scriptId] as const,
+    queryKey: scriptKeys.reviewStatus(scriptId),
     queryFn: async () => {
       const id = toValue(scriptId)
       if (!id) return null
@@ -89,7 +89,7 @@ export function useScriptReviewStatus(scriptId: MaybeRefOrGetter<string | undefi
 /** 审核后资产生成进度 */
 export function usePostApprovalStatus(scriptId: MaybeRefOrGetter<string | undefined>) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'post-approval', scriptId] as const,
+    queryKey: scriptKeys.postApproval(scriptId),
     queryFn: async () => {
       const id = toValue(scriptId)
       if (!id) return null
@@ -110,7 +110,7 @@ export function useCreateScript() {
     mutationFn: (payload: { projectId: string; params: Api.Script.CreateScriptParams }) =>
       fetchCreateScript(payload.projectId, payload.params),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'list', variables.projectId] })
+      queryClient.invalidateQueries({ queryKey: scriptKeys.listByProject(variables.projectId) })
     }
   })
 }
@@ -125,9 +125,9 @@ export function useUpdateScript() {
       projectId?: string
     }) => fetchUpdateScript(payload.scriptId, payload.params),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'detail', variables.scriptId] })
+      queryClient.invalidateQueries({ queryKey: scriptKeys.detail(variables.scriptId) })
       if (variables.projectId) {
-        queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'list', variables.projectId] })
+        queryClient.invalidateQueries({ queryKey: scriptKeys.listByProject(variables.projectId) })
       }
     }
   })
@@ -140,9 +140,9 @@ export function useDeleteScript() {
     mutationFn: (payload: { scriptId: string; projectId?: string }) =>
       fetchDeleteScript(payload.scriptId),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'detail', variables.scriptId] })
+      queryClient.invalidateQueries({ queryKey: scriptKeys.detail(variables.scriptId) })
       if (variables.projectId) {
-        queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'list', variables.projectId] })
+        queryClient.invalidateQueries({ queryKey: scriptKeys.listByProject(variables.projectId) })
       }
     }
   })
@@ -155,10 +155,10 @@ export function useSubmitScriptReview() {
     mutationFn: (payload: { scriptId: string; projectId?: string }) =>
       fetchSubmitScriptReview(payload.scriptId),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'detail', variables.scriptId] })
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'review-status', variables.scriptId] })
+      queryClient.invalidateQueries({ queryKey: scriptKeys.detail(variables.scriptId) })
+      queryClient.invalidateQueries({ queryKey: scriptKeys.reviewStatus(variables.scriptId) })
       if (variables.projectId) {
-        queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'list', variables.projectId] })
+        queryClient.invalidateQueries({ queryKey: scriptKeys.listByProject(variables.projectId) })
       }
     }
   })
@@ -171,10 +171,10 @@ export function useWithdrawScriptReview() {
     mutationFn: (payload: { scriptId: string; projectId?: string }) =>
       fetchWithdrawScriptReview(payload.scriptId),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'detail', variables.scriptId] })
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'review-status', variables.scriptId] })
+      queryClient.invalidateQueries({ queryKey: scriptKeys.detail(variables.scriptId) })
+      queryClient.invalidateQueries({ queryKey: scriptKeys.reviewStatus(variables.scriptId) })
       if (variables.projectId) {
-        queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'list', variables.projectId] })
+        queryClient.invalidateQueries({ queryKey: scriptKeys.listByProject(variables.projectId) })
       }
     }
   })
@@ -185,7 +185,7 @@ export function useWithdrawScriptReview() {
 /** 项目所有分集 */
 export function useProjectEpisodes(projectId: MaybeRefOrGetter<string | undefined>) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'episodes', projectId] as const,
+    queryKey: scriptKeys.episodes(projectId),
     queryFn: async () => {
       const id = toValue(projectId)
       if (!id) return []
@@ -202,7 +202,7 @@ export function useScriptEpisodes(
   scriptId: MaybeRefOrGetter<string | undefined>
 ) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'script-episodes', projectId, scriptId] as const,
+    queryKey: scriptKeys.scriptEpisodes(projectId, scriptId),
     queryFn: async () => {
       const pid = toValue(projectId)
       const sid = toValue(scriptId)
@@ -222,9 +222,9 @@ export function useDecomposeScript() {
       fetchDecomposeScript(payload.projectId, payload.scriptId, payload.force),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
-        queryKey: [QUERY_KEY, 'script-episodes', variables.projectId, variables.scriptId]
+        queryKey: scriptKeys.scriptEpisodes(variables.projectId, variables.scriptId)
       })
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'episodes', variables.projectId] })
+      queryClient.invalidateQueries({ queryKey: scriptKeys.episodes(variables.projectId) })
     }
   })
 }
@@ -235,7 +235,7 @@ export function useEpisodeDetail(
   episodeId: MaybeRefOrGetter<string | undefined>
 ) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'episode', scriptId, episodeId] as const,
+    queryKey: scriptKeys.episode(scriptId, episodeId),
     queryFn: async () => {
       const sid = toValue(scriptId)
       const eid = toValue(episodeId)
@@ -254,7 +254,7 @@ export function useCreateEpisode() {
     mutationFn: (payload: { projectId: string; params: Api.Script.EpisodeParams }) =>
       fetchCreateEpisode(payload.projectId, payload.params),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'episodes', variables.projectId] })
+      queryClient.invalidateQueries({ queryKey: scriptKeys.episodes(variables.projectId) })
     }
   })
 }
@@ -271,10 +271,10 @@ export function useUpdateEpisode() {
     }) => fetchUpdateEpisode(payload.scriptId, payload.episodeId, payload.params),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
-        queryKey: [QUERY_KEY, 'episode', variables.scriptId, variables.episodeId]
+        queryKey: scriptKeys.episode(variables.scriptId, variables.episodeId)
       })
       if (variables.projectId) {
-        queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'episodes', variables.projectId] })
+        queryClient.invalidateQueries({ queryKey: scriptKeys.episodes(variables.projectId) })
       }
     }
   })
@@ -289,13 +289,13 @@ export function useDeleteEpisode() {
     onSuccess: (_data, variables) => {
       // 失效分集列表
       if (variables.projectId) {
-        queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'episodes', variables.projectId] })
+        queryClient.invalidateQueries({ queryKey: scriptKeys.episodes(variables.projectId) })
       }
       // 失效分集详情（之前缺失，导致详情页缓存了已删除的分集）
       queryClient.invalidateQueries({
-        queryKey: [QUERY_KEY, 'episode', variables.scriptId, variables.episodeId]
+        queryKey: scriptKeys.episode(variables.scriptId, variables.episodeId)
       })
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'episode', variables.episodeId] })
+      queryClient.invalidateQueries({ queryKey: scriptKeys.episodeById(variables.episodeId) })
     }
   })
 }
@@ -319,10 +319,10 @@ export function useGenerateCharacterProfiles() {
         payload.force
       ),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'detail', variables.scriptId] })
+      queryClient.invalidateQueries({ queryKey: scriptKeys.detail(variables.scriptId) })
       // 生成完成后失效人物小传缓存，使列表自动刷新
       queryClient.invalidateQueries({
-        queryKey: [QUERY_KEY, 'character-profiles', variables.scriptId]
+        queryKey: scriptKeys.characterProfiles(variables.scriptId)
       })
     }
   })
@@ -331,7 +331,7 @@ export function useGenerateCharacterProfiles() {
 /** 获取人物小传 */
 export function useCharacterProfiles(scriptId: MaybeRefOrGetter<string | undefined>) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'character-profiles', scriptId] as const,
+    queryKey: scriptKeys.characterProfiles(scriptId),
     queryFn: async () => {
       const id = toValue(scriptId)
       if (!id) return null
@@ -363,7 +363,7 @@ export function useExtractAssets() {
     }) =>
       fetchExtractAssets(payload.projectId, payload.scriptId, payload.episodeIds, payload.force),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'detail', variables.scriptId] })
+      queryClient.invalidateQueries({ queryKey: scriptKeys.detail(variables.scriptId) })
     }
   })
 }
@@ -371,7 +371,7 @@ export function useExtractAssets() {
 /** 获取资产提取结果 */
 export function useExtractedAssets(scriptId: MaybeRefOrGetter<string | undefined>) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'extracted-assets', scriptId] as const,
+    queryKey: scriptKeys.extractedAssets(scriptId),
     queryFn: async () => {
       const id = toValue(scriptId)
       if (!id) return null
@@ -399,7 +399,7 @@ export function useReviewScriptContent() {
         payload.force
       ),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'detail', variables.scriptId] })
+      queryClient.invalidateQueries({ queryKey: scriptKeys.detail(variables.scriptId) })
     }
   })
 }
@@ -414,7 +414,7 @@ export function useGenerateStyleConfig() {
       params: Api.Script.StyleConfigParams
     }) => fetchGenerateStyleConfig(payload.projectId, payload.scriptId, payload.params),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'detail', variables.scriptId] })
+      queryClient.invalidateQueries({ queryKey: scriptKeys.detail(variables.scriptId) })
     }
   })
 }
@@ -422,7 +422,7 @@ export function useGenerateStyleConfig() {
 /** 获取风格配置 */
 export function useStyleConfig(scriptId: MaybeRefOrGetter<string | undefined>) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'style-config', scriptId] as const,
+    queryKey: scriptKeys.styleConfig(scriptId),
     queryFn: async () => {
       const id = toValue(scriptId)
       if (!id) return null
@@ -443,7 +443,7 @@ export function useRefAnalysis() {
       params: Api.Script.RefAnalysisParams
     }) => fetchRefAnalysis(payload.projectId, payload.scriptId, payload.params),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'detail', variables.scriptId] })
+      queryClient.invalidateQueries({ queryKey: scriptKeys.detail(variables.scriptId) })
     }
   })
 }
@@ -451,7 +451,7 @@ export function useRefAnalysis() {
 /** 获取参考图分析结果 */
 export function useRefAnalysisResult(scriptId: MaybeRefOrGetter<string | undefined>) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'ref-analysis', scriptId] as const,
+    queryKey: scriptKeys.refAnalysis(scriptId),
     queryFn: async () => {
       const id = toValue(scriptId)
       if (!id) return null
@@ -479,7 +479,7 @@ export function useGenerateVoicePrompts() {
         payload.force
       ),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'detail', variables.scriptId] })
+      queryClient.invalidateQueries({ queryKey: scriptKeys.detail(variables.scriptId) })
     }
   })
 }
@@ -487,7 +487,7 @@ export function useGenerateVoicePrompts() {
 /** 获取音色提示词 */
 export function useVoicePrompts(scriptId: MaybeRefOrGetter<string | undefined>) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'voice-prompts', scriptId] as const,
+    queryKey: scriptKeys.voicePrompts(scriptId),
     queryFn: async () => {
       const id = toValue(scriptId)
       if (!id) return null
@@ -508,7 +508,7 @@ export function useGenerateAssetPrompts() {
       params?: Api.ScriptAsset.GenerateAssetPromptsParams
     }) => fetchGenerateAssetPrompts(payload.projectId, payload.scriptId, payload.params),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'detail', variables.scriptId] })
+      queryClient.invalidateQueries({ queryKey: scriptKeys.detail(variables.scriptId) })
     }
   })
 }
@@ -516,7 +516,7 @@ export function useGenerateAssetPrompts() {
 /** 获取资产提示词 */
 export function useAssetPrompts(scriptId: MaybeRefOrGetter<string | undefined>) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'asset-prompts', scriptId] as const,
+    queryKey: scriptKeys.assetPrompts(scriptId),
     queryFn: async () => {
       const id = toValue(scriptId)
       if (!id) return null
@@ -537,8 +537,8 @@ export function useGenerateAssetImages() {
       params: Api.ScriptAsset.GenerateAssetImagesParams
     }) => fetchGenerateAssetImages(payload.projectId, payload.scriptId, payload.params),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'detail', variables.scriptId] })
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'asset-images', variables.scriptId] })
+      queryClient.invalidateQueries({ queryKey: scriptKeys.detail(variables.scriptId) })
+      queryClient.invalidateQueries({ queryKey: scriptKeys.assetImages(variables.scriptId) })
     }
   })
 }
@@ -546,7 +546,7 @@ export function useGenerateAssetImages() {
 /** 获取资产图片 */
 export function useAssetImages(scriptId: MaybeRefOrGetter<string | undefined>) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'asset-images', scriptId] as const,
+    queryKey: scriptKeys.assetImages(scriptId),
     queryFn: async () => {
       const id = toValue(scriptId)
       if (!id) return []
@@ -567,7 +567,7 @@ export function useReviewAssetImages() {
       params: Api.ScriptAsset.ReviewAssetImagesParams
     }) => fetchReviewAssetImages(payload.projectId, payload.scriptId, payload.params),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'asset-images', variables.scriptId] })
+      queryClient.invalidateQueries({ queryKey: scriptKeys.assetImages(variables.scriptId) })
     }
   })
 }
@@ -592,7 +592,7 @@ export function useGenerateVideoPrompts() {
       ),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
-        queryKey: [QUERY_KEY, 'episode', variables.scriptId, variables.episodeId]
+        queryKey: scriptKeys.episode(variables.scriptId, variables.episodeId)
       })
     }
   })
@@ -601,7 +601,7 @@ export function useGenerateVideoPrompts() {
 /** 获取视频提示词 */
 export function useVideoPrompts(episodeId: MaybeRefOrGetter<string | undefined>) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'video-prompts', episodeId] as const,
+    queryKey: scriptKeys.videoPrompts(episodeId),
     queryFn: async () => {
       const id = toValue(episodeId)
       if (!id) return null

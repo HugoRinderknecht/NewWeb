@@ -1,6 +1,8 @@
 /**
  * 系统设置状态管理模块
  *
+ * 【状态类别：客户端 UI 状态 · Pinia】
+ *
  * 提供完整的系统设置状态管理
  *
  * ## 主要功能
@@ -27,6 +29,7 @@
  * - 存储键：sys-v{version}-setting
  * - 支持跨版本数据迁移
  *
+ * @see src/config/state-policy.ts 状态管理策略
  * @module store/modules/setting
  * @author Dreamcraft_Astra Team
  */

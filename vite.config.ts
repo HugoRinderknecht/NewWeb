@@ -162,18 +162,22 @@ export default ({ mode }: { mode: string }) => {
         },
         workbox: {
           globPatterns: ['assets/**/*.{js,css,svg,webp,png,ico}'],
+          /**
+           * PWA runtimeCaching 策略说明：
+           *
+           * - 业务 API 不应被 PWA 缓存，因为：
+           *   1. 业务数据频繁变更，PWA 缓存容易导致陈旧数据
+           *   2. Vue Query 已在应用层管理 API 缓存（staleTime/gcTime），PWA 再缓存会造成双重缓存污染
+           *   3. 用户认证状态变化后，缓存的 API 响应可能包含敏感数据
+           *
+           * - 如需缓存特定静态数据接口（如字典、配置），应单独添加规则并使用 StaleWhileRevalidate
+           */
           runtimeCaching: [
             {
+              // 业务 API 使用 NetworkOnly：始终从网络获取最新数据，不进行 PWA 层缓存
+              // API 缓存由 Vue Query 在应用层统一管理
               urlPattern: /^https:\/\/server\.bsuniversal\.cn\/api\/.*/i,
-              handler: 'NetworkFirst',
-              options: {
-                cacheName: 'api-cache',
-                expiration: {
-                  maxEntries: 50,
-                  maxAgeSeconds: 60 * 5
-                },
-                networkTimeoutSeconds: 10
-              }
+              handler: 'NetworkOnly'
             }
           ]
         },

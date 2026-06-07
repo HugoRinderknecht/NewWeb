@@ -6,14 +6,14 @@ import {
   fetchGetAiProcessHistoryDetail
 } from '@/api/ai-process'
 
-const QUERY_KEY = 'ai-process' as const
+import { aiProcessKeys } from './keys'
 
 /** AI 处理状态（轮询） */
 export function useAiProcessStatus(
   params?: MaybeRefOrGetter<Api.AiProcess.StatusQueryParams | undefined>
 ) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'status', params] as const,
+    queryKey: aiProcessKeys.status(params),
     queryFn: async () => {
       const p = toValue(params)
       if (!p?.type || !p?.businessId) return null
@@ -35,7 +35,7 @@ export function useAiProcessHistory(
   params?: MaybeRefOrGetter<Api.AiProcess.HistoryQueryParams | undefined>
 ) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'history', params] as const,
+    queryKey: aiProcessKeys.history(params),
     queryFn: async () => {
       const p = toValue(params)
       if (!p?.type || !p?.businessId) return []
@@ -54,7 +54,7 @@ export function useAiProcessHistory(
 /** AI 处理历史详情 */
 export function useAiProcessDetail(recordId: MaybeRefOrGetter<string | undefined>) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'detail', recordId] as const,
+    queryKey: aiProcessKeys.detail(recordId),
     queryFn: async () => {
       const id = toValue(recordId)
       if (!id) return null

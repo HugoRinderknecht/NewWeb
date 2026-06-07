@@ -1,6 +1,8 @@
 /**
  * 菜单状态管理模块
  *
+ * 【状态类别：客户端 UI 状态 · Pinia】
+ *
  * 提供菜单数据和动态路由的状态管理
  *
  * ## 主要功能
@@ -25,6 +27,11 @@
  * 3. 注册动态路由并保存移除函数
  * 4. 登出时调用移除函数清理路由
  *
+ * ⚠️ menuList 虽源自服务端，但与动态路由注册紧密耦合，
+ * 属于路由基础设施，保留在 Pinia 是合理的。
+ * 其他服务端数据（如菜单详情）应通过 Vue Query 获取。
+ *
+ * @see src/config/state-policy.ts 状态管理策略
  * @module store/modules/menu
  * @author Dreamcraft_Astra Team
  */

@@ -8,14 +8,14 @@ import {
   fetchGetImageTaskResult
 } from '@/api/image'
 
-const QUERY_KEY = 'image' as const
+import { imageKeys } from './keys'
 
 // ==================== 查询 ====================
 
 /** 图片模型列表 */
 export function useImageModels() {
   return useQuery({
-    queryKey: [QUERY_KEY, 'models'] as const,
+    queryKey: imageKeys.models(),
     queryFn: async () => {
       const res = await fetchGetImageModels()
       return res ?? []
@@ -27,7 +27,7 @@ export function useImageModels() {
 /** 图片模型详情 */
 export function useImageModelDetail(modelCode: MaybeRefOrGetter<string | undefined>) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'model-detail', modelCode] as const,
+    queryKey: imageKeys.modelDetail(modelCode),
     queryFn: async () => {
       const id = toValue(modelCode)
       if (!id) return null
@@ -40,7 +40,7 @@ export function useImageModelDetail(modelCode: MaybeRefOrGetter<string | undefin
 /** 图片任务状态（轮询） */
 export function useImageTaskStatus(taskId: MaybeRefOrGetter<string | undefined>) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'task-status', taskId] as const,
+    queryKey: imageKeys.taskStatus(taskId),
     queryFn: async () => {
       const id = toValue(taskId)
       if (!id) return null
@@ -54,7 +54,7 @@ export function useImageTaskStatus(taskId: MaybeRefOrGetter<string | undefined>)
 /** 图片任务结果 */
 export function useImageTaskResult(taskId: MaybeRefOrGetter<string | undefined>) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'task-result', taskId] as const,
+    queryKey: imageKeys.taskResult(taskId),
     queryFn: async () => {
       const id = toValue(taskId)
       if (!id) return null
@@ -72,8 +72,8 @@ export function useSubmitImageGeneration() {
   return useMutation({
     mutationFn: (params: Api.Image.ImageGenerateParams) => fetchSubmitImageGeneration(params),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'task-status'] })
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'task-result'] })
+      queryClient.invalidateQueries({ queryKey: imageKeys.taskStatuses() })
+      queryClient.invalidateQueries({ queryKey: imageKeys.taskResults() })
     }
   })
 }

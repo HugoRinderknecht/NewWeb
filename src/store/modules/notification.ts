@@ -4,9 +4,13 @@ import { ref, computed } from 'vue'
 /**
  * 通知 Store（轻量版）
  *
+ * 【状态类别：客户端 UI 状态 · Pinia】
+ *
  * 本 store 仅负责追踪未读数量、WebSocket 连接状态等 UI 相关状态。
  * 所有服务端数据（通知列表、偏好设置等）统一通过
  * `useNotificationList`、`useUnreadCount` 等 Vue Query Hook 获取。
+ *
+ * @see src/config/state-policy.ts 状态管理策略
  */
 export const useNotificationStore = defineStore(
   'notification',

@@ -1,6 +1,8 @@
 /**
  * 表格状态管理模块
  *
+ * 【状态类别：客户端 UI 状态 · Pinia】
+ *
  * 提供表格显示配置的状态管理
  *
  * ## 主要功能
@@ -22,6 +24,7 @@
  * - 存储键：sys-v{version}-table
  * - 用户配置跨页面保持
  *
+ * @see src/config/state-policy.ts 状态管理策略
  * @module store/modules/table
  * @author Dreamcraft_Astra Team
  */

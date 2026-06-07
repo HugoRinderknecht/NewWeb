@@ -1,6 +1,8 @@
 /**
  * 工作标签页状态管理模块
  *
+ * 【状态类别：客户端 UI 状态 · Pinia】
+ *
  * 提供多标签页功能的完整状态管理
  *
  * ## 主要功能
@@ -34,6 +36,7 @@
  * - 存储键：sys-v{version}-worktab
  * - 刷新页面保持标签状态
  *
+ * @see src/config/state-policy.ts 状态管理策略
  * @module store/modules/worktab
  * @author Dreamcraft_Astra Team
  */

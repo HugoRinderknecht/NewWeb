@@ -71,17 +71,9 @@
 </template>
 
 <script setup lang="ts">
-  import { useStatsDashboard, useProjectList, useStatsRealtime } from '@/api/queries'
+  import { useDashboardCardListModel } from '@/domain/statistics/composables'
 
   defineOptions({ name: 'CardList' })
-
-  interface CardDataItem {
-    des: string
-    icon: string
-    num: number
-    change: string
-    tone: 'primary' | 'success' | 'warning' | 'info'
-  }
 
   // props：布局模式、每行卡片数、起始索引、嵌入模式
   const props = withDefaults(
@@ -106,73 +98,10 @@
     }
   )
 
-  // 统一数据层：仪表盘数据
-  const { data: dashboardData } = useStatsDashboard()
-
-  // 统一数据层：项目列表（取总数，避免 dashboard 字段为空时无数据）
-  const { data: projectData } = useProjectList({ current: 1, size: 1 })
-
-  // 统一数据层：实时数据（用于活跃用户）
-  const { data: realtimeData } = useStatsRealtime()
-
-  /**
-   * 完整核心指标列表
-   * 展示项目总数、活跃用户、视频资源、积分余额四个关键指标
-   */
-  const fullList = computed<CardDataItem[]>(() => {
-    // 项目总数优先使用项目列表接口的 total（最权威的来源）
-    const totalProjects =
-      (projectData.value as any)?.total ?? dashboardData.value?.totalProjects ?? 0
-
-    // 活跃用户优先使用实时接口，回退至仪表盘统计
-    const activeUserSum =
-      realtimeData.value?.activeUsers ??
-      dashboardData.value?.activeUsers?.values?.reduce((a, b) => a + (b || 0), 0) ??
-      0
-
-    return [
-      {
-        des: '项目总数',
-        icon: 'ri:folder-3-line',
-        num: totalProjects,
-        change: dashboardData.value?.ownedProjectsChange ?? '+0%',
-        tone: 'primary'
-      },
-      {
-        des: '活跃用户',
-        icon: 'ri:team-line',
-        num: activeUserSum,
-        change: dashboardData.value?.weeklyChange ?? '+0%',
-        tone: 'info'
-      },
-      {
-        des: '视频资源',
-        icon: 'ri:movie-line',
-        num: dashboardData.value?.totalVideos ?? 0,
-        change: '+0%',
-        tone: 'success'
-      },
-      {
-        des: '积分余额',
-        icon: 'ri:coins-line',
-        num: dashboardData.value?.creditsBalance ?? 0,
-        change: dashboardData.value?.creditsBalanceChange ?? '+0%',
-        tone: 'warning'
-      }
-    ]
-  })
-
-  // 当前展示的卡片切片
-  const displayList = computed<CardDataItem[]>(() =>
-    fullList.value.slice(props.start, props.start + props.count)
-  )
-
-  // 根据 columns 决定每张卡片占据的栅格数
-  const columnSpan = computed(() => {
-    const col = props.columns
-    if (col === 2) return { xs: 24, sm: 12, md: 12, lg: 12 }
-    if (col === 3) return { xs: 24, sm: 12, md: 8, lg: 8 }
-    return { xs: 24, sm: 12, md: 12, lg: 6 }
+  const { displayList, columnSpan } = useDashboardCardListModel({
+    start: props.start,
+    count: props.count,
+    columns: props.columns
   })
 
   const rowClass = computed(() => `kpi-cols-${props.columns}`)

@@ -29,7 +29,7 @@ import {
   fetchGetScriptStoryboards
 } from '@/api/storyboard'
 
-const QUERY_KEY = 'storyboard' as const
+import { storyboardKeys } from './keys'
 
 /** 分镜列表 */
 export function useStoryboardList(
@@ -37,7 +37,7 @@ export function useStoryboardList(
   params?: MaybeRefOrGetter<Api.Storyboard.StoryboardSearchParams | undefined>
 ) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'list', projectId, params] as const,
+    queryKey: storyboardKeys.list(projectId, params),
     queryFn: async () => {
       const id = toValue(projectId)
       if (!id) return null
@@ -53,7 +53,7 @@ export function useStoryboardList(
 /** 分镜详情 */
 export function useStoryboardDetail(storyboardId: MaybeRefOrGetter<string | undefined>) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'detail', storyboardId] as const,
+    queryKey: storyboardKeys.detail(storyboardId),
     queryFn: async () => {
       const id = toValue(storyboardId)
       if (!id) return null
@@ -73,7 +73,7 @@ export function useCreateStoryboard() {
       fetchCreateStoryboard(payload.projectId, payload.params),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
-        queryKey: [QUERY_KEY, 'list', variables.projectId]
+        queryKey: storyboardKeys.listByProject(variables.projectId)
       })
     }
   })
@@ -90,11 +90,11 @@ export function useUpdateStoryboard() {
     }) => fetchUpdateStoryboard(payload.storyboardId, payload.params),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
-        queryKey: [QUERY_KEY, 'detail', variables.storyboardId]
+        queryKey: storyboardKeys.detail(variables.storyboardId)
       })
       if (variables.projectId) {
         queryClient.invalidateQueries({
-          queryKey: [QUERY_KEY, 'list', variables.projectId]
+          queryKey: storyboardKeys.listByProject(variables.projectId)
         })
       }
     }
@@ -108,11 +108,13 @@ export function useDeleteStoryboard() {
     mutationFn: (payload: { storyboardId: string; projectId?: string }) =>
       fetchDeleteStoryboard(payload.storyboardId),
     onSuccess: (_data, variables) => {
+      if (variables.projectId) {
+        queryClient.invalidateQueries({
+          queryKey: storyboardKeys.listByProject(variables.projectId)
+        })
+      }
       queryClient.invalidateQueries({
-        queryKey: [QUERY_KEY, 'list', variables.projectId]
-      })
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEY, 'detail', variables.storyboardId]
+        queryKey: storyboardKeys.detail(variables.storyboardId)
       })
     }
   })
@@ -127,7 +129,7 @@ export function useBatchDeleteStoryboards() {
     onSuccess: (_data, variables) => {
       if (variables.projectId) {
         queryClient.invalidateQueries({
-          queryKey: [QUERY_KEY, 'list', variables.projectId]
+          queryKey: storyboardKeys.listByProject(variables.projectId)
         })
       }
     }
@@ -142,14 +144,14 @@ export function useSubmitStoryboardReview() {
       fetchSubmitStoryboardReview(payload.storyboardId),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
-        queryKey: [QUERY_KEY, 'detail', variables.storyboardId]
+        queryKey: storyboardKeys.detail(variables.storyboardId)
       })
       queryClient.invalidateQueries({
-        queryKey: [QUERY_KEY, 'review-status', variables.storyboardId]
+        queryKey: storyboardKeys.reviewStatus(variables.storyboardId)
       })
       if (variables.projectId) {
         queryClient.invalidateQueries({
-          queryKey: [QUERY_KEY, 'list', variables.projectId]
+          queryKey: storyboardKeys.listByProject(variables.projectId)
         })
       }
     }
@@ -165,7 +167,7 @@ export function useBatchSubmitStoryboardReview() {
     onSuccess: (_data, variables) => {
       if (variables.projectId) {
         queryClient.invalidateQueries({
-          queryKey: [QUERY_KEY, 'list', variables.projectId]
+          queryKey: storyboardKeys.listByProject(variables.projectId)
         })
       }
     }
@@ -180,14 +182,14 @@ export function useWithdrawStoryboardReview() {
       fetchWithdrawStoryboardReview(payload.storyboardId),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
-        queryKey: [QUERY_KEY, 'detail', variables.storyboardId]
+        queryKey: storyboardKeys.detail(variables.storyboardId)
       })
       queryClient.invalidateQueries({
-        queryKey: [QUERY_KEY, 'review-status', variables.storyboardId]
+        queryKey: storyboardKeys.reviewStatus(variables.storyboardId)
       })
       if (variables.projectId) {
         queryClient.invalidateQueries({
-          queryKey: [QUERY_KEY, 'list', variables.projectId]
+          queryKey: storyboardKeys.listByProject(variables.projectId)
         })
       }
     }
@@ -197,7 +199,7 @@ export function useWithdrawStoryboardReview() {
 /** 分镜审核状态 */
 export function useStoryboardReviewStatus(storyboardId: MaybeRefOrGetter<string | undefined>) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'review-status', storyboardId] as const,
+    queryKey: storyboardKeys.reviewStatus(storyboardId),
     queryFn: async () => {
       const id = toValue(storyboardId)
       if (!id) return null
@@ -212,7 +214,7 @@ export function useStoryboardReviewStatus(storyboardId: MaybeRefOrGetter<string 
 /** 分镜版本历史 */
 export function useStoryboardVersions(storyboardId: MaybeRefOrGetter<string | undefined>) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'versions', storyboardId] as const,
+    queryKey: storyboardKeys.versions(storyboardId),
     queryFn: async () => {
       const id = toValue(storyboardId)
       if (!id) return []
@@ -232,14 +234,14 @@ export function useRollbackStoryboardVersion() {
       fetchRollbackStoryboardVersion(payload.storyboardId, payload.versionId),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
-        queryKey: [QUERY_KEY, 'versions', variables.storyboardId]
+        queryKey: storyboardKeys.versions(variables.storyboardId)
       })
       queryClient.invalidateQueries({
-        queryKey: [QUERY_KEY, 'detail', variables.storyboardId]
+        queryKey: storyboardKeys.detail(variables.storyboardId)
       })
       if (variables.projectId) {
         queryClient.invalidateQueries({
-          queryKey: [QUERY_KEY, 'list', variables.projectId]
+          queryKey: storyboardKeys.listByProject(variables.projectId)
         })
       }
     }
@@ -249,7 +251,7 @@ export function useRollbackStoryboardVersion() {
 /** 分镜配图列表 */
 export function useStoryboardImages(storyboardId: MaybeRefOrGetter<string | undefined>) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'images', storyboardId] as const,
+    queryKey: storyboardKeys.images(storyboardId),
     queryFn: async () => {
       const id = toValue(storyboardId)
       if (!id) return []
@@ -271,10 +273,10 @@ export function useAddStoryboardImage() {
     }) => fetchAddStoryboardImage(payload.storyboardId, payload.params),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
-        queryKey: [QUERY_KEY, 'images', variables.storyboardId]
+        queryKey: storyboardKeys.images(variables.storyboardId)
       })
       queryClient.invalidateQueries({
-        queryKey: [QUERY_KEY, 'detail', variables.storyboardId]
+        queryKey: storyboardKeys.detail(variables.storyboardId)
       })
     }
   })
@@ -289,10 +291,10 @@ export function useDeleteStoryboardImage() {
     onSuccess: (_data, variables) => {
       if (variables.storyboardId) {
         queryClient.invalidateQueries({
-          queryKey: [QUERY_KEY, 'images', variables.storyboardId]
+          queryKey: storyboardKeys.images(variables.storyboardId)
         })
         queryClient.invalidateQueries({
-          queryKey: [QUERY_KEY, 'detail', variables.storyboardId]
+          queryKey: storyboardKeys.detail(variables.storyboardId)
         })
       }
     }
@@ -302,7 +304,7 @@ export function useDeleteStoryboardImage() {
 /** 分镜关联资产列表 */
 export function useStoryboardAssets(storyboardId: MaybeRefOrGetter<string | undefined>) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'assets', storyboardId] as const,
+    queryKey: storyboardKeys.assets(storyboardId),
     queryFn: async () => {
       const id = toValue(storyboardId)
       if (!id) return []
@@ -322,10 +324,10 @@ export function useLinkAssetToStoryboard() {
       fetchLinkAssetToStoryboard(payload.storyboardId, payload.assetId, payload.assetType),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
-        queryKey: [QUERY_KEY, 'assets', variables.storyboardId]
+        queryKey: storyboardKeys.assets(variables.storyboardId)
       })
       queryClient.invalidateQueries({
-        queryKey: [QUERY_KEY, 'detail', variables.storyboardId]
+        queryKey: storyboardKeys.detail(variables.storyboardId)
       })
     }
   })
@@ -339,7 +341,7 @@ export function useUnlinkAssetFromStoryboard() {
       fetchUnlinkAssetFromStoryboard(payload.storyboardId, payload.assetId),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
-        queryKey: [QUERY_KEY, 'assets', variables.storyboardId]
+        queryKey: storyboardKeys.assets(variables.storyboardId)
       })
     }
   })
@@ -348,7 +350,7 @@ export function useUnlinkAssetFromStoryboard() {
 /** 场景列表 */
 export function useSceneList(episodeId: MaybeRefOrGetter<string | undefined>) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'scenes', episodeId] as const,
+    queryKey: storyboardKeys.scenes(episodeId),
     queryFn: async () => {
       const id = toValue(episodeId)
       if (!id) return []
@@ -368,7 +370,7 @@ export function useCreateScene() {
     onSuccess: (_data, variables) => {
       if (variables.episodeId) {
         queryClient.invalidateQueries({
-          queryKey: [QUERY_KEY, 'scenes', variables.episodeId]
+          queryKey: storyboardKeys.scenes(variables.episodeId)
         })
       }
     }
@@ -384,7 +386,7 @@ export function useUpdateScene() {
     onSuccess: (_data, variables) => {
       if (variables.params.episodeId) {
         queryClient.invalidateQueries({
-          queryKey: [QUERY_KEY, 'scenes', variables.params.episodeId]
+          queryKey: storyboardKeys.scenes(variables.params.episodeId)
         })
       }
     }
@@ -400,7 +402,7 @@ export function useDeleteScene() {
     onSuccess: (_data, variables) => {
       if (variables.episodeId) {
         queryClient.invalidateQueries({
-          queryKey: [QUERY_KEY, 'scenes', variables.episodeId]
+          queryKey: storyboardKeys.scenes(variables.episodeId)
         })
       }
     }
@@ -419,7 +421,7 @@ export function useReorderStoryboards() {
     onSuccess: (_data, variables) => {
       if (variables.projectId) {
         queryClient.invalidateQueries({
-          queryKey: [QUERY_KEY, 'list', variables.projectId]
+          queryKey: storyboardKeys.listByProject(variables.projectId)
         })
       }
     }
@@ -445,7 +447,7 @@ export function useDecomposeStoryboard() {
       ),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
-        queryKey: [QUERY_KEY, 'list', variables.projectId]
+        queryKey: storyboardKeys.listByProject(variables.projectId)
       })
     }
   })
@@ -469,7 +471,7 @@ export function useRebuildStoryboard() {
       ),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
-        queryKey: [QUERY_KEY, 'list', variables.projectId]
+        queryKey: storyboardKeys.listByProject(variables.projectId)
       })
     }
   })
@@ -481,7 +483,7 @@ export function useScriptStoryboards(
   scriptId: MaybeRefOrGetter<string | undefined>
 ) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'script-storyboards', projectId, scriptId] as const,
+    queryKey: storyboardKeys.scriptStoryboards(projectId, scriptId),
     queryFn: async () => {
       const pid = toValue(projectId)
       const sid = toValue(scriptId)

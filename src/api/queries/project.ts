@@ -22,13 +22,13 @@ import {
 } from '@/api/project'
 import { fetchGetProjectEpisodes } from '@/api/script'
 
-const QUERY_KEY = 'projects' as const
+import { projectKeys } from './keys'
 
 export function useProjectList(
   params: MaybeRefOrGetter<Api.Project.ProjectSearchParams | undefined>
 ) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'list', params] as const,
+    queryKey: projectKeys.list(params),
     queryFn: async ({ queryKey }) => {
       const [, , searchParams] = queryKey
       const res = await fetchGetProjectList(searchParams as any)
@@ -39,7 +39,7 @@ export function useProjectList(
 
 export function useProjectDetail(projectId: MaybeRefOrGetter<string | undefined>) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'detail', projectId] as const,
+    queryKey: projectKeys.detail(projectId),
     queryFn: async () => {
       const id = toValue(projectId)
       if (!id) return null
@@ -56,7 +56,7 @@ export function useProjectMembers(
   params: MaybeRefOrGetter<Api.Project.MemberSearchParams | undefined>
 ) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'members', projectId, params] as const,
+    queryKey: projectKeys.members(projectId, params),
     queryFn: async () => {
       const id = toValue(projectId)
       if (!id) return null
@@ -69,7 +69,7 @@ export function useProjectMembers(
 
 export function useProjectConfig(projectId: MaybeRefOrGetter<string | undefined>) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'config', projectId] as const,
+    queryKey: projectKeys.config(projectId),
     queryFn: async () => {
       const id = toValue(projectId)
       if (!id) return null
@@ -82,7 +82,7 @@ export function useProjectConfig(projectId: MaybeRefOrGetter<string | undefined>
 
 export function useReviewConfig(projectId: MaybeRefOrGetter<string | undefined>) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'review-config', projectId] as const,
+    queryKey: projectKeys.reviewConfig(projectId),
     queryFn: async () => {
       const id = toValue(projectId)
       if (!id) return null
@@ -95,7 +95,7 @@ export function useReviewConfig(projectId: MaybeRefOrGetter<string | undefined>)
 
 export function useProjectStatistics(projectId: MaybeRefOrGetter<string | undefined>) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'statistics', projectId] as const,
+    queryKey: projectKeys.statistics(projectId),
     queryFn: async () => {
       const id = toValue(projectId)
       if (!id) return null
@@ -111,7 +111,7 @@ export function useCreateProject() {
   return useMutation({
     mutationFn: (params: Api.Project.CreateProjectParams) => fetchCreateProject(params),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] })
+      queryClient.invalidateQueries({ queryKey: projectKeys.all() })
     }
   })
 }
@@ -122,8 +122,8 @@ export function useUpdateProject() {
     mutationFn: (payload: { projectId: string; params: Api.Project.UpdateProjectParams }) =>
       fetchUpdateProject(payload.projectId, payload.params),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] })
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'detail', variables.projectId] })
+      queryClient.invalidateQueries({ queryKey: projectKeys.all() })
+      queryClient.invalidateQueries({ queryKey: projectKeys.detail(variables.projectId) })
     }
   })
 }
@@ -133,7 +133,7 @@ export function useDeleteProject() {
   return useMutation({
     mutationFn: (projectId: string) => fetchDeleteProject(projectId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] })
+      queryClient.invalidateQueries({ queryKey: projectKeys.all() })
     }
   })
 }
@@ -143,7 +143,7 @@ export function useArchiveProject() {
   return useMutation({
     mutationFn: (projectId: string) => fetchArchiveProject(projectId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] })
+      queryClient.invalidateQueries({ queryKey: projectKeys.all() })
     }
   })
 }
@@ -153,7 +153,7 @@ export function useRestoreProject() {
   return useMutation({
     mutationFn: (projectId: string) => fetchRestoreProject(projectId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] })
+      queryClient.invalidateQueries({ queryKey: projectKeys.all() })
     }
   })
 }
@@ -164,7 +164,7 @@ export function useCopyProject() {
     mutationFn: (params: { projectId: string; projectName?: string }) =>
       fetchCopyProject(params.projectId, params.projectName),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] })
+      queryClient.invalidateQueries({ queryKey: projectKeys.all() })
     }
   })
 }
@@ -175,7 +175,7 @@ export function useUploadProjectCover() {
     mutationFn: (payload: { projectId: string; file: File }) =>
       fetchUploadProjectCover(payload.projectId, payload.file),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'detail', variables.projectId] })
+      queryClient.invalidateQueries({ queryKey: projectKeys.detail(variables.projectId) })
     }
   })
 }
@@ -186,7 +186,7 @@ export function useAddProjectMember() {
     mutationFn: (payload: { projectId: string; params: Api.Project.AddMemberParams }) =>
       fetchAddProjectMember(payload.projectId, payload.params),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'members', variables.projectId] })
+      queryClient.invalidateQueries({ queryKey: projectKeys.membersByProject(variables.projectId) })
     }
   })
 }
@@ -197,7 +197,7 @@ export function useUpdateProjectMemberRole() {
     mutationFn: (payload: { projectId: string; params: Api.Project.UpdateMemberRoleParams }) =>
       fetchUpdateProjectMemberRole(payload.projectId, payload.params),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'members', variables.projectId] })
+      queryClient.invalidateQueries({ queryKey: projectKeys.membersByProject(variables.projectId) })
     }
   })
 }
@@ -208,7 +208,7 @@ export function useRemoveProjectMember() {
     mutationFn: (payload: { projectId: string; memberId: string }) =>
       fetchRemoveProjectMember(payload.projectId, payload.memberId),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'members', variables.projectId] })
+      queryClient.invalidateQueries({ queryKey: projectKeys.membersByProject(variables.projectId) })
     }
   })
 }
@@ -219,7 +219,7 @@ export function useUpdateProjectConfig() {
     mutationFn: (payload: { projectId: string; configs: Record<string, string> }) =>
       fetchUpdateProjectConfig(payload.projectId, payload.configs),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'config', variables.projectId] })
+      queryClient.invalidateQueries({ queryKey: projectKeys.config(variables.projectId) })
     }
   })
 }
@@ -230,7 +230,7 @@ export function useUpdateReviewConfig() {
     mutationFn: (payload: { projectId: string; params: Api.Project.ReviewConfigParams }) =>
       fetchUpdateReviewConfig(payload.projectId, payload.params),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'review-config', variables.projectId] })
+      queryClient.invalidateQueries({ queryKey: projectKeys.reviewConfig(variables.projectId) })
     }
   })
 }
@@ -238,7 +238,7 @@ export function useUpdateReviewConfig() {
 /** 项目剧集列表 */
 export function useProjectEpisodes(projectId: MaybeRefOrGetter<string | undefined>) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'episodes', projectId] as const,
+    queryKey: projectKeys.episodes(projectId),
     queryFn: async () => {
       const id = toValue(projectId)
       if (!id) return []

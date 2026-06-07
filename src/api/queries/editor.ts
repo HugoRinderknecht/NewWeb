@@ -14,7 +14,7 @@ import {
   fetchUpdateSegment
 } from '@/api/editor'
 
-const QUERY_KEY = 'editor' as const
+import { editorKeys } from './keys'
 
 // ==================== 查询 ====================
 
@@ -23,7 +23,7 @@ export function useEditProjectList(
   params?: MaybeRefOrGetter<Api.Editor.EditProjectSearchParams | undefined>
 ) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'list', params] as const,
+    queryKey: editorKeys.list(params),
     queryFn: async () => {
       const res = await fetchGetEditProjectList(toValue(params))
       return res ?? null
@@ -35,7 +35,7 @@ export function useEditProjectList(
 /** 编辑项目详情 */
 export function useEditProjectDetail(projectId: MaybeRefOrGetter<string | undefined>) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'detail', projectId] as const,
+    queryKey: editorKeys.detail(projectId),
     queryFn: async () => {
       const id = toValue(projectId)
       if (!id) return null
@@ -48,7 +48,7 @@ export function useEditProjectDetail(projectId: MaybeRefOrGetter<string | undefi
 /** 导出状态 */
 export function useExportStatus(taskId: MaybeRefOrGetter<string | undefined>) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'export-status', taskId] as const,
+    queryKey: editorKeys.exportStatus(taskId),
     queryFn: async () => {
       const id = toValue(taskId)
       if (!id) return null
@@ -67,7 +67,7 @@ export function useCreateEditProject() {
   return useMutation({
     mutationFn: (params: Api.Editor.CreateEditProjectParams) => fetchCreateEditProject(params),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'list'] })
+      queryClient.invalidateQueries({ queryKey: editorKeys.lists() })
     }
   })
 }
@@ -80,8 +80,8 @@ export function useUpdateEditProject() {
       fetchUpdateEditProject(projectId, params),
     onSuccess: (_data, variables) => {
       // 精确失效：列表 + 当前项目详情（避免影响其他编辑项目）
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'list'] })
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'detail', variables.projectId] })
+      queryClient.invalidateQueries({ queryKey: editorKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: editorKeys.detail(variables.projectId) })
     }
   })
 }
@@ -92,9 +92,9 @@ export function useDeleteEditProject() {
   return useMutation({
     mutationFn: (projectId: string) => fetchDeleteEditProject(projectId),
     onSuccess: (_data, projectId) => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'list'] })
+      queryClient.invalidateQueries({ queryKey: editorKeys.lists() })
       // 移除被删除项目的详情缓存
-      queryClient.removeQueries({ queryKey: [QUERY_KEY, 'detail', projectId] })
+      queryClient.removeQueries({ queryKey: editorKeys.detail(projectId) })
     }
   })
 }
@@ -106,7 +106,7 @@ export function useExportVideo() {
     mutationFn: ({ projectId, params }: { projectId: string; params: Api.Editor.ExportParams }) =>
       fetchExportVideo(projectId, params),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'export-status'] })
+      queryClient.invalidateQueries({ queryKey: editorKeys.exportStatuses() })
     }
   })
 }
@@ -119,7 +119,7 @@ export function useReorderSegments() {
       fetchReorderSegments(projectId, segmentIds),
     onSuccess: (_data, variables) => {
       // 精确失效：仅失效当前项目详情，避免影响其他编辑项目
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'detail', variables.projectId] })
+      queryClient.invalidateQueries({ queryKey: editorKeys.detail(variables.projectId) })
     }
   })
 }
@@ -131,7 +131,7 @@ export function useAddSegment() {
     mutationFn: ({ projectId, params }: { projectId: string; params: Api.Editor.AddSegmentParams }) =>
       fetchAddSegment(projectId, params),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'detail', variables.projectId] })
+      queryClient.invalidateQueries({ queryKey: editorKeys.detail(variables.projectId) })
     }
   })
 }
@@ -143,7 +143,7 @@ export function useDeleteSegment() {
     mutationFn: ({ projectId, segmentId }: { projectId: string; segmentId: string }) =>
       fetchDeleteSegment(projectId, segmentId),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'detail', variables.projectId] })
+      queryClient.invalidateQueries({ queryKey: editorKeys.detail(variables.projectId) })
     }
   })
 }
@@ -162,7 +162,7 @@ export function useUpdateSegment() {
       params: Api.Editor.UpdateSegmentParams
     }) => fetchUpdateSegment(projectId, segmentId, params),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'detail', variables.projectId] })
+      queryClient.invalidateQueries({ queryKey: editorKeys.detail(variables.projectId) })
     }
   })
 }

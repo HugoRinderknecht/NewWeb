@@ -8,13 +8,13 @@ import {
   fetchDeleteCharacter
 } from '@/api/character'
 
-const QUERY_KEY = 'characters' as const
+import { characterKeys } from './keys'
 
 export function useCharacterList(
   projectId: MaybeRefOrGetter<string | undefined>
 ) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'list', projectId] as const,
+    queryKey: characterKeys.list(projectId),
     queryFn: async () => {
       const id = toValue(projectId)
       if (!id) return []
@@ -31,7 +31,7 @@ export function useCharacterDetail(
   characterId: MaybeRefOrGetter<string | undefined>
 ) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'detail', projectId, characterId] as const,
+    queryKey: characterKeys.detail(projectId, characterId),
     queryFn: async () => {
       const pid = toValue(projectId)
       const cid = toValue(characterId)
@@ -50,7 +50,7 @@ export function useCreateCharacter() {
     mutationFn: (payload: { projectId: string; data: Api.Character.CreateCharacterParams }) =>
       fetchCreateCharacter(payload.projectId, payload.data),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'list', variables.projectId] })
+      queryClient.invalidateQueries({ queryKey: characterKeys.list(variables.projectId) })
     }
   })
 }
@@ -64,9 +64,9 @@ export function useUpdateCharacter() {
       data: Api.Character.UpdateCharacterParams
     }) => fetchUpdateCharacter(payload.projectId, payload.characterId, payload.data),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'list', variables.projectId] })
+      queryClient.invalidateQueries({ queryKey: characterKeys.list(variables.projectId) })
       queryClient.invalidateQueries({
-        queryKey: [QUERY_KEY, 'detail', variables.projectId, variables.characterId]
+        queryKey: characterKeys.detail(variables.projectId, variables.characterId)
       })
     }
   })
@@ -78,7 +78,7 @@ export function useDeleteCharacter() {
     mutationFn: (payload: { projectId: string; characterId: string }) =>
       fetchDeleteCharacter(payload.projectId, payload.characterId),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'list', variables.projectId] })
+      queryClient.invalidateQueries({ queryKey: characterKeys.list(variables.projectId) })
     }
   })
 }

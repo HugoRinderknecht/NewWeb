@@ -196,10 +196,10 @@
     useReviewList,
     usePendingReviewCount,
     useReviewDecision,
-    useBatchReviewDecision,
     useClaimReview,
     useDispatchReview
   } from '@/api/queries'
+  import { useReviewBatchActions } from '@/domain/review'
 
   defineOptions({ name: 'ReviewPending' })
 
@@ -358,7 +358,7 @@
   const claimMutation = useClaimReview()
   const dispatchMutation = useDispatchReview()
   const decisionMutation = useReviewDecision()
-  const batchDecisionMutation = useBatchReviewDecision()
+  const { batchApprove } = useReviewBatchActions()
 
   const handleSelectionChange = (selection: PendingItem[]) => {
     selectedItems.value = selection
@@ -473,31 +473,12 @@
         type: 'success'
       }
     ).then(async () => {
-      const total = selectedItems.value.length
       try {
-        // 使用批量接口一次提交所有任务，避免单条串行调用
-        const result = await batchDecisionMutation.mutateAsync({
-          taskIds: selectedItems.value.map((item) => String(item.id)),
-          decision: 'approved',
-          comment: '批量审批'
-        })
+        const taskIds = selectedItems.value.map((item) => String(item.id))
+        await batchApprove(taskIds)
         selectedItems.value = []
-        if (result && typeof result === 'object') {
-          const { successCount = total, failCount = 0, failures = [] } = result
-          if (failCount === 0) {
-            ElMessage.success(`已批量通过 ${successCount} 项`)
-          } else if (successCount === 0) {
-            ElMessage.error(`批量通过失败：${failures[0]?.reason || '所有任务均未通过'}`)
-          } else {
-            ElMessage.warning(
-              `部分通过：成功 ${successCount} 项，失败 ${failCount} 项${failures[0]?.reason ? `（${failures[0].reason}）` : ''}`
-            )
-          }
-        } else {
-          ElMessage.success('批量通过成功')
-        }
       } catch {
-        ElMessage.error('批量通过失败')
+        // 错误已在 domain action 中处理
       }
     })
   }

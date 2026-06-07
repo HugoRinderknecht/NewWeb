@@ -23,7 +23,7 @@ import {
   fetchCancelSubscription
 } from '@/api/notification'
 
-const QUERY_KEY = 'notifications' as const
+import { notificationKeys } from './keys'
 
 // ==================== 查询 ====================
 
@@ -32,7 +32,7 @@ export function useNotificationList(
   params?: MaybeRefOrGetter<Api.Notification.NotificationSearchParams | undefined>
 ) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'list', params] as const,
+    queryKey: notificationKeys.list(params),
     queryFn: async () => {
       const res = await fetchGetNotificationList(toValue(params))
       return res ?? null
@@ -44,7 +44,7 @@ export function useNotificationList(
 /** 通知详情 */
 export function useNotificationDetail(id: MaybeRefOrGetter<string | undefined>) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'detail', id] as const,
+    queryKey: notificationKeys.detail(id),
     queryFn: async () => {
       const nid = toValue(id)
       if (!nid) return null
@@ -58,7 +58,7 @@ export function useNotificationDetail(id: MaybeRefOrGetter<string | undefined>) 
 /** 未读数量 */
 export function useUnreadCount() {
   return useQuery({
-    queryKey: [QUERY_KEY, 'unread-count'] as const,
+    queryKey: notificationKeys.unreadCount(),
     queryFn: async () => {
       const res = await fetchGetUnreadCount()
       return typeof res === 'number' ? res : 0
@@ -73,7 +73,7 @@ export function useStarredNotifications(
   params?: MaybeRefOrGetter<Api.Common.CommonSearchParams | undefined>
 ) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'starred', params] as const,
+    queryKey: notificationKeys.starred(params),
     queryFn: async () => {
       const res = await fetchGetStarredNotifications(toValue(params))
       return res ?? null
@@ -88,7 +88,7 @@ export function useSearchNotifications(
   params?: MaybeRefOrGetter<Api.Common.CommonSearchParams | undefined>
 ) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'search', keyword, params] as const,
+    queryKey: notificationKeys.search(keyword, params),
     queryFn: async () => {
       const kw = toValue(keyword)
       if (!kw) return null
@@ -103,7 +103,7 @@ export function useSearchNotifications(
 /** 通知偏好设置 */
 export function useNotificationPreference() {
   return useQuery({
-    queryKey: [QUERY_KEY, 'preference'] as const,
+    queryKey: notificationKeys.preference(),
     queryFn: async () => await fetchGetNotificationPreference(),
     staleTime: 5 * 60 * 1000
   })
@@ -112,7 +112,7 @@ export function useNotificationPreference() {
 /** 免打扰设置 */
 export function useDndSettings() {
   return useQuery({
-    queryKey: [QUERY_KEY, 'dnd'] as const,
+    queryKey: notificationKeys.dnd(),
     queryFn: async () => await fetchGetDndSettings(),
     staleTime: 5 * 60 * 1000
   })
@@ -121,7 +121,7 @@ export function useDndSettings() {
 /** 订阅列表 */
 export function useSubscriptions() {
   return useQuery({
-    queryKey: [QUERY_KEY, 'subscriptions'] as const,
+    queryKey: notificationKeys.subscriptions(),
     queryFn: async () => {
       const res = await fetchGetSubscriptions()
       return res ?? []
@@ -139,17 +139,17 @@ export function useMarkAsRead() {
     mutationFn: (id: string) => fetchMarkAsRead(id),
     // 乐观更新：立即把该项标记为已读，无需等待服务端响应
     onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: [QUERY_KEY] })
-      await queryClient.cancelQueries({ queryKey: [QUERY_KEY, 'unread-count'] })
+      await queryClient.cancelQueries({ queryKey: notificationKeys.all() })
+      await queryClient.cancelQueries({ queryKey: notificationKeys.unreadCount() })
 
       // 快照所有相关列表查询以便回滚
       const previousListEntries = queryClient.getQueriesData<any>({
-        queryKey: [QUERY_KEY, 'list']
+        queryKey: notificationKeys.lists()
       })
-      const previousUnread = queryClient.getQueryData<any>([QUERY_KEY, 'unread-count'])
+      const previousUnread = queryClient.getQueryData<any>(notificationKeys.unreadCount())
 
       // 乐观更新列表：将目标项标记为已读
-      queryClient.setQueriesData<any>({ queryKey: [QUERY_KEY, 'list'] }, (old: any) => {
+      queryClient.setQueriesData<any>({ queryKey: notificationKeys.lists() }, (old: any) => {
         if (!old) return old
         const markRead = (item: any) => (item?.id === id || item?.noticeId === id
           ? { ...item, read: true, isRead: true, readTime: Date.now() }
@@ -165,7 +165,7 @@ export function useMarkAsRead() {
       })
 
       // 乐观更新未读数：减 1
-      queryClient.setQueryData<any>([QUERY_KEY, 'unread-count'], (old: any) => {
+      queryClient.setQueryData<any>(notificationKeys.unreadCount(), (old: any) => {
         if (!old) return old
         const cur = old.count ?? old.data?.count ?? old.unreadCount ?? old
         const next = Math.max(0, (typeof cur === 'number' ? cur : 0) - 1)
@@ -187,13 +187,13 @@ export function useMarkAsRead() {
         })
       }
       if (ctx?.previousUnread !== undefined) {
-        queryClient.setQueryData([QUERY_KEY, 'unread-count'], ctx.previousUnread)
+        queryClient.setQueryData(notificationKeys.unreadCount(), ctx.previousUnread)
       }
     },
     onSettled: () => {
       // 无论成功失败都重新拉取以确保与服务端一致
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] })
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'unread-count'] })
+      queryClient.invalidateQueries({ queryKey: notificationKeys.all() })
+      queryClient.invalidateQueries({ queryKey: notificationKeys.unreadCount() })
     }
   })
 }
@@ -204,8 +204,8 @@ export function useMarkAsUnread() {
   return useMutation({
     mutationFn: (id: string) => fetchMarkAsUnread(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] })
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'unread-count'] })
+      queryClient.invalidateQueries({ queryKey: notificationKeys.all() })
+      queryClient.invalidateQueries({ queryKey: notificationKeys.unreadCount() })
     }
   })
 }
@@ -216,8 +216,8 @@ export function useMarkAllAsRead() {
   return useMutation({
     mutationFn: () => fetchMarkAllAsRead(),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] })
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'unread-count'] })
+      queryClient.invalidateQueries({ queryKey: notificationKeys.all() })
+      queryClient.invalidateQueries({ queryKey: notificationKeys.unreadCount() })
     }
   })
 }
@@ -228,8 +228,8 @@ export function useBatchMarkAsRead() {
   return useMutation({
     mutationFn: (ids: string[]) => fetchBatchMarkAsRead(ids),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] })
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'unread-count'] })
+      queryClient.invalidateQueries({ queryKey: notificationKeys.all() })
+      queryClient.invalidateQueries({ queryKey: notificationKeys.unreadCount() })
     }
   })
 }
@@ -240,7 +240,7 @@ export function useDeleteNotification() {
   return useMutation({
     mutationFn: (id: string) => fetchDeleteNotification(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] })
+      queryClient.invalidateQueries({ queryKey: notificationKeys.all() })
     }
   })
 }
@@ -251,7 +251,7 @@ export function useBatchDeleteNotifications() {
   return useMutation({
     mutationFn: (ids: string[]) => fetchBatchDeleteNotifications(ids),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] })
+      queryClient.invalidateQueries({ queryKey: notificationKeys.all() })
     }
   })
 }
@@ -262,7 +262,7 @@ export function useClearReadNotifications() {
   return useMutation({
     mutationFn: () => fetchClearReadNotifications(),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] })
+      queryClient.invalidateQueries({ queryKey: notificationKeys.all() })
     }
   })
 }
@@ -273,7 +273,7 @@ export function useStarNotification() {
   return useMutation({
     mutationFn: (id: string) => fetchStarNotification(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] })
+      queryClient.invalidateQueries({ queryKey: notificationKeys.all() })
     }
   })
 }
@@ -285,7 +285,7 @@ export function useUpdateNotificationPreference() {
     mutationFn: (params: Api.Notification.NotificationPreference) =>
       fetchUpdateNotificationPreference(params),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'preference'] })
+      queryClient.invalidateQueries({ queryKey: notificationKeys.preference() })
     }
   })
 }
@@ -296,7 +296,7 @@ export function useUpdateDndSettings() {
   return useMutation({
     mutationFn: (params: Api.Notification.DndSettings) => fetchUpdateDndSettings(params),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'dnd'] })
+      queryClient.invalidateQueries({ queryKey: notificationKeys.dnd() })
     }
   })
 }
@@ -308,7 +308,7 @@ export function useAddSubscription() {
     mutationFn: (params: Api.Notification.SubscriptionParams) =>
       fetchAddSubscription(params),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'subscriptions'] })
+      queryClient.invalidateQueries({ queryKey: notificationKeys.subscriptions() })
     }
   })
 }
@@ -319,7 +319,7 @@ export function useCancelSubscription() {
   return useMutation({
     mutationFn: (id: string) => fetchCancelSubscription(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'subscriptions'] })
+      queryClient.invalidateQueries({ queryKey: notificationKeys.subscriptions() })
     }
   })
 }

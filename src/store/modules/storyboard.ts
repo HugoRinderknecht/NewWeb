@@ -46,7 +46,15 @@ export const useStoryboardStore = defineStore('storyboard', () => {
   const aiTaskCenterOpen = ref(false)
   const videoPanelOpen = ref(false)
   const videoStoryboardId = ref<string | null>(null)
-  // 当前激活项目 ID（由 design 页面在 mount 时同步过来，供 AI 弹窗等共用）
+  /**
+   * 当前激活项目 ID
+   *
+   * ⚠️ 此字段由 design 页面在 mount 时同步过来，供 AI 弹窗等共用。
+   * 推荐改用 useCurrentProjectId(useStoryboardProjectStore) 或 useCurrentContext() 获取，
+   * 以遵循 Route > Vue Query > Pinia 的优先级策略。
+   *
+   * @deprecated 推荐使用 useCurrentContext().projectId 替代，避免手动同步
+   */
   const activeProjectId = ref<string>('')
 
   // ---------- Getters ----------

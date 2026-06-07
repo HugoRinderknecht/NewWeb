@@ -4,6 +4,8 @@ import { useProjectStore } from './project'
 /**
  * 剧本业务域：项目选择器 Store
  *
+ * 【状态类别：客户端 UI 状态 · Pinia（业务域 scoped）】
+ *
  * 按业务域解耦：本 store 独立维护「剧本域」的 currentProjectId，
  * 不再写入全局 useProjectStore，从而避免与「分镜域」「资产域」联动。
  *
@@ -11,7 +13,12 @@ import { useProjectStore } from './project'
  * - 写：只写本域，不污染全局。
  * - 持久化：独立 sessionStorage key (project:script)。
  *
+ * 推荐通过 useCurrentProjectId(useScriptProjectStore) 或 useCurrentContext('script') 获取，
+ * 以自动遵循 Route > Store 的优先级策略。
+ *
  * 历史保留：`projectList` / `currentProject` getter 已废弃，请改用 useProjectList / useProjectDetail Vue Query Hook。
+ *
+ * @see src/config/state-policy.ts 状态管理策略
  */
 export interface ProjectItem {
   id: string

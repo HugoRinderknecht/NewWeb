@@ -6,7 +6,7 @@ import {
   fetchRollbackDataHistory
 } from '@/api/data-history'
 
-const QUERY_KEY = 'data-history' as const
+import { dataHistoryKeys } from './keys'
 
 // ==================== 查询 ====================
 
@@ -15,7 +15,7 @@ export function useDataHistoryList(
   params?: MaybeRefOrGetter<Api.DataHistory.HistorySearchParams | undefined>
 ) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'list', params] as const,
+    queryKey: dataHistoryKeys.list(params),
     // params 为空时不发起请求，避免非空断言运行时崩溃
     enabled: () => !!toValue(params),
     queryFn: async () => {
@@ -30,7 +30,7 @@ export function useDataHistoryList(
 /** 数据历史详情 */
 export function useDataHistoryDetail(historyId: MaybeRefOrGetter<string | undefined>) {
   return useQuery({
-    queryKey: [QUERY_KEY, 'detail', historyId] as const,
+    queryKey: dataHistoryKeys.detail(historyId),
     queryFn: async () => {
       const id = toValue(historyId)
       if (!id) return null
@@ -48,7 +48,7 @@ export function useRollbackDataHistory() {
   return useMutation({
     mutationFn: (params: Api.DataHistory.RollbackParams) => fetchRollbackDataHistory(params),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] })
+      queryClient.invalidateQueries({ queryKey: dataHistoryKeys.all() })
     }
   })
 }
