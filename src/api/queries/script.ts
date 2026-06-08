@@ -34,8 +34,23 @@ import {
   fetchGetAssetImages,
   fetchReviewAssetImages,
   fetchGenerateVideoPrompts,
-  fetchGetVideoPrompts
+  fetchGetVideoPrompts,
+  fetchExportEpisodes,
+  fetchExportExtractedAssets,
+  fetchPushToArt,
+  fetchSetEpisodeChildOf,
+  fetchGenerateCharacterFullDescriptions,
+  fetchGenerateSceneFullDescriptions,
+  fetchGeneratePropFullDescriptions,
+  fetchGetSceneFullDescriptions,
+  fetchGetPropFullDescriptions
 } from '@/api/script'
+import {
+  generateVideoPrompts,
+  checkVideoPromptViolations,
+  fixVideoPrompts,
+  updateVideoPrompt
+} from '@/api/video-prompt'
 
 import { scriptKeys } from './keys'
 
@@ -719,5 +734,206 @@ export function useVideoPrompts(
     },
     enabled: () => !!toValue(projectId) && !!toValue(episodeId),
     staleTime: 60 * 1000
+  })
+}
+
+// ==================== 导出 / 推送 / 分集父子关系 ====================
+
+/** 导出剧集（文档 §4.1.20） */
+export function useExportEpisodes() {
+  return useMutation({
+    mutationFn: (payload: {
+      projectId: string
+      params: { episodeIds?: string[]; format?: 'csv' | 'xlsx' }
+    }) => fetchExportEpisodes(payload.projectId, payload.params)
+  })
+}
+
+/** 导出资产数据（文档 §4.1.21） */
+export function useExportExtractedAssets() {
+  return useMutation({
+    mutationFn: (payload: { scriptId: string; params?: { format?: 'csv' | 'xlsx' } }) =>
+      fetchExportExtractedAssets(payload.scriptId, payload.params)
+  })
+}
+
+/** 推送到美术团队（文档 §4.1.22） */
+export function usePushToArt() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: {
+      projectId: string
+      scriptId: string
+      params?: Api.Script.PushToArtParams
+    }) => fetchPushToArt(payload.projectId, payload.scriptId, payload.params),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: scriptKeys.detail(variables.scriptId) })
+    }
+  })
+}
+
+/** 设置分集父子关系（文档 §4.2.8） */
+export function useSetEpisodeChildOf() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: { projectId: string; episodeId: string; childOf?: string }) =>
+      fetchSetEpisodeChildOf(payload.projectId, payload.episodeId, payload.childOf),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: scriptKeys.episodes(variables.projectId) })
+    }
+  })
+}
+
+// ==================== §4.6 全量描述（FullDesc）hooks ====================
+
+/** 生成角色全量描述（文档 §4.6） */
+export function useGenerateCharacterFullDescriptions() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: {
+      projectId: string
+      scriptId: string
+      params?: { episodeIds?: string[]; force?: boolean }
+    }) =>
+      fetchGenerateCharacterFullDescriptions(
+        payload.projectId,
+        payload.scriptId,
+        payload.params
+      ),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: scriptKeys.detail(variables.scriptId) })
+    }
+  })
+}
+
+/** 生成场景全量描述（文档 §4.6） */
+export function useGenerateSceneFullDescriptions() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: {
+      projectId: string
+      scriptId: string
+      params?: { episodeIds?: string[]; force?: boolean }
+    }) =>
+      fetchGenerateSceneFullDescriptions(payload.projectId, payload.scriptId, payload.params),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: scriptKeys.detail(variables.scriptId) })
+    }
+  })
+}
+
+/** 生成道具全量描述（文档 §4.6） */
+export function useGeneratePropFullDescriptions() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: {
+      projectId: string
+      scriptId: string
+      params?: { episodeIds?: string[]; force?: boolean }
+    }) =>
+      fetchGeneratePropFullDescriptions(payload.projectId, payload.scriptId, payload.params),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: scriptKeys.detail(variables.scriptId) })
+    }
+  })
+}
+
+/** 获取场景全量描述列表（文档 §4.6） */
+export function useSceneFullDescriptions(
+  projectId: MaybeRefOrGetter<string | undefined>,
+  scriptId: MaybeRefOrGetter<string | undefined>
+) {
+  return useQuery({
+    queryKey: scriptKeys.sceneFullDescriptions(projectId, scriptId),
+    queryFn: async () => {
+      const pid = toValue(projectId)
+      const sid = toValue(scriptId)
+      if (!pid || !sid) return []
+      return await fetchGetSceneFullDescriptions(pid, sid)
+    },
+    enabled: () => !!toValue(projectId) && !!toValue(scriptId),
+    staleTime: 60 * 1000
+  })
+}
+
+/** 获取道具全量描述列表（文档 §4.6） */
+export function usePropFullDescriptions(
+  projectId: MaybeRefOrGetter<string | undefined>,
+  scriptId: MaybeRefOrGetter<string | undefined>
+) {
+  return useQuery({
+    queryKey: scriptKeys.propFullDescriptions(projectId, scriptId),
+    queryFn: async () => {
+      const pid = toValue(projectId)
+      const sid = toValue(scriptId)
+      if (!pid || !sid) return []
+      return await fetchGetPropFullDescriptions(pid, sid)
+    },
+    enabled: () => !!toValue(projectId) && !!toValue(scriptId),
+    staleTime: 60 * 1000
+  })
+}
+
+// ==================== 视频提示词更新 / 违规检测 / 修复 ====================
+
+/** 更新视频提示词（文档 §4.10.4） */
+export function useUpdateVideoPrompt() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: {
+      projectId: string
+      scriptId: string
+      episodeId: string
+      promptId: string
+      data: Api.Video.VideoPromptUpdateRequest
+    }) =>
+      updateVideoPrompt(
+        payload.projectId,
+        payload.scriptId,
+        payload.episodeId,
+        payload.promptId,
+        payload.data
+      ),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: scriptKeys.videoPrompts(variables.projectId, variables.episodeId)
+      })
+    }
+  })
+}
+
+/** 视频提示词违规检测（文档 §4.10.2） */
+export function useCheckVideoPromptViolations() {
+  return useMutation({
+    mutationFn: (payload: {
+      projectId: string
+      scriptId: string
+      episodeId: string
+      data: { videoPromptId: string; force?: boolean }
+    }) =>
+      checkVideoPromptViolations(
+        payload.projectId,
+        payload.scriptId,
+        payload.episodeId,
+        payload.data
+      )
+  })
+}
+
+/** 修复视频提示词（文档 §4.10.3） */
+export function useFixVideoPrompts() {
+  return useMutation({
+    mutationFn: (payload: {
+      projectId: string
+      scriptId: string
+      episodeId: string
+      data: { videoPromptId: string; modifyInstructions: string; force?: boolean }
+    }) =>
+      fixVideoPrompts(
+        payload.projectId,
+        payload.scriptId,
+        payload.episodeId,
+        payload.data
+      )
   })
 }

@@ -4,7 +4,7 @@ export function fetchGetCharacterList(
   projectId: string,
   params?: { page?: number; pageSize?: number }
 ) {
-  return getApiAdapter().get<Api.Character.CharacterListItem[]>(
+  return getApiAdapter().get<Api.Common.PaginatedResponse<Api.Character.CharacterListItem>>(
     `/api/projects/${projectId}/characters`,
     params
   )

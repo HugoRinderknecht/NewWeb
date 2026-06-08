@@ -476,6 +476,13 @@ async function _doRequest<T = any>(config: ExtendedAxiosRequestConfig): Promise<
       showSuccess(extractResponseMessage(res.data))
     }
 
+    // 二进制响应（Blob/ArrayBuffer）直接返回 res.data，不走 res.data.data 解包
+    const responseType = config.responseType
+    if (responseType === 'blob' || responseType === 'arraybuffer' || responseType === 'stream') {
+      dataFlowMonitor.recordTransfer(buildRecord('success'))
+      return res.data as T
+    }
+
     const result = res.data.data as T
 
     // 写入 HTTP 层响应缓存：仅在未禁用且配置了 cacheTTL 时生效

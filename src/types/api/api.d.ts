@@ -142,31 +142,32 @@ declare namespace Api {
 
     /** 图形验证码响应 (CaptchaVO) */
     interface CaptchaResponse {
+      /** 验证码 key（UUID），后续登录/注册校验时回传 */
       key: string
+      /** 验证码图片 Base64 PNG data URI */
       image: string
-      /** @deprecated 旧字段，已替换为 key */
-      captchaKey?: string
-      /** @deprecated 旧字段，已替换为 image */
-      captchaImage?: string
     }
 
     /** 用户信息 (UserVO) */
     interface UserInfo {
+      /** 用户ID */
       id?: string
+      /** 用户名（与后端 UserVO.username 对齐） */
       username?: string
+      /** 邮箱 */
       email?: string
+      /** 手机号 */
       phone?: string
+      /** 头像 URL */
       avatar?: string
+      /** 状态（启用/禁用） */
       status?: number
+      /** 创建时间 */
       createTime?: string
+      /** 更新时间 */
       updateTime?: string
+      /** 角色列表 */
       roles?: string[]
-      /** @deprecated 文档未定义字段；前端按钮权限内部用法，建议改用 permissions */
-      buttons?: string[]
-      /** @deprecated 旧字段，请使用 username */
-      userName?: string
-      /** @deprecated 旧字段，请使用 id */
-      userId?: string | number
     }
 
     /** 头像信息 (AvatarVO) */
@@ -250,13 +251,14 @@ declare namespace Api {
       /** 当前用户在该项目中的角色，后端可能不返回 */
       userRole?: string
       createTime: string
+      updateTime?: string
     }
 
     /** 项目搜索参数 */
     interface ProjectSearchParams extends Api.Common.CommonSearchParams {
       keyword?: string
       status?: number
-      teamId?: string
+      // 已删除文档未定义字段 teamId（teamId 从上下文自动获取）
     }
 
     /** 项目详情 (ProjectDetailVO) */
@@ -307,7 +309,7 @@ declare namespace Api {
     interface ProjectMemberVO {
       id: string
       userId: string
-      userName: string
+      username: string
       avatar: string
       role: ProjectMemberRole
       joinTime: string
@@ -372,7 +374,7 @@ declare namespace Api {
       projectId: string
       title: string
       description: string
-      content: string
+      content?: string
       status: number
       createdBy: string
       creatorName: string
@@ -391,6 +393,7 @@ declare namespace Api {
       statusText: string
       episodeCount: number
       storyboardCount: number
+      // 文档将这些字段放在独立的 ScriptReviewStatusVO 中
       reviewStatus: number | null
       reviewStatusText: string
       reviewTaskId: string
@@ -443,6 +446,10 @@ declare namespace Api {
       episodeName: string
       content: string
       episodeIndex: number
+      sortOrder?: number
+      childOf?: string
+      parentEpisodeId?: string
+      episodeNo?: number
       createTime: string
       updateTime: string
     }
@@ -455,7 +462,11 @@ declare namespace Api {
       scriptId?: string
       episodeName?: string
       episodeIndex?: number
+      episodeNo?: number
       content?: string
+      sortOrder?: number
+      childOf?: string
+      parentEpisodeId?: string
     }
 
     /** 拆解结果 (ScriptDecomposeResultVO) */
@@ -474,6 +485,55 @@ declare namespace Api {
       recordId: string
       version: number
       result: T
+    }
+
+    /** AI处理结果包装（VO 别名，对齐后端命名） */
+    type AiProcessResultVO<T> = AiProcessResult<T>
+
+    // ============ §4.6 全量描述（FullDesc）类型 ============
+
+    /** 角色全量描述生成结果 (CharFullDescResultVO) */
+    interface CharFullDescResultVO {
+      scriptId?: string
+      episodeIds?: string[]
+      descriptions: Array<{ characterId: string; characterName?: string; fullDescription: string }>
+      workflowRunId?: string
+    }
+
+    /** 场景全量描述生成结果 (SceneFullDescResultVO) */
+    interface SceneFullDescResultVO {
+      scriptId?: string
+      episodeIds?: string[]
+      descriptions: Array<{ sceneId: string; sceneName?: string; fullDescription: string }>
+      workflowRunId?: string
+    }
+
+    /** 道具全量描述生成结果 (PropFullDescResultVO) */
+    interface PropFullDescResultVO {
+      scriptId?: string
+      episodeIds?: string[]
+      descriptions: Array<{ propId: string; propName?: string; fullDescription: string }>
+      workflowRunId?: string
+    }
+
+    /** 场景全量描述项 (SceneFullDescriptionVO) */
+    interface SceneFullDescriptionVO {
+      id: string
+      sceneId: string
+      sceneName?: string
+      fullDescription: string
+      createTime?: string
+      updateTime?: string
+    }
+
+    /** 道具全量描述项 (PropFullDescriptionVO) */
+    interface PropFullDescriptionVO {
+      id: string
+      propId: string
+      propName?: string
+      fullDescription: string
+      createTime?: string
+      updateTime?: string
     }
 
     /** 违规条目 (ViolationItemVO) */
@@ -676,12 +736,13 @@ declare namespace Api {
       prompt: string
     }
 
-    /** 资产提示词结果 (AssetPromptResultVO) */
+    /** 资产提示词结果 (AssetPromptResultVO) — 文档 §4.5.1 四类：人物/场景/道具/服装 */
     interface AssetPromptsResult {
       scriptId: string
       characterPrompts: NamedPrompt[]
       scenePrompts: NamedPrompt[]
       propPrompts: NamedPrompt[]
+      costumePrompts: NamedPrompt[]
       workflowRunId: string
       duration: number
       tokenUsage: number
@@ -710,13 +771,11 @@ declare namespace Api {
     /** 资产图片项 (AssetImageVO) */
     interface AssetImageItem {
       assetId: string
-      extractAssetId: string
-      assetName: string
+      // 已删除文档未定义字段 extractAssetId、assetName、createTime
       assetType: string
       promptText: string
       imageUrl: string
       status: string
-      createTime: string
     }
 
     /** 视频提示词结果 (VideoPromptResultVO) */
@@ -724,6 +783,10 @@ declare namespace Api {
       episodeId: string
       episodeMeta: Record<string, unknown>
       paragraphs: VideoPromptParagraph[]
+      /** P0规则校验结果 */
+      p0CheckResult?: Api.Video.ViolationCheckResult
+      /** P0规则是否通过 */
+      p0Passed?: boolean
       workflowRunId: string
       duration: number
       tokenUsage: number
@@ -871,7 +934,7 @@ declare namespace Api {
       scriptId?: string
       name?: string
       source?: string
-      status?: number | string
+      status?: number
       thumbnail?: string
       shotType?: string
       storyboardNo?: number
@@ -903,6 +966,10 @@ declare namespace Api {
       version: number
       createTime: string
       operator: string
+      versionNo?: number
+      changeNote?: string
+      storyboardId?: string
+      snapshotData?: Record<string, unknown>
     }
 
     /** 分镜配图 */
@@ -911,13 +978,16 @@ declare namespace Api {
       url: string
       description: string
       sortOrder: number
+      imageType?: 'main' | 'reference' | 'thumbnail'
+      imageUrl: string
+      storyboardId?: string
+      createTime?: string
     }
 
-    /** 添加配图参数 */
+    /** 添加配图参数（对齐文档：POST .../images?imageUrl={url}&imageType={main|reference|thumbnail}） */
     interface AddImageParams {
-      url: string
-      description?: string
-      sortOrder?: number
+      imageUrl: string
+      imageType?: 'main' | 'reference' | 'thumbnail'
     }
 
     /** 分镜资产 */
@@ -926,7 +996,7 @@ declare namespace Api {
       storyboardId: string
       assetId: string
       assetName: string
-      assetType: string
+      assetType: 'character' | 'scene' | 'prop' | 'clothes' | 'audio'
       thumbnailUrl: string
       createTime: string
     }
@@ -939,6 +1009,7 @@ declare namespace Api {
       sortOrder: number
       episodeId?: string
       angle?: string
+      sceneNumber?: number
     }
 
     /** 创建镜头参数 (SceneCreateRequest) */
@@ -976,6 +1047,59 @@ declare namespace Api {
       storyboards: StoryboardListItem[]
     }
 
+    /** AI 处理结果包装（分镜域 VO 别名，对齐后端命名） */
+    interface AiProcessResultVO<T> {
+      status: 'PROCESSING' | 'COMPLETED' | 'FAILED'
+      message: string
+      recordId: string
+      version: number
+      result: T
+    }
+
+    /** 分镜拆解请求 (StoryboardDecomposeRequest) */
+    interface StoryboardDecomposeRequest {
+      styleConfigId?: string
+      force?: boolean
+      [key: string]: unknown
+    }
+
+    /** 分镜拆解结果 (StoryboardDecomposeResultVO) */
+    interface StoryboardDecomposeResultVO {
+      scriptId?: string
+      episodeId?: string
+      storyboardCount?: number
+      storyboards?: StoryboardListItem[]
+      workflowRunId?: string
+    }
+
+    /** 分镜重建请求 (StoryboardRebuildRequest) */
+    interface StoryboardRebuildRequest {
+      storyboardIds: string[]
+      reason?: string
+      [key: string]: unknown
+    }
+
+    /** 分镜重建结果 (StoryboardRebuildResultVO) */
+    interface StoryboardRebuildResultVO {
+      rebuiltCount?: number
+      storyboards?: StoryboardListItem[]
+      workflowRunId?: string
+    }
+
+    /** 推送美术请求 (PushToArtRequest) */
+    interface PushToArtRequest {
+      episodeIds?: string[]
+      note?: string
+      [key: string]: unknown
+    }
+
+    /** 剧本分镜列表项 (ScriptStoryboardVO) */
+    interface ScriptStoryboardVO {
+      scriptId: string
+      scriptTitle?: string
+      storyboards: StoryboardListItem[]
+    }
+
     /** 分镜板 */
     interface StoryboardBoard {
       id: string
@@ -985,6 +1109,9 @@ declare namespace Api {
       sortOrder: number
       createTime?: string
       updateTime?: string
+      frames?: any[]
+      characterRefs?: any[]
+      sceneRefs?: any[]
     }
   }
 
@@ -1015,7 +1142,7 @@ declare namespace Api {
     interface AssetSearchParams extends Api.Common.CommonSearchParams {
       keyword?: string
       assetType?: string
-      categoryName?: string
+      categoryId?: string
     }
 
     /** 资产详情 (AssetDetailVO) */
@@ -1026,6 +1153,7 @@ declare namespace Api {
       tags: string[]
       currentVersion: number
       isPublic: number
+      versions: AssetVersion[]
     }
 
     /** 上传资产参数 */
@@ -1033,51 +1161,57 @@ declare namespace Api {
       file: File
       assetName?: string
       assetType?: string
-      categoryName?: string
-      category?: string
+      categoryId?: string
+      description?: string
       tags?: string[]
+      allowDuplicate?: boolean
     }
 
     /** 更新资产参数 */
     interface UpdateAssetParams {
       assetName?: string
       assetType?: string
-      categoryName?: string
+      categoryId?: string
       tags?: string[]
       description?: string
     }
 
-    /** 资产版本 */
+    /** 资产版本 (AssetVersionVO) */
     interface AssetVersion {
       id: string
+      assetId: string
       version: number
       fileUrl: string
+      fileSize: number
+      fileHash: string
+      changeNote: string
       createBy: string
       createTime: string
     }
 
-    /** 分片上传初始化参数 */
+    /** 分片上传初始化参数 (AssetChunkInitRequest) */
     interface ChunkInitParams {
       fileName: string
       fileSize: number
       assetName?: string
       assetType?: string
-      categoryName?: string
-      category?: string
+      categoryId?: string
     }
 
-    /** 分片上传初始化响应 */
+    /** 分片上传初始化响应 (AssetChunkVO) */
     interface ChunkInitResponse {
       uploadId: string
       chunkSize: number
       totalChunks: number
+      fileName: string
+      fileSize: number
     }
 
     /** 分片上传参数 */
     interface ChunkUploadParams {
       uploadId: string
-      chunkNumber: number
-      chunk: File
+      chunkIndex: number
+      file: File
     }
 
     /** 分片合并参数 */
@@ -1088,8 +1222,7 @@ declare namespace Api {
     /** 批量上传参数 */
     interface BatchUploadParams {
       files: File[]
-      assetType?: string
-      categoryName?: string
+      metadataJson?: string
     }
 
     /** 批量标签参数 */
@@ -1098,26 +1231,29 @@ declare namespace Api {
       tags: string[]
     }
 
-    /** 批量移动参数 */
+    /** 批量移动参数 (AssetBatchOperationRequest) */
     interface BatchMoveParams {
       assetIds: string[]
-      categoryName: string
+      categoryId: string
     }
 
-    /** AI生成资产参数 */
+    /** AI生成资产参数 (AssetAiGenerateRequest) */
     interface AiGenerateParams {
       prompt: string
       negativePrompt?: string
       style?: string
       assetType: string
-      categoryName?: string
+      categoryId?: string
+      referenceImageUrls?: string[]
+      model?: string
+      size?: string
     }
 
     /** 团队资产搜索参数 */
     interface TeamAssetSearchParams extends Api.Common.CommonSearchParams {
       keyword?: string
       assetType?: string
-      categoryName?: string
+      categoryId?: string
     }
 
     /** 团队资产项 */
@@ -1141,18 +1277,61 @@ declare namespace Api {
       file: File
       assetName?: string
       assetType?: string
+      categoryId?: string
+      description?: string
       tags?: string[]
+      allowDuplicate?: boolean
+    }
+
+    /** 批量上传结果 (BatchUploadResultVO) */
+    interface BatchUploadResultVO {
+      successCount: number
+      failCount: number
+      results: AssetListItem[]
+    }
+
+    /** 资产批量操作请求 (AssetBatchOperationRequest) */
+    interface AssetBatchOperationRequest {
+      assetIds: string[]
+      [key: string]: unknown
+    }
+
+    /** 资产转移请求 (AssetTransferRequest) */
+    interface AssetTransferRequest {
+      teamAssetIds: string[]
+      categoryId?: string
+    }
+
+    /** 从项目导入请求 (AssetImportFromProjectRequest) */
+    interface AssetImportFromProjectRequest {
+      sourceProjectId: string
+      assetIds?: string[]
+      categoryId?: string
+    }
+
+    /** 分片上传初始化请求 (AssetChunkInitRequest) */
+    interface AssetChunkInitRequest {
+      fileName: string
+      fileSize: number
+      assetName?: string
+      assetType?: string
+      categoryId?: string
+    }
+
+    /** 分片上传完成请求 (AssetChunkCompleteRequest) */
+    interface AssetChunkCompleteRequest {
+      uploadId: string
     }
   }
 
   /** 角色类型 */
   namespace Character {
     interface CharacterListItem {
-      characterId: string
+      id: string
       name: string
       code: string
-      gender: string
-      age: number
+      gender?: 'male' | 'female' | 'unknown'
+      age?: number | null
       personality: string
       positioning: string
       appearance: string
@@ -1161,6 +1340,13 @@ declare namespace Api {
       projectId: string
       createTime: string
       updateTime: string
+      createdBy?: string
+      creatorName?: string
+      teamId?: string
+      voiceRef?: string
+      relations?: any[]
+      aliases?: string[]
+      level?: string
     }
 
     interface CharacterDetail extends CharacterListItem {
@@ -1195,9 +1381,14 @@ declare namespace Api {
     interface UserTeamVO {
       teamId: string
       teamName: string
-      teamAvatar: string
+      teamCode: string
+      avatar: string
       role: string
       memberCount: number
+      memberLimit: number
+      memberId: string
+      status: number
+      joinTime: string
       isCurrent: boolean
     }
 
@@ -1231,12 +1422,12 @@ declare namespace Api {
       status: number
       createTime: string
       updateTime: string
-      name?: string
-      email?: string
-      website?: string
-      region?: string
-      projectCount?: number
-      teamId?: string
+      name?: string // 前端兼容字段，文档未定义
+      email?: string // 前端兼容字段，文档未定义
+      website?: string // 前端兼容字段，文档未定义
+      region?: string // 前端兼容字段，文档未定义
+      projectCount?: number // 前端兼容字段，文档未定义
+      teamId?: string // 前端兼容字段，文档未定义
     }
 
     /** 创建团队参数 (TeamCreateRequest) */
@@ -1251,9 +1442,7 @@ declare namespace Api {
       teamName?: string
       description?: string
       avatar?: string
-      email?: string
-      website?: string
-      region?: string
+      // 已删除文档未定义字段: email, website, region
     }
 
     /** 加入申请参数 */
@@ -1268,13 +1457,15 @@ declare namespace Api {
       teamId: string
       teamName: string
       userId: string
-      userName: string
-      userAvatar: string
-      status: 'pending' | 'approved' | 'rejected'
-      reason: string
-      rejectReason: string
-      applyTime: string
-      processTime: string
+      username: string
+      avatar: string
+      status: number
+      reason?: string
+      rejectReason?: string
+      handledBy?: string
+      handledByName?: string
+      createTime: string
+      handleTime: string
     }
 
     /** 成员搜索参数 */
@@ -1288,10 +1479,15 @@ declare namespace Api {
     interface TeamMemberVO {
       id: string
       userId: string
-      userName: string
+      memberId: string
+      username: string
       avatar: string
+      email?: string
       role: string
-      status: string
+      teamRoleId?: string
+      teamRoleCode?: string
+      nickName?: string
+      status: number
       joinTime: string
     }
 
@@ -1348,24 +1544,24 @@ declare namespace Api {
     /** 团队角色VO */
     interface TeamRoleVO {
       id: string
-      name: string
-      code: string
+      roleName: string
+      roleCode: string
       description: string
       memberCount: number
-      createTime: string
+      permissionCount?: number
     }
 
     /** 创建角色参数 */
     interface CreateRoleParams {
-      name: string
-      code: string
+      roleName: string
+      roleCode: string
       description?: string
     }
 
     /** 更新角色参数 */
     interface UpdateRoleParams {
-      name?: string
-      code?: string
+      roleName?: string
+      roleCode?: string
       description?: string
     }
 
@@ -1376,27 +1572,32 @@ declare namespace Api {
 
     /** 可分配权限VO */
     interface AvailablePermissionVO {
-      code: string
-      name: string
-      category: string
-      description: string
+      permissionCode: string
+      permissionName: string
+      module: string
     }
 
     /** 邀请码VO */
     interface InviteCodeVO {
       id: string
       code: string
+      teamId: string
+      teamName?: string
       createdBy: string
+      createdByName?: string
       usedCount: number
       maxUses: number
-      expiresAt: string
+      remainingUses?: number
+      status: number
+      expireTime: string
       createTime: string
     }
 
     /** 创建邀请码参数 */
     interface CreateInviteCodeParams {
+      teamId: string
       maxUses?: number
-      expiresAt?: string
+      expireTime?: string
     }
 
     /** 申请搜索参数 */
@@ -1615,7 +1816,7 @@ declare namespace Api {
       estimatedTime?: string
       completeTime?: string
       videoUrl?: string
-      fileSize?: string
+      fileSize?: number
       remark?: string
       previewToken?: string
       createdAt: string
@@ -1654,7 +1855,6 @@ declare namespace Api {
       scriptId?: string
       storyboardId?: string
       episodeId?: string
-      previewToken: string
     }
 
     /** 视频预览参数 (同 SeedanceGenerateRequest，但 previewToken 由后端返回) */
@@ -1719,6 +1919,21 @@ declare namespace Api {
     interface ViolationCheckResult {
       violated: boolean
       reasons: string[]
+      /** 文字敏感词检测结果 */
+      textCheckResult?: {
+        violated: boolean
+        hitWords: string[]
+      }
+      /** Seedance禁词检测结果 */
+      seedanceCheckResult?: {
+        violated: boolean
+        hitWords: string[]
+      }
+      /** 画面违禁内容检测结果 */
+      visualCheckResult?: {
+        violated: boolean
+        hitWords: string[]
+      }
     }
 
     /** 修复提示词参数 */
@@ -1731,6 +1946,28 @@ declare namespace Api {
     interface FixPromptResult {
       prompt: string
       fixed: boolean
+      /** fix后的段落列表 */
+      paragraphs?: {
+        index: number
+        originalPrompt: string
+        fixedPrompt: string
+      }[]
+      /** 命中替换详情 */
+      replacements?: {
+        original: string
+        replacement: string
+        reason: string
+      }[]
+    }
+
+    /** 视频提示词更新请求 (VideoPromptUpdateRequest) §4.10.4 */
+    interface VideoPromptUpdateRequest {
+      promptText?: string
+      duration?: number
+      cameraMove?: string
+      shotType?: string
+      description?: string
+      extra?: Record<string, unknown>
     }
   }
 
@@ -1918,9 +2155,8 @@ declare namespace Api {
       name: string
       description: string
       status: string
-      duration: number
       segmentCount: number
-      createBy: string
+      createdBy: string
       creatorName: string
       createTime: string
       updateTime: string
@@ -1930,7 +2166,6 @@ declare namespace Api {
       resolution: string
       frameRate: number
       durationSeconds: number
-      createdBy?: string
     }
 
     /** 剪辑项目详情 */
@@ -2432,6 +2667,10 @@ declare namespace Api {
       status: string
       source: string
       version: number
+      createdBy?: string
+      creatorName?: string
+      sourceScriptId?: string
+      sourceScriptTitle?: string
       createTime: string
       updateTime: string
     }
@@ -2744,32 +2983,33 @@ declare namespace Api {
   /** 平台管理类型 */
   namespace PlatformAdmin {
     interface AdminTeamListItem {
-      teamId: string
+      id: string
       teamName: string
-      teamAvatar: string
+      teamCode: string
+      avatar: string
       description: string
       ownerId: string
       ownerName: string
       memberCount: number
-      status: string
+      memberLimit: number
+      status: number
       createTime: string
       updateTime: string
     }
 
-    interface AdminTeamDetail extends AdminTeamListItem {
-      projectCount: number
-      storageUsed: number
-    }
+    interface AdminTeamDetail extends Api.Team.TeamDetail {}
 
     interface CreateAdminTeamParams {
       teamName: string
       description?: string
-      ownerUserId?: string
+      memberLimit?: number
+      // 已删除文档未定义字段: ownerUserId
     }
 
     interface UpdateAdminTeamParams {
       teamName?: string
       description?: string
+      avatar?: string
     }
 
     interface AdminTeamSearchParams extends Api.Common.CommonSearchParams {
@@ -2778,7 +3018,7 @@ declare namespace Api {
     }
 
     interface SetTeamStatusParams {
-      status: string
+      status: number
     }
 
     interface TransferOwnerParams {
@@ -2788,10 +3028,15 @@ declare namespace Api {
     interface AdminMemberListItem {
       id: string
       userId: string
-      userName: string
+      memberId: string
+      username: string
+      email?: string
       avatar: string
       role: string
-      status: string
+      teamRoleId?: string
+      teamRoleCode?: string
+      nickName?: string
+      status: number
       joinTime: string
     }
 
@@ -2817,10 +3062,15 @@ declare namespace Api {
     interface AdminInviteCodeItem {
       id: string
       code: string
+      teamId: string
+      teamName?: string
       createdBy: string
+      createdByName?: string
       usedCount: number
       maxUses: number
-      expiresAt: string
+      remainingUses?: number
+      status: number
+      expireTime: string
       createTime: string
     }
 
@@ -2829,8 +3079,9 @@ declare namespace Api {
     }
 
     interface CreateAdminInviteCodeParams {
+      teamId: string
       maxUses?: number
-      expiresAt?: string
+      expireTime?: string
     }
 
     interface AdminApplicationItem {
@@ -2838,12 +3089,15 @@ declare namespace Api {
       teamId: string
       teamName: string
       userId: string
-      userName: string
-      userAvatar: string
-      status: string
+      username: string
+      avatar: string
+      status: number
       reason: string
-      applyTime: string
-      processTime: string
+      rejectReason: string
+      handledBy?: string
+      handledByName?: string
+      createTime: string
+      handleTime: string
     }
 
     interface AdminApplicationSearchParams extends Api.Common.CommonSearchParams {
@@ -2862,7 +3116,7 @@ declare namespace Api {
 
     /** 用户列表项 */
     interface UserListItem {
-      id: number
+      id: string
       avatar: string
       status: string
       userName: string
@@ -2937,6 +3191,55 @@ declare namespace Api {
       updateTime: string
       createBy?: string
       updateBy?: string
+    }
+  }
+
+  /** 管理后台类型 */
+  namespace Admin {
+    /** 菜单VO (SysMenuVO) */
+    interface SysMenuVO {
+      id: string
+      parentId?: string
+      name: string
+      path?: string
+      icon?: string
+      sort?: number
+      type?: string
+      permission?: string
+      status: number
+      visible?: boolean
+      createTime?: string
+      updateTime?: string
+      children?: SysMenuVO[]
+    }
+
+    /** 创建菜单请求 (SysMenuCreateRequest) */
+    interface SysMenuCreateRequest {
+      parentId?: string
+      name: string
+      path?: string
+      icon?: string
+      sort?: number
+      type?: string
+      permission?: string
+      visible?: boolean
+    }
+
+    /** 更新菜单请求 (SysMenuUpdateRequest) */
+    interface SysMenuUpdateRequest {
+      parentId?: string
+      name?: string
+      path?: string
+      icon?: string
+      sort?: number
+      type?: string
+      permission?: string
+      visible?: boolean
+    }
+
+    /** 菜单重排序请求 (SysMenuReorderRequest) */
+    interface SysMenuReorderRequest {
+      menuIds: string[]
     }
   }
 }

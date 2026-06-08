@@ -8,19 +8,33 @@ vi.mock('@/api/adapter', () => ({
       if (url === '/api/projects') {
         return Promise.resolve({
           records: [
-            { id: '1', projectName: '测试项目', status: 0, memberCount: 5, creatorName: 'admin', createTime: '2026-01-01' },
+            {
+              id: '1',
+              projectName: '测试项目',
+              status: 0,
+              memberCount: 5,
+              creatorName: 'admin',
+              createTime: '2026-01-01'
+            }
           ],
           total: 1,
           page: 1,
-          pageSize: 10,
+          pageSize: 10
         })
       }
       if (url.includes('/members')) {
         return Promise.resolve({
           records: [
-            { id: 'm1', userId: 'u1', userName: '张三', role: 'admin', avatar: '', joinTime: '2026-01-01' },
+            {
+              id: 'm1',
+              userId: 'u1',
+              username: '张三',
+              role: 'admin',
+              avatar: '',
+              joinTime: '2026-01-01'
+            }
           ],
-          total: 1,
+          total: 1
         })
       }
       if (url.includes('/review-config')) {
@@ -36,8 +50,8 @@ vi.mock('@/api/adapter', () => ({
     }),
     post: vi.fn(() => Promise.resolve({ id: 'new-1', projectName: '新建项目' })),
     put: vi.fn(() => Promise.resolve(undefined)),
-    del: vi.fn(() => Promise.resolve(undefined)),
-  }),
+    del: vi.fn(() => Promise.resolve(undefined))
+  })
 }))
 
 describe('project API 函数', () => {
@@ -58,7 +72,7 @@ describe('project API 函数', () => {
     const res = await projectApi.fetchGetProjectMembers('1')
     expect(res).toBeDefined()
     expect(res!.records).toHaveLength(1)
-    expect(res!.records[0].userName).toBe('张三')
+    expect(res!.records[0].username).toBe('张三')
   })
 
   it('fetchGetReviewConfig 应返回审核配置', async () => {
@@ -87,7 +101,9 @@ describe('project API 函数', () => {
   })
 
   it('fetchUpdateProject 应调用 PUT /api/projects/:id', async () => {
-    await expect(projectApi.fetchUpdateProject('1', { projectName: '更新名称' })).resolves.toBeUndefined()
+    await expect(
+      projectApi.fetchUpdateProject('1', { projectName: '更新名称' })
+    ).resolves.toBeUndefined()
   })
 
   it('fetchDeleteProject 应调用 DELETE /api/projects/:id', async () => {
@@ -112,13 +128,21 @@ describe('project API 类型对齐验证', () => {
   })
 
   it('CoverUploadResponse 应使用 coverUrl 字段', () => {
-    const coverResponse: Api.Project.CoverUploadResponse = { coverUrl: 'https://example.com/cover.png' }
+    const coverResponse: Api.Project.CoverUploadResponse = {
+      coverUrl: 'https://example.com/cover.png'
+    }
     expect(coverResponse.coverUrl).toBe('https://example.com/cover.png')
   })
 
   it('ProjectMemberRole 应为 7 种业务角色', () => {
     const roles: Api.Project.ProjectMemberRole[] = [
-      'admin', 'director', 'storyboard', 'art', 'video', 'audio', 'edit'
+      'admin',
+      'director',
+      'storyboard',
+      'art',
+      'video',
+      'audio',
+      'edit'
     ]
     expect(roles).toHaveLength(7)
   })

@@ -11,7 +11,9 @@ export {
   useUpdateProject,
   useDeleteProject,
   useArchiveProject,
+  useUnarchiveProject,
   useRestoreProject,
+  useUpdateProjectStatus,
   useCopyProject,
   useUploadProjectCover,
   useAddProjectMember,
@@ -66,8 +68,8 @@ export {
   useStoryboardImages,
   useSceneList,
   useCreateScene,
-  useUpdateScene,
-  useDeleteScene,
+  // useUpdateScene,  // 已删除：文档 §5.2 未定义 Scene PUT 端点
+  // useDeleteScene,  // 已删除：文档 §5.2 未定义 Scene DELETE 端点
   useReorderStoryboards,
   useDecomposeStoryboard,
   useRebuildStoryboard,
@@ -126,6 +128,7 @@ export {
   useBatchMoveCategory,
   useAiGenerateAsset,
   useImportFromTeam,
+  useImportFromProject,
   useReferenceImages,
   useUploadReferenceImage,
   useDeleteReferenceImage,
@@ -298,40 +301,92 @@ export {
 export { useDataHistoryList, useDataHistoryDetail, useRollbackDataHistory } from './data-history'
 
 // Billing queries
-export { useBillingList, useBillingDetail, useCreateBilling, useUpdateBilling, useToggleBilling, useBillingHistory } from './billing'
+export {
+  useBillingList,
+  useBillingDetail,
+  useCreateBilling,
+  useUpdateBilling,
+  useToggleBilling,
+  useBillingHistory
+} from './billing'
 
 // Video model queries
-export { useVideoModelList, useCreateVideoModel, useUpdateVideoModel, useDeleteVideoModel, useToggleVideoModelStatus } from './video-model'
+export {
+  useVideoModelList,
+  useCreateVideoModel,
+  useUpdateVideoModel,
+  useDeleteVideoModel,
+  useToggleVideoModelStatus
+} from './video-model'
 
 // System manage queries
-export { useAdminUserList, useAdminUserDetail, useUpdateUserStatus, useAdminRoleList, useCreateRole, useUpdateRole, useDeleteRole } from './system-manage'
+export {
+  useAdminUserList,
+  useAdminUserDetail,
+  useUpdateUserStatus,
+  useAdminRoleList,
+  useCreateRole,
+  useUpdateRole,
+  useDeleteRole
+} from './system-manage'
 
 // Platform admin queries
 export {
-  useAdminTeamList, useAdminTeamDetail, useCreateAdminTeam, useUpdateAdminTeam, useDeleteAdminTeam,
-  useSetAdminTeamStatus, useTransferAdminTeamOwner, useAdminTeamMembers,
-  useAdminInviteCodes, useCreateAdminInviteCode, useAdminApplications,
-  useApproveAdminApplication, useRejectAdminApplication,
-  useUpdateAdminMemberStatus, useRevokeAdminInviteCode
+  useAdminTeamList,
+  useAdminTeamDetail,
+  useCreateAdminTeam,
+  useUpdateAdminTeam,
+  useDeleteAdminTeam,
+  useSetAdminTeamStatus,
+  useTransferAdminTeamOwner,
+  useAdminTeamMembers,
+  useAdminInviteCodes,
+  useCreateAdminInviteCode,
+  useAdminApplications,
+  useApproveAdminApplication,
+  useRejectAdminApplication,
+  useUpdateAdminMemberStatus,
+  useRevokeAdminInviteCode
 } from './platform-admin'
 
 // System config queries
 export {
-  useConfigList, useConfigByKey, useConfigByGroup, useCreateConfig, useUpdateConfig,
-  useDeleteConfig, useConfigAuditLog, useRefreshConfigCache,
-  useWebhookList, useCreateWebhook, useUpdateWebhook, useDeleteWebhook, useTestWebhook
+  useConfigList,
+  useConfigByKey,
+  useConfigByGroup,
+  useCreateConfig,
+  useUpdateConfig,
+  useDeleteConfig,
+  useConfigAuditLog,
+  useRefreshConfigCache,
+  useWebhookList,
+  useCreateWebhook,
+  useUpdateWebhook,
+  useDeleteWebhook,
+  useTestWebhook
 } from './system-config'
 
 // Workflow manage queries
 export {
-  useWorkflowList, useWorkflowDetail, useCreateWorkflow, useUpdateWorkflow,
-  useDeleteWorkflow, useToggleWorkflowStatus, useTestWorkflowConnection, useTestAllWorkflowConnections
+  useWorkflowList,
+  useWorkflowDetail,
+  useCreateWorkflow,
+  useUpdateWorkflow,
+  useDeleteWorkflow,
+  useToggleWorkflowStatus,
+  useTestWorkflowConnection,
+  useTestAllWorkflowConnections
 } from './workflow-manage'
 
 // Script asset queries
 export {
-  useScriptAssetList, useScriptAssetDetail, useCreateScriptAsset, useBatchCreateScriptAssets,
-  useUpdateScriptAsset, useDeleteScriptAsset, useUploadScriptAssetImage
+  useScriptAssetList,
+  useScriptAssetDetail,
+  useCreateScriptAsset,
+  useBatchCreateScriptAssets,
+  useUpdateScriptAsset,
+  useDeleteScriptAsset,
+  useUploadScriptAssetImage
 } from './script-asset'
 
 // Script asset keys

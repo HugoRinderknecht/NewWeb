@@ -15,7 +15,7 @@
       <div class="flex-c c-p mr-5 max-sm:mr-[16px]">
         <div class="mr-2.5 text-left max-sm:hidden">
           <span class="block text-sm font-medium text-g-800 truncate leading-tight">{{
-            userInfo.username || userInfo.userName
+            userInfo.username
           }}</span>
           <span class="block mt-0.5 text-xs text-g-500 truncate leading-tight">{{
             roleLabel
@@ -23,7 +23,7 @@
         </div>
         <img
           class="size-8.5 rounded-full max-sm:w-6.5 max-sm:h-6.5"
-          src="@imgs/user/avatar.webp"
+          :src="avatarUrl"
           alt="avatar"
         />
       </div>
@@ -33,11 +33,11 @@
         <div class="flex-c pb-1 px-0">
           <img
             class="w-10 h-10 mr-3 ml-0 overflow-hidden rounded-full float-left"
-            src="@imgs/user/avatar.webp"
+            :src="avatarUrl"
           />
           <div class="w-[calc(100%-60px)] h-full">
             <span class="block text-sm font-medium text-g-800 truncate">{{
-              userInfo.username || userInfo.userName
+              userInfo.username
             }}</span>
             <span class="block mt-0.5 text-xs text-g-500 truncate">{{ userInfo.email }}</span>
           </div>
@@ -75,6 +75,7 @@
   import { useUserStore } from '@/store/modules/user'
   import { WEB_LINKS } from '@/utils/constants'
   import { mittBus } from '@/utils/sys'
+  import { fetchGetAvatarFile } from '@/api/auth'
 
   defineOptions({ name: 'ArtUserMenu' })
 
@@ -83,6 +84,8 @@
 
   const { getUserInfo: userInfo } = storeToRefs(userStore)
   const userMenuPopover = ref()
+  const avatarUrl = ref(new URL('../../../../assets/images/user/avatar.webp', import.meta.url).href)
+  const defaultAvatar = new URL('../../../../assets/images/user/avatar.webp', import.meta.url).href
 
   const roleNameMap: Record<string, string> = {
     platform_admin: '平台管理员',
@@ -95,6 +98,37 @@
     const roles = userInfo.value.roles || []
     if (roles.length === 0) return '未分配角色'
     return roles.map((r: string) => roleNameMap[r] || r).join(' / ')
+  })
+
+  // 加载当前用户头像文件流（文档 §1.8）
+  const loadAvatar = async () => {
+    if (!userInfo.value.id) return
+    try {
+      const blob = await fetchGetAvatarFile()
+      if (blob && blob.size > 0) {
+        if (avatarUrl.value.startsWith('blob:')) {
+          URL.revokeObjectURL(avatarUrl.value)
+        }
+        avatarUrl.value = URL.createObjectURL(blob)
+      }
+    } catch {
+      // 拉取失败时保留默认头像
+      avatarUrl.value = defaultAvatar
+    }
+  }
+
+  watch(
+    () => userInfo.value.id,
+    () => {
+      loadAvatar()
+    },
+    { immediate: true }
+  )
+
+  onBeforeUnmount(() => {
+    if (avatarUrl.value.startsWith('blob:')) {
+      URL.revokeObjectURL(avatarUrl.value)
+    }
   })
 
   /**

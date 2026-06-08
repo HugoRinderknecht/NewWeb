@@ -88,11 +88,11 @@ export function useSetAdminTeamStatus() {
   return useMutation({
     mutationFn: ({
       teamId,
-      data
+      status
     }: {
       teamId: string
-      data: Parameters<typeof fetchSetAdminTeamStatus>[1]
-    }) => fetchSetAdminTeamStatus(teamId, data),
+      status: number
+    }) => fetchSetAdminTeamStatus(teamId, status),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['platform-admin', 'team-list'] })
     }
@@ -105,11 +105,11 @@ export function useTransferAdminTeamOwner() {
   return useMutation({
     mutationFn: ({
       teamId,
-      data
+      newOwnerId
     }: {
       teamId: string
-      data: Parameters<typeof fetchTransferAdminTeamOwner>[1]
-    }) => fetchTransferAdminTeamOwner(teamId, data),
+      newOwnerId: string
+    }) => fetchTransferAdminTeamOwner(teamId, newOwnerId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['platform-admin', 'team-list'] })
     }
@@ -199,7 +199,13 @@ export function useApproveAdminApplication() {
 export function useRejectAdminApplication() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: fetchRejectAdminApplication,
+    mutationFn: ({
+      id,
+      reason
+    }: {
+      id: string
+      reason?: string
+    }) => fetchRejectAdminApplication(id, reason),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['platform-admin', 'applications'] })
     }
@@ -212,11 +218,11 @@ export function useUpdateAdminMemberStatus() {
   return useMutation({
     mutationFn: ({
       id,
-      data
+      status
     }: {
       id: string
-      data: Parameters<typeof fetchUpdateAdminMemberStatus>[1]
-    }) => fetchUpdateAdminMemberStatus(id, data),
+      status: number
+    }) => fetchUpdateAdminMemberStatus(id, status),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['platform-admin', 'team-members'] })
     }

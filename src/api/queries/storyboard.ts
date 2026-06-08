@@ -22,8 +22,6 @@ import {
   fetchReorderStoryboards,
   fetchGetSceneList,
   fetchCreateScene,
-  fetchDeleteScene,
-  fetchUpdateScene,
   fetchDecomposeStoryboard,
   fetchRebuildStoryboard,
   fetchGetScriptStoryboards,
@@ -125,8 +123,8 @@ export function useDeleteStoryboard() {
 export function useBatchDeleteStoryboards() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (payload: { storyboardIds: string[]; projectId?: string; hardDelete?: boolean }) =>
-      fetchBatchDeleteStoryboards(payload.storyboardIds, payload.hardDelete),
+    mutationFn: (payload: { storyboardIds: string[]; projectId?: string }) =>
+      fetchBatchDeleteStoryboards(payload.storyboardIds),
     onSuccess: (_data, variables) => {
       if (variables.projectId) {
         queryClient.invalidateQueries({
@@ -163,8 +161,8 @@ export function useSubmitStoryboardReview() {
 export function useBatchSubmitStoryboardReview() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (payload: { storyboardIds: string[]; note?: string; projectId?: string }) =>
-      fetchBatchSubmitStoryboardReview(payload.storyboardIds, payload.note),
+    mutationFn: (payload: { storyboardIds: string[]; projectId?: string }) =>
+      fetchBatchSubmitStoryboardReview(payload.storyboardIds),
     onSuccess: (_data, variables) => {
       if (variables.projectId) {
         queryClient.invalidateQueries({
@@ -378,37 +376,7 @@ export function useCreateScene() {
   })
 }
 
-/** 更新场景 */
-export function useUpdateScene() {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: (payload: { sceneId: string; params: Partial<Api.Storyboard.CreateSceneParams> }) =>
-      fetchUpdateScene(payload.sceneId, payload.params),
-    onSuccess: (_data, variables) => {
-      if (variables.params.episodeId) {
-        queryClient.invalidateQueries({
-          queryKey: storyboardKeys.scenes(variables.params.episodeId)
-        })
-      }
-    }
-  })
-}
-
-/** 删除场景 */
-export function useDeleteScene() {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: (payload: { sceneId: string; episodeId?: string }) =>
-      fetchDeleteScene(payload.sceneId),
-    onSuccess: (_data, variables) => {
-      if (variables.episodeId) {
-        queryClient.invalidateQueries({
-          queryKey: storyboardKeys.scenes(variables.episodeId)
-        })
-      }
-    }
-  })
-}
+// 已删除文档未定义的端点 hooks: useUpdateScene, useDeleteScene (文档 §5.2 仅定义 GET 和 POST)
 
 /** 分镜排序 */
 export function useReorderStoryboards() {
@@ -416,7 +384,7 @@ export function useReorderStoryboards() {
   return useMutation({
     mutationFn: (payload: {
       sceneId: string
-      items: Array<{ storyboardId: string; newOrder: number }>
+      items: Array<{ storyboardId: string; storyboardNo: number }>
       projectId?: string
     }) => fetchReorderStoryboards(payload.sceneId, payload.items),
     onSuccess: (_data, variables) => {
@@ -429,7 +397,7 @@ export function useReorderStoryboards() {
   })
 }
 
-/** 剧本分镜拆解（AI） */
+/** 剧本分镜拆解（AI，文档 §4.9） */
 export function useDecomposeStoryboard() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -437,14 +405,13 @@ export function useDecomposeStoryboard() {
       projectId: string
       scriptId: string
       episodeId: string
-      styleConfigId?: string
-      force?: boolean
+      params?: Api.Storyboard.StoryboardDecomposeRequest
     }) =>
       fetchDecomposeStoryboard(
         payload.projectId,
         payload.scriptId,
         payload.episodeId,
-        payload.styleConfigId
+        payload.params
       ),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
@@ -454,7 +421,7 @@ export function useDecomposeStoryboard() {
   })
 }
 
-/** 剧本分镜重建（AI） */
+/** 剧本分镜重建（AI，文档 §4.9） */
 export function useRebuildStoryboard() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -462,7 +429,7 @@ export function useRebuildStoryboard() {
       projectId: string
       scriptId: string
       episodeId: string
-      params: Api.Storyboard.RebuildParams & { force?: boolean }
+      params: Api.Storyboard.StoryboardRebuildRequest
     }) =>
       fetchRebuildStoryboard(
         payload.projectId,

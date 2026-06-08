@@ -7,7 +7,9 @@ import {
   fetchUpdateProject,
   fetchDeleteProject,
   fetchArchiveProject,
+  fetchUnarchiveProject,
   fetchRestoreProject,
+  fetchUpdateProjectStatus,
   fetchCopyProject,
   fetchUploadProjectCover,
   fetchGetProjectMembers,
@@ -142,6 +144,29 @@ export function useArchiveProject() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (projectId: string) => fetchArchiveProject(projectId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: projectKeys.all() })
+    }
+  })
+}
+
+/** 解档项目 */
+export function useUnarchiveProject() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (projectId: string) => fetchUnarchiveProject(projectId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: projectKeys.all() })
+    }
+  })
+}
+
+/** 更新项目状态 */
+export function useUpdateProjectStatus() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ projectId, status }: { projectId: string; status: number }) =>
+      fetchUpdateProjectStatus(projectId, status),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: projectKeys.all() })
     }

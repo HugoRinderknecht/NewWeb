@@ -9,7 +9,7 @@ export function fetchGetTeamDetail(teamId: string) {
 }
 
 export function fetchUpdateTeam(teamId: string, params: Api.Team.UpdateTeamParams) {
-  return getApiAdapter().put<Api.Team.TeamDetail>(`/api/teams/${teamId}`, params)
+  return getApiAdapter().put<void>(`/api/teams/${teamId}`, params)
 }
 
 export function fetchSwitchTeam(teamId: string) {

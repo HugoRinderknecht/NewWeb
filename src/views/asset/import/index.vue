@@ -506,7 +506,7 @@
     try {
       await importFromTeamMutation.mutateAsync({
         projectId: projectId.value,
-        teamAssetIds: teamAssetIds
+        params: { teamAssetIds: teamAssetIds }
       })
       importProgressList.value.forEach((item) => {
         item.status = 'success'

@@ -87,12 +87,4 @@ export function fetchGetPermissions(teamId?: string) {
   )
 }
 
-/**
- * ⚠️ 该端点未在 docs/api-overview.md 中列出，可能为平台定制接口。
- * 由 onboarding-dialog 业务使用。请与后端核对后决定是否迁移或保留。
- */
-export function fetchRedeemPlatformCode(code: string) {
-  return getApiAdapter().post<{ success: boolean; message: string }>('/api/auth/redeem-code', {
-    code
-  })
-}
+// 已删除文档未定义的端点 /api/auth/redeem-code (fetchRedeemPlatformCode)

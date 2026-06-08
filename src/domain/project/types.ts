@@ -8,8 +8,8 @@
 
 import type { ListItemBaseViewModel, DetailBaseViewModel } from '../types'
 
-/** 项目状态枚举（前端语义） */
-export type ProjectStatus = 'active' | 'archived' | 'deleted'
+/** 项目状态枚举（前端语义，覆盖后端 0/1/2/3 四种状态值） */
+export type ProjectStatus = 'active' | 'archived' | 'deleted' | 'draft'
 
 /** 项目列表项 ViewModel */
 export interface ProjectListItemViewModel extends ListItemBaseViewModel {

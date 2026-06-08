@@ -38,3 +38,17 @@ export function fixVideoPrompts(
     data
   )
 }
+
+/** 更新视频提示词（文档 §4.10.4：PUT .../video-prompts/{promptId}） */
+export function updateVideoPrompt(
+  projectId: string,
+  scriptId: string,
+  episodeId: string,
+  promptId: string,
+  data: Api.Video.VideoPromptUpdateRequest
+) {
+  return getApiAdapter().put<void>(
+    `/api/projects/${projectId}/scripts/${scriptId}/episodes/${episodeId}/video-prompts/${promptId}`,
+    data
+  )
+}

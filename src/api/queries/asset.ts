@@ -17,6 +17,7 @@ import {
   fetchUploadReferenceImage,
   fetchDeleteReferenceImage,
   fetchImportFromTeam,
+  fetchImportFromProject,
   fetchGetTeamAssets,
   fetchGetTeamAssetCategories
 } from '@/api/asset'
@@ -140,8 +141,8 @@ export function useBatchDeleteAssets() {
 export function useRollbackAsset() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (payload: { projectId: string; assetId: string; versionId: string }) =>
-      fetchRollbackAsset(payload.projectId, payload.assetId, payload.versionId),
+    mutationFn: (payload: { projectId: string; assetId: string; targetVersion: number }) =>
+      fetchRollbackAsset(payload.projectId, payload.assetId, payload.targetVersion),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
         queryKey: assetKeys.detail(variables.projectId, variables.assetId)
@@ -205,8 +206,20 @@ export function useAiGenerateAsset() {
 export function useImportFromTeam() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (payload: { projectId: string; teamAssetIds: string[] }) =>
-      fetchImportFromTeam(payload.projectId, payload.teamAssetIds),
+    mutationFn: (payload: { projectId: string; params: Api.Asset.AssetTransferRequest }) =>
+      fetchImportFromTeam(payload.projectId, payload.params),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: assetKeys.listByProject(variables.projectId) })
+    }
+  })
+}
+
+/** 从项目导入资产 */
+export function useImportFromProject() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: { projectId: string; params: Api.Asset.AssetImportFromProjectRequest }) =>
+      fetchImportFromProject(payload.projectId, payload.params),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: assetKeys.listByProject(variables.projectId) })
     }
@@ -215,14 +228,18 @@ export function useImportFromTeam() {
 
 // ==================== 参考图 ====================
 
-/** 参考图列表 */
-export function useReferenceImages(projectId: MaybeRefOrGetter<string | undefined>) {
+/** 参考图列表（分页） */
+export function useReferenceImages(
+  projectId: MaybeRefOrGetter<string | undefined>,
+  params?: MaybeRefOrGetter<Api.Common.PaginationParams | undefined>
+) {
   return useQuery({
-    queryKey: assetKeys.referenceImages(projectId),
+    queryKey: assetKeys.referenceImages(projectId, params),
     queryFn: async () => {
       const id = toValue(projectId)
-      if (!id) return []
-      return await fetchGetReferenceImages(id)
+      if (!id) return null
+      const res = await fetchGetReferenceImages(id, toValue(params))
+      return res ?? null
     },
     enabled: () => !!toValue(projectId),
     staleTime: 60 * 1000
@@ -233,8 +250,8 @@ export function useReferenceImages(projectId: MaybeRefOrGetter<string | undefine
 export function useUploadReferenceImage() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (payload: { projectId: string; file: File; assetName?: string }) =>
-      fetchUploadReferenceImage(payload.projectId, payload.file, payload.assetName),
+    mutationFn: (payload: { projectId: string; imageUrl: string; imageType?: string }) =>
+      fetchUploadReferenceImage(payload.projectId, payload.imageUrl, payload.imageType),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: assetKeys.referenceImages(variables.projectId) })
     }

@@ -1,12 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { toValue, type MaybeRefOrGetter } from 'vue'
-import {
-  fetchAuditLogList
-} from './audit-log'
-import {
-  fetchGetStorageStats,
-  fetchGetDashboardStats
-} from './dashboard'
+import { fetchAuditLogList, fetchExportAuditLogs } from './audit-log'
+import { fetchGetStorageStats, fetchGetDashboardStats } from './dashboard'
 import {
   fetchBillingConfigList,
   fetchCreateBillingConfig,
@@ -15,15 +10,16 @@ import {
   fetchToggleBillingConfig,
   fetchBillingConfigHistory
 } from './billing-config'
+import { fetchAdminTeamList, fetchAdminTeamDetail } from './team-manage'
+import { fetchAdminUserList, fetchAdminUserDetail, fetchToggleUserStatus } from './user-manage'
 import {
-  fetchGetAdminTeamList,
-  fetchGetAdminTeamDetail
-} from './team-manage'
-import {
-  fetchGetUserList,
-  fetchGetUserDetail,
-  fetchToggleUserStatus
-} from './user-manage'
+  fetchMenuList,
+  fetchCreateMenu,
+  fetchUpdateMenu,
+  fetchDeleteMenu,
+  fetchToggleMenuStatus,
+  fetchReorderMenus
+} from './menus'
 
 // ============================================================
 // 审计日志
@@ -37,6 +33,13 @@ export function useAuditLogList(params?: MaybeRefOrGetter<Record<string, unknown
       const p = toValue(params)
       return await fetchAuditLogList(p as any)
     }
+  })
+}
+
+/** 导出审计日志 */
+export function useExportAuditLogs() {
+  return useMutation({
+    mutationFn: fetchExportAuditLogs
   })
 }
 
@@ -98,8 +101,13 @@ export function useCreateBillingConfig() {
 export function useUpdateBillingConfig() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Parameters<typeof fetchUpdateBillingConfig>[1] }) =>
-      fetchUpdateBillingConfig(id, data),
+    mutationFn: ({
+      id,
+      data
+    }: {
+      id: string
+      data: Parameters<typeof fetchUpdateBillingConfig>[1]
+    }) => fetchUpdateBillingConfig(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'billing-config'] })
     }
@@ -135,7 +143,7 @@ export function useAdminTeamList(params?: MaybeRefOrGetter<Record<string, unknow
     queryKey: ['admin', 'team', 'list', params] as const,
     queryFn: async () => {
       const p = toValue(params)
-      return await fetchGetAdminTeamList(p as any)
+      return await fetchAdminTeamList(p as any)
     }
   })
 }
@@ -144,7 +152,7 @@ export function useAdminTeamList(params?: MaybeRefOrGetter<Record<string, unknow
 export function useAdminTeamDetail(teamId: string) {
   return useQuery({
     queryKey: ['admin', 'team', 'detail', teamId] as const,
-    queryFn: () => fetchGetAdminTeamDetail(teamId)
+    queryFn: () => fetchAdminTeamDetail(teamId)
   })
 }
 
@@ -158,7 +166,7 @@ export function useAdminUserList(params?: MaybeRefOrGetter<Record<string, unknow
     queryKey: ['admin', 'user', 'list', params] as const,
     queryFn: async () => {
       const p = toValue(params)
-      return await fetchGetUserList(p as any)
+      return await fetchAdminUserList(p as any)
     }
   })
 }
@@ -167,7 +175,7 @@ export function useAdminUserList(params?: MaybeRefOrGetter<Record<string, unknow
 export function useAdminUserDetail(id: string) {
   return useQuery({
     queryKey: ['admin', 'user', 'detail', id] as const,
-    queryFn: () => fetchGetUserDetail(id)
+    queryFn: () => fetchAdminUserDetail(id)
   })
 }
 
@@ -179,6 +187,74 @@ export function useToggleAdminUserStatus() {
       fetchToggleUserStatus(id, status),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'user'] })
+    }
+  })
+}
+
+// ============================================================
+// 菜单管理（Admin）
+// ============================================================
+
+/** 菜单列表（树形结构） */
+export function useMenuList() {
+  return useQuery({
+    queryKey: ['admin', 'menu', 'list'] as const,
+    queryFn: () => fetchMenuList()
+  })
+}
+
+/** 创建菜单 */
+export function useCreateMenu() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: fetchCreateMenu,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'menu'] })
+    }
+  })
+}
+
+/** 更新菜单 */
+export function useUpdateMenu() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ menuId, data }: { menuId: string; data: Api.Admin.SysMenuUpdateRequest }) =>
+      fetchUpdateMenu(menuId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'menu'] })
+    }
+  })
+}
+
+/** 删除菜单 */
+export function useDeleteMenu() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: fetchDeleteMenu,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'menu'] })
+    }
+  })
+}
+
+/** 切换菜单启用/禁用状态 */
+export function useToggleMenuStatus() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: fetchToggleMenuStatus,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'menu'] })
+    }
+  })
+}
+
+/** 菜单重排序 */
+export function useReorderMenus() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: fetchReorderMenus,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'menu'] })
     }
   })
 }

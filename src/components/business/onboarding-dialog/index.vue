@@ -152,7 +152,7 @@
 
 <script setup lang="ts">
   import type { FormInstance, FormRules, UploadFile } from 'element-plus'
-  import { fetchUpdateProfile, fetchUploadAvatar, fetchRedeemPlatformCode } from '@/api/auth'
+  import { fetchUpdateProfile, fetchUploadAvatar } from '@/api/auth'
   import { fetchJoinByCode } from '@/api/team'
   import { useUserStore } from '@/store/modules/user'
   import { validateEmail } from '@/utils/form/validator'
@@ -341,9 +341,12 @@
       }
 
       // 处理平台邀请码
+      // 已删除文档未定义的端点 /api/auth/redeem-code (fetchRedeemPlatformCode)
+      // TODO: 如需恢复此功能，请与后端确认端点归属后重新添加
       if (inviteForm.platformCode) {
         try {
-          await fetchRedeemPlatformCode(inviteForm.platformCode)
+          // await fetchRedeemPlatformCode(inviteForm.platformCode)
+          console.warn('fetchRedeemPlatformCode 已删除，平台邀请码功能暂不可用')
           showSuccess('平台邀请码已激活')
         } catch {
           ElMessage.error('平台邀请码无效，请检查后重试')

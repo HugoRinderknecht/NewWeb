@@ -13,12 +13,12 @@ const mockAdapter = {
   post: vi.fn(),
   put: vi.fn(),
   del: vi.fn(),
-  request: vi.fn(),
+  request: vi.fn()
 }
 
 vi.mock('@/api/adapter', () => ({
   getApiAdapter: () => mockAdapter,
-  resetAdapter: vi.fn(),
+  resetAdapter: vi.fn()
 }))
 
 // Mock user store
@@ -30,22 +30,22 @@ const mockUserStore = {
   setToken: vi.fn(),
   setLoginStatus: vi.fn(),
   setUserInfo: vi.fn(),
-  logOut: vi.fn(),
+  logOut: vi.fn()
 }
 
 vi.mock('@/store/modules/user', () => ({
-  useUserStore: () => mockUserStore,
+  useUserStore: () => mockUserStore
 }))
 
 // Mock menu store
 const mockMenuStore = {
   menuList: [],
   setMenuList: vi.fn(),
-  getHomePath: vi.fn(() => '/dashboard'),
+  getHomePath: vi.fn(() => '/dashboard')
 }
 
 vi.mock('@/store/modules/menu', () => ({
-  useMenuStore: () => mockMenuStore,
+  useMenuStore: () => mockMenuStore
 }))
 
 // Import after mocks
@@ -63,12 +63,10 @@ import {
   fetchUpdateProfile,
   fetchUploadAvatar,
   fetchGetAvatar,
-  fetchGetPermissions,
-  fetchRedeemPlatformCode,
+  fetchGetPermissions
 } from '@/api/auth'
 
 describe('认证 API 函数测试', () => {
-
   beforeEach(() => {
     vi.clearAllMocks()
   })
@@ -84,19 +82,19 @@ describe('认证 API 函数测试', () => {
         userId: 'user-123',
         username: 'testuser',
         avatar: 'https://example.com/avatar.png',
-        email: 'test@example.com',
+        email: 'test@example.com'
       })
 
       const result = await fetchLogin({
         account: 'testuser',
-        password: 'password123',
+        password: 'password123'
       })
 
       expect(mockAdapter.post).toHaveBeenCalledWith(
         '/api/auth/login',
         expect.objectContaining({
           account: 'testuser',
-          password: 'password123',
+          password: 'password123'
         })
       )
       expect(result.token).toBe('mock-token')
@@ -106,12 +104,12 @@ describe('认证 API 函数测试', () => {
     it('登录参数不应包含验证码参数（验证码已禁用）', async () => {
       mockAdapter.post.mockResolvedValue({
         token: 'mock-token',
-        refreshToken: 'mock-refresh-token',
+        refreshToken: 'mock-refresh-token'
       })
 
       await fetchLogin({
         account: 'testuser',
-        password: 'password123',
+        password: 'password123'
         // captchaKey 和 captchaCode 不应传递
       })
 
@@ -123,7 +121,7 @@ describe('认证 API 函数测试', () => {
     it('支持可选的 captchaKey 和 captchaCode 参数（类型定义保留）', async () => {
       mockAdapter.post.mockResolvedValue({
         token: 'mock-token',
-        refreshToken: 'mock-refresh-token',
+        refreshToken: 'mock-refresh-token'
       })
 
       // 虽然验证码已禁用，但类型定义仍保留可选参数
@@ -132,7 +130,7 @@ describe('认证 API 函数测试', () => {
         account: 'testuser',
         password: 'password123',
         captchaKey: 'optional-key',
-        captchaCode: 'optional-code',
+        captchaCode: 'optional-code'
       })
 
       const calledParams = mockAdapter.post.mock.calls[0][1]
@@ -145,19 +143,19 @@ describe('认证 API 函数测试', () => {
     it('应正确调用 POST /api/auth/test-login', async () => {
       mockAdapter.post.mockResolvedValue({
         token: 'test-token',
-        refreshToken: 'test-refresh-token',
+        refreshToken: 'test-refresh-token'
       })
 
       await fetchTestLogin({
         account: 'testuser',
-        password: 'password123',
+        password: 'password123'
       })
 
       expect(mockAdapter.post).toHaveBeenCalledWith(
         '/api/auth/test-login',
         expect.objectContaining({
           account: 'testuser',
-          password: 'password123',
+          password: 'password123'
         })
       )
     })
@@ -171,13 +169,13 @@ describe('认证 API 函数测试', () => {
         email: 'new@example.com',
         phone: '13800138000',
         token: 'new-token',
-        refreshToken: 'new-refresh-token',
+        refreshToken: 'new-refresh-token'
       })
 
       const result = await fetchRegister({
         phone: '13800138000',
         password: 'Test1234',
-        autoLogin: false,
+        autoLogin: false
       })
 
       expect(mockAdapter.post).toHaveBeenCalledWith(
@@ -185,7 +183,7 @@ describe('认证 API 函数测试', () => {
         expect.objectContaining({
           phone: '13800138000',
           password: 'Test1234',
-          autoLogin: false,
+          autoLogin: false
         })
       )
       expect(result.id).toBe('new-user-id')
@@ -194,12 +192,12 @@ describe('认证 API 函数测试', () => {
     it('注册参数不应包含验证码参数（验证码已禁用）', async () => {
       mockAdapter.post.mockResolvedValue({
         id: 'new-user-id',
-        token: 'new-token',
+        token: 'new-token'
       })
 
       await fetchRegister({
         phone: '13800138000',
-        password: 'Test1234',
+        password: 'Test1234'
       })
 
       const calledParams = mockAdapter.post.mock.calls[0][1]
@@ -210,14 +208,14 @@ describe('认证 API 函数测试', () => {
     it('支持可选的 captchaKey 和 captchaCode 参数（类型定义保留）', async () => {
       mockAdapter.post.mockResolvedValue({
         id: 'new-user-id',
-        token: 'new-token',
+        token: 'new-token'
       })
 
       await fetchRegister({
         phone: '13800138000',
         password: 'Test1234',
         captchaKey: 'optional-key',
-        captchaCode: 'optional-code',
+        captchaCode: 'optional-code'
       })
 
       const calledParams = mockAdapter.post.mock.calls[0][1]
@@ -240,7 +238,7 @@ describe('认证 API 函数测试', () => {
     it('应正确调用 POST /api/auth/refresh', async () => {
       mockAdapter.post.mockResolvedValue({
         token: 'refreshed-token',
-        refreshToken: 'refreshed-refresh-token',
+        refreshToken: 'refreshed-refresh-token'
       })
 
       const result = await fetchRefresh()
@@ -254,15 +252,14 @@ describe('认证 API 函数测试', () => {
     it('应正确调用 POST /api/auth/refresh-token 并传递 refreshToken', async () => {
       mockAdapter.post.mockResolvedValue({
         token: 'new-token',
-        refreshToken: 'new-refresh-token',
+        refreshToken: 'new-refresh-token'
       })
 
       await fetchRefreshToken('old-refresh-token')
 
-      expect(mockAdapter.post).toHaveBeenCalledWith(
-        '/api/auth/refresh-token',
-        { refreshToken: 'old-refresh-token' }
-      )
+      expect(mockAdapter.post).toHaveBeenCalledWith('/api/auth/refresh-token', {
+        refreshToken: 'old-refresh-token'
+      })
     })
   })
 
@@ -270,7 +267,7 @@ describe('认证 API 函数测试', () => {
     it('应正确调用 GET /api/auth/captcha', async () => {
       mockAdapter.get.mockResolvedValue({
         key: 'captcha-key-123',
-        image: 'data:image/png;base64,...',
+        image: 'data:image/png;base64,...'
       })
 
       const result = await fetchCaptcha()
@@ -283,7 +280,7 @@ describe('认证 API 函数测试', () => {
     it('应支持 captchaKey 和 captchaImage 字段（向后兼容）', async () => {
       mockAdapter.get.mockResolvedValue({
         captchaKey: 'alt-key-format',
-        captchaImage: 'data:image/png;base64,...',
+        captchaImage: 'data:image/png;base64,...'
       })
 
       const result = await fetchCaptcha()
@@ -299,10 +296,9 @@ describe('认证 API 函数测试', () => {
 
       await fetchEmailCaptcha('test@example.com')
 
-      expect(mockAdapter.post).toHaveBeenCalledWith(
-        '/api/auth/captcha/email',
-        { email: 'test@example.com' }
-      )
+      expect(mockAdapter.post).toHaveBeenCalledWith('/api/auth/captcha/email', {
+        email: 'test@example.com'
+      })
     })
   })
 
@@ -313,17 +309,14 @@ describe('认证 API 函数测试', () => {
       await fetchResetPassword({
         email: 'test@example.com',
         captchaCode: '123456',
-        newPassword: 'NewPass123',
+        newPassword: 'NewPass123'
       })
 
-      expect(mockAdapter.post).toHaveBeenCalledWith(
-        '/api/auth/password/reset',
-        {
-          email: 'test@example.com',
-          captchaCode: '123456',
-          newPassword: 'NewPass123',
-        }
-      )
+      expect(mockAdapter.post).toHaveBeenCalledWith('/api/auth/password/reset', {
+        email: 'test@example.com',
+        captchaCode: '123456',
+        newPassword: 'NewPass123'
+      })
     })
   })
 
@@ -335,7 +328,7 @@ describe('认证 API 函数测试', () => {
         email: 'test@example.com',
         phone: '13800138000',
         avatar: 'https://example.com/avatar.png',
-        roles: ['admin'],
+        roles: ['admin']
       }
       mockAdapter.get.mockResolvedValue(mockUserInfo)
 
@@ -350,19 +343,19 @@ describe('认证 API 函数测试', () => {
   describe('fetchUpdateProfile - 更新用户资料接口', () => {
     it('应正确调用 PUT /api/auth/profile', async () => {
       mockAdapter.put.mockResolvedValue({
-        token: 'updated-token',
+        token: 'updated-token'
       })
 
       await fetchUpdateProfile({
         username: 'newname',
-        email: 'new@example.com',
+        email: 'new@example.com'
       })
 
       expect(mockAdapter.put).toHaveBeenCalledWith(
         '/api/auth/profile',
         expect.objectContaining({
           username: 'newname',
-          email: 'new@example.com',
+          email: 'new@example.com'
         })
       )
     })
@@ -373,15 +366,12 @@ describe('认证 API 函数测试', () => {
       const mockFile = new File(['test'], 'avatar.png', { type: 'image/png' })
       mockAdapter.post.mockResolvedValue({
         userId: 'user-123',
-        avatar: 'https://example.com/new-avatar.png',
+        avatar: 'https://example.com/new-avatar.png'
       })
 
       await fetchUploadAvatar(mockFile)
 
-      expect(mockAdapter.post).toHaveBeenCalledWith(
-        '/api/auth/avatar',
-        expect.any(FormData)
-      )
+      expect(mockAdapter.post).toHaveBeenCalledWith('/api/auth/avatar', expect.any(FormData))
     })
   })
 
@@ -390,7 +380,7 @@ describe('认证 API 函数测试', () => {
       mockAdapter.get.mockResolvedValue({
         userId: 'user-123',
         avatar: 'https://example.com/avatar.png',
-        mediaType: 'image/png',
+        mediaType: 'image/png'
       })
 
       const result = await fetchGetAvatar('user-123')
@@ -407,15 +397,12 @@ describe('认证 API 函数测试', () => {
         username: 'testuser',
         roleGroup: 'admin',
         permissions: [],
-        teamInfo: { teamId: 'team-1', teamName: 'Test Team' },
+        teamInfo: { teamId: 'team-1', teamName: 'Test Team' }
       })
 
       const result = await fetchGetPermissions()
 
-      expect(mockAdapter.get).toHaveBeenCalledWith(
-        '/api/auth/permissions',
-        undefined
-      )
+      expect(mockAdapter.get).toHaveBeenCalledWith('/api/auth/permissions', undefined)
       expect(result.teamInfo.teamId).toBe('team-1')
     })
 
@@ -423,34 +410,16 @@ describe('认证 API 函数测试', () => {
       mockAdapter.get.mockResolvedValue({
         userId: 'user-123',
         permissions: [],
-        teamInfo: { teamId: 'team-2', teamName: 'Team 2' },
+        teamInfo: { teamId: 'team-2', teamName: 'Team 2' }
       })
 
       await fetchGetPermissions('team-2')
 
-      expect(mockAdapter.get).toHaveBeenCalledWith(
-        '/api/auth/permissions',
-        { teamId: 'team-2' }
-      )
+      expect(mockAdapter.get).toHaveBeenCalledWith('/api/auth/permissions', { teamId: 'team-2' })
     })
   })
 
-  describe('fetchRedeemPlatformCode - 兑换码接口', () => {
-    it('应正确调用 POST /api/auth/redeem-code', async () => {
-      mockAdapter.post.mockResolvedValue({
-        success: true,
-        message: '兑换成功',
-      })
-
-      const result = await fetchRedeemPlatformCode('CODE123456')
-
-      expect(mockAdapter.post).toHaveBeenCalledWith(
-        '/api/auth/redeem-code',
-        { code: 'CODE123456' }
-      )
-      expect(result.success).toBe(true)
-    })
-  })
+  // 已删除文档未定义的端点 fetchRedeemPlatformCode 测试
 })
 
 describe('认证 API 类型验证', () => {
@@ -464,7 +433,7 @@ describe('认证 API 类型验证', () => {
       userId: 'user-123',
       username: 'testuser',
       avatar: 'https://example.com/avatar.png',
-      email: 'test@example.com',
+      email: 'test@example.com'
     }
 
     expect(response.token).toBeDefined()
@@ -484,7 +453,7 @@ describe('认证 API 类型验证', () => {
       updateTime: '2026-01-01',
       roles: ['user'],
       token: 'token-when-auto-login',
-      refreshToken: 'refresh-token-when-auto-login',
+      refreshToken: 'refresh-token-when-auto-login'
     }
 
     expect(response.token).toBeDefined()
@@ -495,7 +464,7 @@ describe('认证 API 类型验证', () => {
     // 标准格式
     const response1: Api.Auth.CaptchaResponse = {
       key: 'key1',
-      image: 'data:image/png;base64,...',
+      image: 'data:image/png;base64,...'
     }
     expect(response1.key).toBe('key1')
 
@@ -504,7 +473,7 @@ describe('认证 API 类型验证', () => {
       key: 'key2',
       image: 'data:image/png;base64,...',
       captchaKey: 'alt-key',
-      captchaImage: 'alt-image',
+      captchaImage: 'alt-image'
     }
     expect(response2.captchaKey).toBe('alt-key')
   })
@@ -512,7 +481,7 @@ describe('认证 API 类型验证', () => {
   it('UserInfo 应支持可选字段', () => {
     const userInfo: Api.Auth.UserInfo = {
       id: 'user-123',
-      username: 'testuser',
+      username: 'testuser'
     }
 
     expect(userInfo.id).toBe('user-123')

@@ -22,13 +22,18 @@ export function fetchGetVideoTaskDetail(taskId: string) {
   return getApiAdapter().get<Api.Video.VideoTask>(`/api/seedance/tasks/${taskId}`)
 }
 
-export function fetchGetVideoTaskResult(taskId: string, params?: { resolution?: string }) {
+export function fetchGetVideoTaskResult(
+  taskId: string,
+  params?: { projectId: string; resolution?: string }
+) {
   return getApiAdapter().get<Api.Video.VideoTaskResult>(
     `/api/seedance/tasks/${taskId}/result`,
     params
   )
 }
 
-export function fetchCancelVideoTask(taskId: string) {
-  return getApiAdapter().post<void>(`/api/seedance/tasks/${taskId}/cancel`)
+export function fetchCancelVideoTask(taskId: string, projectId: string) {
+  return getApiAdapter().post<void>(`/api/seedance/tasks/${taskId}/cancel`, undefined, {
+    params: { projectId }
+  })
 }

@@ -54,10 +54,10 @@
   const { data: notificationData } = useNotificationList({ current: 1, size: 50 })
   const { data: pendingReviewCount } = usePendingReviewCount()
 
-  // 显示名称：优先使用 username，否则使用 userName
+  // 显示名称：使用 username
   const displayName = computed(() => {
     const info = userStore.info
-    return info?.username || info?.userName || '同学'
+    return info?.username || '同学'
   })
 
   // 问候语：根据当前小时动态生成

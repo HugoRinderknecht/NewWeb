@@ -29,6 +29,10 @@ export const scriptKeys = {
   assetPrompts: (projectId: unknown, scriptId: unknown) => ['scripts', 'asset-prompts', projectId, scriptId] as const,
   assetImages: (projectId: unknown, scriptId: unknown) => ['scripts', 'asset-images', projectId, scriptId] as const,
   videoPrompts: (projectId: unknown, episodeId: unknown) => ['scripts', 'video-prompts', projectId, episodeId] as const,
+  sceneFullDescriptions: (projectId: unknown, scriptId: unknown) =>
+    ['scripts', 'scene-full-descriptions', projectId, scriptId] as const,
+  propFullDescriptions: (projectId: unknown, scriptId: unknown) =>
+    ['scripts', 'prop-full-descriptions', projectId, scriptId] as const,
 }
 
 export const aiProcessKeys = {
@@ -202,9 +206,10 @@ export const pointsKeys = {
 export const characterKeys = {
   all: () => ['characters'] as const,
   lists: () => ['characters', 'list'] as const,
-  list: (projectId: unknown) => ['characters', 'list', projectId] as const,
+  list: (projectId: unknown, params?: unknown) => ['characters', 'list', projectId, params] as const,
   details: () => ['characters', 'detail'] as const,
   detail: (projectId: unknown, characterId: unknown) => ['characters', 'detail', projectId, characterId] as const,
+  byStoryboard: (projectId: unknown, storyboardId: unknown) => ['characters', 'by-storyboard', projectId, storyboardId] as const,
 }
 
 export const authKeys = {
@@ -223,7 +228,7 @@ export const assetKeys = {
   details: () => ['assets', 'detail'] as const,
   detail: (projectId: unknown, assetId: unknown) => ['assets', 'detail', projectId, assetId] as const,
   versions: (projectId: unknown, assetId: unknown) => ['assets', 'versions', projectId, assetId] as const,
-  referenceImages: (projectId: unknown) => ['assets', 'reference-images', projectId] as const,
+  referenceImages: (projectId: unknown, params?: unknown) => ['assets', 'reference-images', projectId, params] as const,
   teamList: (teamId: unknown, params?: unknown) => ['assets', 'team-list', teamId, params] as const,
   teamCategories: (teamId: unknown) => ['assets', 'team-categories', teamId] as const,
 }

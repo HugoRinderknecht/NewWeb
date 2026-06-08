@@ -1,21 +1,6 @@
 import { getApiAdapter } from './adapter'
 
-// ==================== 团队剧本 ====================
-
-/**
- * 查询团队剧本列表(分页)
- * ⚠️ 该端点未在 docs/api-overview.md 中列出，可能为平台扩展接口。
- * 请与后端核对端点归属或更新文档。
- */
-export function fetchGetTeamScripts(
-  teamId: string,
-  params?: { page?: number; pageSize?: number; [key: string]: any }
-) {
-  return getApiAdapter().get<Api.Common.PaginatedResponse<Api.Script.ScriptListItem>>(
-    `/api/teams/${teamId}/scripts`,
-    params
-  )
-}
+// 已删除文档未定义的端点: fetchGetTeamScripts (文档无 /api/teams/{teamId}/scripts 端点)
 
 // ==================== 剧本管理 ====================
 
@@ -381,5 +366,57 @@ export function fetchSetEpisodeChildOf(projectId: string, episodeId: string, chi
     `/api/projects/${projectId}/episodes/${episodeId}/child-of`,
     undefined,
     { params: childOf !== undefined ? { childOf } : undefined }
+  )
+}
+
+// ==================== §4.6 全量描述（FullDesc） ====================
+
+/** 生成角色全量描述（文档 §4.6：POST .../character-full-descriptions） */
+export function fetchGenerateCharacterFullDescriptions(
+  projectId: string,
+  scriptId: string,
+  params?: { episodeIds?: string[]; force?: boolean }
+) {
+  return getApiAdapter().post<Api.Script.AiProcessResult<Api.Script.CharFullDescResultVO>>(
+    `/api/projects/${projectId}/scripts/${scriptId}/character-full-descriptions`,
+    params
+  )
+}
+
+/** 生成场景全量描述（文档 §4.6：POST .../scene-full-descriptions） */
+export function fetchGenerateSceneFullDescriptions(
+  projectId: string,
+  scriptId: string,
+  params?: { episodeIds?: string[]; force?: boolean }
+) {
+  return getApiAdapter().post<Api.Script.AiProcessResult<Api.Script.SceneFullDescResultVO>>(
+    `/api/projects/${projectId}/scripts/${scriptId}/scene-full-descriptions`,
+    params
+  )
+}
+
+/** 生成道具全量描述（文档 §4.6：POST .../prop-full-descriptions） */
+export function fetchGeneratePropFullDescriptions(
+  projectId: string,
+  scriptId: string,
+  params?: { episodeIds?: string[]; force?: boolean }
+) {
+  return getApiAdapter().post<Api.Script.AiProcessResult<Api.Script.PropFullDescResultVO>>(
+    `/api/projects/${projectId}/scripts/${scriptId}/prop-full-descriptions`,
+    params
+  )
+}
+
+/** 获取场景全量描述列表（文档 §4.6：GET .../scene-full-descriptions） */
+export function fetchGetSceneFullDescriptions(projectId: string, scriptId: string) {
+  return getApiAdapter().get<Api.Script.SceneFullDescriptionVO[]>(
+    `/api/projects/${projectId}/scripts/${scriptId}/scene-full-descriptions`
+  )
+}
+
+/** 获取道具全量描述列表（文档 §4.6：GET .../prop-full-descriptions） */
+export function fetchGetPropFullDescriptions(projectId: string, scriptId: string) {
+  return getApiAdapter().get<Api.Script.PropFullDescriptionVO[]>(
+    `/api/projects/${projectId}/scripts/${scriptId}/prop-full-descriptions`
   )
 }

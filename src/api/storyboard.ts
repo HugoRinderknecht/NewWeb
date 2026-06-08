@@ -38,11 +38,10 @@ export function fetchDeleteStoryboard(storyboardId: string) {
   return getApiAdapter().del<void>(`/api/storyboards/${storyboardId}`)
 }
 
-/** ⚠️ hardDelete 参数文档未列出，需与后端确认 */
-export function fetchBatchDeleteStoryboards(storyboardIds: string[], hardDelete?: boolean) {
+/** 批量删除分镜（文档 §5.1：请求体为 StoryboardBatchOperationRequest，仅含 storyboardIds） */
+export function fetchBatchDeleteStoryboards(storyboardIds: string[]) {
   return getApiAdapter().post<void>('/api/storyboards/batch-delete', {
-    storyboardIds,
-    hardDelete: hardDelete ?? false
+    storyboardIds
   })
 }
 
@@ -54,10 +53,10 @@ export function fetchSubmitStoryboardReview(storyboardId: string, note?: string)
   )
 }
 
-export function fetchBatchSubmitStoryboardReview(storyboardIds: string[], note?: string) {
+/** 批量提交分镜审核（文档 §5.1：请求体为 StoryboardBatchOperationRequest，仅含 storyboardIds） */
+export function fetchBatchSubmitStoryboardReview(storyboardIds: string[]) {
   return getApiAdapter().post<void>('/api/storyboards/batch-submit-review', {
-    storyboardIds,
-    note
+    storyboardIds
   })
 }
 
@@ -128,65 +127,56 @@ export function fetchRollbackStoryboardVersion(storyboardId: string, versionId: 
   )
 }
 
+/** 分镜排序（文档 §5.1：PUT /api/scenes/{sceneId}/storyboards/reorder，请求体 StoryboardReorderRequest） */
 export function fetchReorderStoryboards(
   sceneId: string,
-  items: Array<{ storyboardId: string; newOrder: number }>
+  items: Array<{ storyboardId: string; storyboardNo: number }>
 ) {
   return getApiAdapter().put<void>(`/api/scenes/${sceneId}/storyboards/reorder`, { items })
 }
 
-/** ⚠️ 此端点文档未列出，需与后端确认 */
+/** 获取镜头列表（文档 §5.2：GET /api/episodes/{episodeId}/scenes） */
 export function fetchGetSceneList(episodeId: string) {
   return getApiAdapter().get<Api.Storyboard.Scene[]>(`/api/episodes/${episodeId}/scenes`)
 }
 
-/** ⚠️ 此端点文档未列出，需与后端确认 */
+/** 创建镜头（文档 §5.2：POST /api/scenes） */
 export function fetchCreateScene(params: Api.Storyboard.CreateSceneParams) {
   return getApiAdapter().post<Api.Storyboard.Scene>('/api/scenes', params)
 }
 
-/** ⚠️ 此端点文档未列出，需与后端确认 */
-export function fetchDeleteScene(sceneId: string) {
-  return getApiAdapter().del<void>(`/api/scenes/${sceneId}`)
-}
+// 已删除文档未定义的端点: fetchDeleteScene (文档 §5.2 仅定义 GET 和 POST)
+// 已删除文档未定义的端点: fetchUpdateScene (文档 §5.2 仅定义 GET 和 POST)
 
-/** ⚠️ 此端点文档未列出，需与后端确认 */
-export function fetchUpdateScene(
-  sceneId: string,
-  params: Partial<Api.Storyboard.CreateSceneParams>
-) {
-  return getApiAdapter().put<Api.Storyboard.Scene>(`/api/scenes/${sceneId}`, params)
-}
-
-/** ⚠️ 此端点文档未列出，需与后端确认 */
+/** 分镜拆解（文档 §4.9：POST .../storyboard/decompose，请求体 StoryboardDecomposeRequest） */
 export function fetchDecomposeStoryboard(
   projectId: string,
   scriptId: string,
   episodeId: string,
-  styleConfigId?: string
+  params?: Api.Storyboard.StoryboardDecomposeRequest
 ) {
-  return getApiAdapter().post<void>(
+  return getApiAdapter().post<Api.Script.AiProcessResult<Api.Storyboard.StoryboardDecomposeResultVO>>(
     `/api/projects/${projectId}/scripts/${scriptId}/episodes/${episodeId}/storyboard/decompose`,
-    styleConfigId ? { styleConfigId } : undefined
+    params
   )
 }
 
-/** ⚠️ 此端点文档未列出，需与后端确认 */
+/** 分镜重建（文档 §4.9：POST .../storyboard/rebuild，请求体 StoryboardRebuildRequest） */
 export function fetchRebuildStoryboard(
   projectId: string,
   scriptId: string,
   episodeId: string,
-  params: Api.Storyboard.RebuildParams
+  params: Api.Storyboard.StoryboardRebuildRequest
 ) {
-  return getApiAdapter().post<void>(
+  return getApiAdapter().post<Api.Script.AiProcessResult<Api.Storyboard.StoryboardRebuildResultVO>>(
     `/api/projects/${projectId}/scripts/${scriptId}/episodes/${episodeId}/storyboard/rebuild`,
     params
   )
 }
 
-/** ⚠️ 此端点文档未列出，需与后端确认 */
+/** 获取剧本分镜列表（文档 §4.9：GET .../storyboards，返回 List<ScriptStoryboardVO>） */
 export function fetchGetScriptStoryboards(projectId: string, scriptId: string) {
-  return getApiAdapter().get<Api.Storyboard.ScriptStoryboards>(
+  return getApiAdapter().get<Api.Storyboard.ScriptStoryboardVO[]>(
     `/api/projects/${projectId}/scripts/${scriptId}/storyboards`
   )
 }

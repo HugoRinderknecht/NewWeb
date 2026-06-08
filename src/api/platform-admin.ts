@@ -28,16 +28,20 @@ export function fetchDeleteAdminTeam(teamId: string) {
 
 export function fetchSetAdminTeamStatus(
   teamId: string,
-  data: Api.PlatformAdmin.SetTeamStatusParams
+  status: number
 ) {
-  return getApiAdapter().put<void>(`/api/admin/teams/${teamId}/status`, data)
+  return getApiAdapter().put<void>(`/api/admin/teams/${teamId}/status`, undefined, {
+    params: { status }
+  })
 }
 
 export function fetchTransferAdminTeamOwner(
   teamId: string,
-  data: Api.PlatformAdmin.TransferOwnerParams
+  newOwnerId: string
 ) {
-  return getApiAdapter().put<void>(`/api/admin/teams/${teamId}/owner`, data)
+  return getApiAdapter().put<void>(`/api/admin/teams/${teamId}/owner`, undefined, {
+    params: { newOwnerId }
+  })
 }
 
 export function fetchGetAdminTeamMembers(
@@ -82,9 +86,11 @@ export function fetchGetAdminApplications(
 
 export function fetchUpdateAdminMemberStatus(
   id: string,
-  data: Api.PlatformAdmin.UpdateMemberStatusParams
+  status: number
 ) {
-  return getApiAdapter().put<void>(`/api/admin/members/${id}/status`, data)
+  return getApiAdapter().put<void>(`/api/admin/members/${id}/status`, undefined, {
+    params: { status }
+  })
 }
 
 export function fetchApproveAdminApplication(id: string) {
@@ -93,9 +99,13 @@ export function fetchApproveAdminApplication(id: string) {
 
 export function fetchRejectAdminApplication(
   id: string,
-  data?: Api.PlatformAdmin.RejectApplicationParams
+  reason?: string
 ) {
-  return getApiAdapter().put<void>(`/api/admin/applications/${id}/reject`, data)
+  return getApiAdapter().put<void>(
+    `/api/admin/applications/${id}/reject`,
+    undefined,
+    reason ? { params: { reason } } : undefined
+  )
 }
 
 export function fetchRevokeAdminInviteCode(id: string) {
