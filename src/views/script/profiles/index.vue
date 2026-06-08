@@ -64,6 +64,9 @@
               <ArtSvgIcon icon="ri:ai-generate" class="mr-1" />
               {{ generateRecordId !== '' ? 'AI小传生成中...' : 'AI生成小传' }}
             </ElButton>
+            <ElCheckbox v-model="forceGenerate" :disabled="generateRecordId !== ''">
+              强制重新生成
+            </ElCheckbox>
           </ElSpace>
         </div>
       </template>
@@ -253,6 +256,8 @@
   const activeTab = ref('basic')
   /** AI 生成记录 ID，非空时触发状态轮询 */
   const generateRecordId = ref('')
+  /** 是否强制重新生成 */
+  const forceGenerate = ref(false)
 
   // ==================== Vue Query Hooks ====================
   // 与其他页面保持一致：scriptId 使用 computed 包装，确保 queryKey 响应式更新
@@ -484,7 +489,8 @@
           ? '\n\n未选择分集，将处理当前剧本下全部分集。'
           : '\n\n当前剧本暂无可用分集，将基于剧本整体内容处理。'
 
-      await ElMessageBox.confirm(`将调用AI生成人物小传，是否继续？${episodeHint}`, 'AI生成确认', {
+      const forceHint = forceGenerate.value ? '\n\n强制重新生成：已开启，将覆盖已有数据。' : ''
+      await ElMessageBox.confirm(`将调用AI生成人物小传，是否继续？${episodeHint}${forceHint}`, 'AI生成确认', {
         confirmButtonText: '确定生成',
         cancelButtonText: '取消',
         type: 'warning',
@@ -499,15 +505,15 @@
       const res = await generateMutation.mutateAsync({
         projectId: currentProjectId.value,
         scriptId: currentScriptId.value,
-        episodeIds: selectedEpisodeIds.value.length > 0 ? [...selectedEpisodeIds.value] : undefined
+        episodeIds: selectedEpisodeIds.value.length > 0 ? [...selectedEpisodeIds.value] : undefined,
+        force: forceGenerate.value
       })
-      if (res?.status === 'PROCESSING') {
+      const result = res as Api.Script.AiProcessResult<Api.Script.CharacterProfileResult>
+      if (result.status === 'PROCESSING') {
         ElMessage.success('AI生成任务已提交，正在轮询进度...')
-        // 触发统一数据层的 useAiProcessStatus 轮询（recordId 不为空即启用）
-        generateRecordId.value = res?.recordId || `pending-${Date.now()}`
+        generateRecordId.value = result.recordId || `pending-${Date.now()}`
       } else {
         ElMessage.success('人物小传生成完成')
-        // 已有 useGenerateCharacterProfiles 失效缓存，这里仅显式刷新一次
         await characterProfilesQuery.refetch()
       }
     } catch {
@@ -519,9 +525,8 @@
   // 仅依赖统一数据层 useAiProcessStatus 的轮询结果，避免手动 setInterval
   watch(
     () => aiStatusQuery.data.value,
-    (status) => {
-      if (!generateRecordId.value || !status) return
-      const record = status as Api.AiProcess.AiProcessRecord
+    (record) => {
+      if (!generateRecordId.value || !record) return
       if (record.status === 'COMPLETED') {
         generateRecordId.value = ''
         ElMessage.success('人物小传生成完成')
